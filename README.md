@@ -51,6 +51,63 @@ NOTION_PAGE_ID_4=page_id_4_here
 # ... 계속 추가 가능
 ```
 
+## 검색 방법
+
+### 1. FAISS 텍스트 검색
+
+FAISS 인덱스에서 글자 기반 검색을 수행할 수 있습니다:
+
+```python
+from text_search_from_faiss import FAISSTextSearcher
+
+# 검색기 초기화
+searcher = FAISSTextSearcher("notion_faiss_index")
+
+# 1. 정확한 텍스트 검색
+results = searcher.search_by_text("YBIGTA", top_k=5)
+
+# 2. 정규표현식 검색
+results = searcher.search_by_regex(r"\b[A-Z]{2,}\b", top_k=5)
+
+# 3. 키워드 검색
+results = searcher.search_by_keywords(["프로젝트", "개발", "AI"], operator="OR")
+```
+
+### 2. Elasticsearch 변환
+
+FAISS 인덱스를 Elasticsearch로 변환하여 더 강력한 검색 기능을 사용할 수 있습니다:
+
+```python
+from faiss_to_elasticsearch import FAISSToElasticsearchConverter
+
+# 변환기 초기화
+converter = FAISSToElasticsearchConverter("notion_faiss_index")
+
+# Elasticsearch로 변환
+converter.convert_to_elasticsearch()
+
+# 검색 수행
+results = converter.search_by_text("YBIGTA", top_k=5)
+results = converter.search_by_vector(query_vector, top_k=5)
+results = converter.hybrid_search("YBIGTA", query_vector, top_k=5)
+```
+
+### 3. Elasticsearch 설치 및 설정
+
+```bash
+# Docker로 Elasticsearch 실행
+docker run -d \
+  --name elasticsearch \
+  -p 9200:9200 \
+  -p 9300:9300 \
+  -e "discovery.type=single-node" \
+  -e "xpack.security.enabled=false" \
+  elasticsearch:8.17.0
+
+# 또는 Docker Compose 사용
+docker-compose up -d elasticsearch
+```
+
 ## 주요 변경사항
 
 - **Upstage API 임베딩**: OpenAI 대신 Upstage Solar 임베딩 모델 사용
@@ -60,3 +117,5 @@ NOTION_PAGE_ID_4=page_id_4_here
 - **동적 페이지 ID**: 환경 변수에서 자동으로 모든 페이지 ID를 찾아서 로드
 - **향상된 텍스트 추출**: 다양한 Notion 블록 타입 지원 (제목, 단락, 목록, 인용구, 코드 등)
 - **재귀적 블록 탐색**: 모든 하위 블록을 자동으로 탐색하여 완전한 내용 추출
+- **텍스트 기반 검색**: FAISS 인덱스에서 글자 기반 검색 지원
+- **Elasticsearch 변환**: FAISS를 Elasticsearch로 변환하여 하이브리드 검색 지원
