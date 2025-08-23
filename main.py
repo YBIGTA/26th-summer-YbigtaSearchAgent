@@ -4,18 +4,51 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Tuple
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
-# csv와 datetime 라이브러리를 추가합니다.
+from openai import OpenAI
 import csv
 from datetime import datetime
+import os
 
 # --- (기존 setup 및 app 초기화 코드는 동일) ---
 load_dotenv()
-embeddings = OpenAIEmbeddings()
-vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+
+# Upstage API 클라이언트 설정
+upstage_client = OpenAI(
+    api_key=os.getenv("UPSTAGE_API_KEY"),
+    base_url="https://api.upstage.ai/v1"
+)
+
+# 커스텀 Upstage 임베딩 클래스
+class UpstageEmbeddings:
+    def __init__(self, client, model="embedding-query"):
+        self.client = client
+        self.model = model
+    
+    def embed_documents(self, texts: List[str]) -> List[List[float]]:
+        """문서들을 임베딩합니다."""
+        embeddings = []
+        for text in texts:
+            response = self.client.embeddings.create(
+                input=text,
+                model=self.model
+            )
+            embeddings.append(response.data[0].embedding)
+        return embeddings
+    
+    def embed_query(self, text: str) -> List[float]:
+        """쿼리를 임베딩합니다."""
+        response = self.client.embeddings.create(
+            input=text,
+            model=self.model
+        )
+        return response.data[0].embedding
+
+# Upstage 임베딩 인스턴스 생성
+embeddings = UpstageEmbeddings(upstage_client)
+vectorstore = FAISS.load_local("notion_faiss_index", embeddings, allow_dangerous_deserialization=True)
 llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
 qa_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
