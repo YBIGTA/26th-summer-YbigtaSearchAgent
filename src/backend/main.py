@@ -7,7 +7,7 @@ from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 import os
 import sys
 import uuid
@@ -242,11 +242,18 @@ async def upload_audio(file: UploadFile = File(...)):
 async def process_stt_enhanced(request: STTRequest):
     """고급 STT 처리 (화자 분리 포함)"""
     try:
-        # 파일 경로 조회
-        file_path = f"data/audio/sample_{request.file_id}.wav"
+        # 파일 경로 조회 (TODO: 실제로는 DB에서 조회해야 함)
+        # 임시로 업로드된 파일명으로 찾기
+        if request.file_id == 1:
+            file_path = "data/audio/test_audio.wav"
+        else:
+            file_path = f"data/audio/sample_{request.file_id}.wav"
         
+        print(f"DEBUG: Looking for file at: {file_path}")
+        print(f"DEBUG: File exists: {os.path.exists(file_path)}")
+        print(f"DEBUG: Current working directory: {os.getcwd()}")
         if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="오디오 파일을 찾을 수 없습니다.")
+            raise HTTPException(status_code=404, detail=f"오디오 파일을 찾을 수 없습니다: {file_path}")
         
         # STT 처리
         stt_result = stt_manager.transcribe(file_path, request.engine, request.language)

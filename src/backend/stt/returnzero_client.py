@@ -13,8 +13,8 @@ from datetime import datetime, timedelta
 
 class ReturnZeroSTTClient:
     def __init__(self, client_id: str = None, client_secret: str = None):
-        self.client_id = client_id or os.getenv("RETURNZERO_CLIENT_ID")
-        self.client_secret = client_secret or os.getenv("RETURNZERO_CLIENT_SECRET")
+        self.client_id = client_id or os.getenv("RETURNZERO_USER_KEY") or os.getenv("RETURNZERO_CLIENT_ID")
+        self.client_secret = client_secret or os.getenv("RETURNZERO_USER_SECRET") or os.getenv("RETURNZERO_CLIENT_SECRET")
         self.base_url = "https://openapi.vito.ai/v1"
         
         if not self.client_id or not self.client_secret:
