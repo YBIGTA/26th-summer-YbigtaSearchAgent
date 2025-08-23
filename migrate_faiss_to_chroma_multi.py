@@ -181,3 +181,5 @@ python migrate_faiss_to_chroma_multi.py \
   --normalize \
   --batch 1024
 '''
+
+# python migrate_faiss_to_chroma_multi.py   --faiss_dirs gdrive_faiss_index notion_faiss_index    --labels gdrive notion   --chroma_dir ./chroma_all --collection all --space cosine --normalize   --batch 1024
