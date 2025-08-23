@@ -1,5 +1,6 @@
-# main.py (피드백 기능 추가 버전)
+# main.py
 
+import os # os 라이브러리 import
 from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Tuple
@@ -8,26 +9,36 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
-# csv와 datetime 라이브러리를 추가합니다.
 import csv
 from datetime import datetime
 
-# --- (기존 setup 및 app 초기화 코드는 동일) ---
+# --- 설정(Setup) 부분 ---
 load_dotenv()
+
+# 임베딩 모델은 기존 OpenAI 모델을 그대로 사용합니다. (참고 사항 확인)
 embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
-llm = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0)
+
+# 👇 LLM(언어 모델)을 Upstage Solar로 변경하는 부분
+llm = ChatOpenAI(
+    model_name="solar-pro2",
+    temperature=0,
+    api_key=os.getenv("UPSTAGE_API_KEY"),
+    base_url="https://api.upstage.ai/v1"
+)
+
+# 최종 RAG 체인을 구성합니다.
 qa_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
     retriever=vectorstore.as_retriever()
 )
+
 app = FastAPI()
 
 class ConversationRequest(BaseModel):
     query: str
     chat_history: List[Tuple[str, str]] = []
 
-# --- (기존 /conversation 경로는 동일) ---
 @app.post("/conversation")
 def ask_conversation(request: ConversationRequest):
     result = qa_chain.invoke({
@@ -36,7 +47,7 @@ def ask_conversation(request: ConversationRequest):
     })
     return {"answer": result.get("answer")}
 
-# --- 👇 새로운 피드백 API 엔드포인트 추가 👇 ---
+# --- (피드백 API 및 루트 경로는 기존과 동일) ---
 class FeedbackRequest(BaseModel):
     query: str
     answer: str
@@ -44,18 +55,11 @@ class FeedbackRequest(BaseModel):
 
 @app.post("/feedback")
 def receive_feedback(request: FeedbackRequest):
-    """
-    사용자 피드백을 받아 'feedback_log.csv' 파일에 저장합니다.
-    """
-    # 파일이 없으면 헤더와 함께 새로 생성합니다.
     try:
         with open("feedback_log.csv", "a", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
-            # 파일이 비어있으면 헤더를 작성합니다.
             if f.tell() == 0:
                 writer.writerow(["timestamp", "query", "answer", "feedback"])
-
-            # 데이터 행을 작성합니다.
             writer.writerow([
                 datetime.now().isoformat(),
                 request.query,
