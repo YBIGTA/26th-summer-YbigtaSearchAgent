@@ -11,6 +11,8 @@ from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
 import csv
 from datetime import datetime
+import logging
+from logging.handlers import RotatingFileHandler
 
 # --- 설정(Setup) 부분 ---
 load_dotenv()
@@ -33,6 +35,14 @@ qa_chain = ConversationalRetrievalChain.from_llm(
     retriever=vectorstore.as_retriever()
 )
 
+# --- 로깅 설정 ---
+logger = logging.getLogger("rag-logger")
+logger.setLevel(logging.INFO)
+handler = RotatingFileHandler("rag_usage.log", maxBytes=5_000_000, backupCount=3, encoding="utf-8")
+formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(message)s")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
+
 app = FastAPI()
 
 class ConversationRequest(BaseModel):
@@ -45,7 +55,18 @@ def ask_conversation(request: ConversationRequest):
         "question": request.query,
         "chat_history": request.chat_history
     })
-    return {"answer": result.get("answer")}
+    answer = result.get("answer")
+
+    # --- 토큰 사용량 로깅 ---
+    metadata = result.get("source_documents", None)  # 보통 여기에 문서 출처
+    response_metadata = result.get("response_metadata", {})  # 여기에 usage 정보가 들어올 수 있음
+    usage = response_metadata.get("token_usage") or response_metadata.get("usage")
+
+    logger.info(
+        f"query='{request.query}' | answer_len={len(answer)} "
+        f"| usage={usage}"
+    )
+    return {"answer": answer}
 
 # --- (피드백 API 및 루트 경로는 기존과 동일) ---
 class FeedbackRequest(BaseModel):
