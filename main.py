@@ -7,6 +7,7 @@ from typing import List, Tuple
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings
 from langchain.chains import ConversationalRetrievalChain
 import csv
 from datetime import datetime
@@ -27,6 +28,12 @@ llm = ChatOpenAI(
     api_key=os.getenv("UPSTAGE_API_KEY"),
     base_url="https://api.upstage.ai/v1"
 )
+# 1) 인덱스 차원 확인
+print("FAISS index dim:", vectorstore.index.d)
+
+# 2) 현재 임베딩 함수의 출력 차원 확인
+test_dim = len(embeddings.embed_query("ping"))
+print("Embedding dim now:", test_dim)
 
 # 최종 RAG 체인을 구성합니다.
 qa_chain = ConversationalRetrievalChain.from_llm(
