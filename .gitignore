@@ -122,11 +122,7 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-# Vector databases and indexes
-faiss_index/
-*.faiss
-*.pkl
-*.index
+
 
 # Docker
 .dockerignore
@@ -170,3 +166,5 @@ tmp/
 # *.pt
 # *.h5
 # *.pb
+
+myenv/

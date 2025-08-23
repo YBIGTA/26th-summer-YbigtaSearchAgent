@@ -5,7 +5,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List, Tuple
 from dotenv import load_dotenv
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_openai import ChatOpenAI
 from langchain.chains import ConversationalRetrievalChain
