@@ -12,13 +12,17 @@ import csv
 from datetime import datetime
 import logging
 from logging.handlers import RotatingFileHandler
+from langchain_upstage import UpstageEmbeddings
+from langchain.retrievers import EnsembleRetriever 
 
 # --- 설정(Setup) 부분 ---
 load_dotenv()
 
 # 임베딩 모델은 기존 OpenAI 모델을 그대로 사용합니다. (참고 사항 확인)
-embeddings = OpenAIEmbeddings()
-vectorstore = FAISS.load_local("faiss_index", embeddings, allow_dangerous_deserialization=True)
+embeddings = UpstageEmbeddings(    
+    api_key=os.getenv("UPSTAGE_API_KEY"),
+    model="embedding-query"
+)
 
 # 👇 LLM(언어 모델)을 Upstage Solar로 변경하는 부분
 llm = ChatOpenAI(
@@ -28,11 +32,25 @@ llm = ChatOpenAI(
     base_url="https://api.upstage.ai/v1"
 )
 
-# 최종 RAG 체인을 구성합니다.
+# 두 개의 Vectorstore 불러오기
+notion_vs = FAISS.load_local("notion_faiss_index", embeddings, allow_dangerous_deserialization=True)
+gdrive_vs = FAISS.load_local("gdrive_faiss_index", embeddings, allow_dangerous_deserialization=True)
+
+# retriever를 Ensemble로 묶기
+retriever = EnsembleRetriever(
+    retrievers=[
+        notion_vs.as_retriever(search_kwargs={"k": 3}),
+        gdrive_vs.as_retriever(search_kwargs={"k": 3})
+    ],
+    weights=[0.5, 0.5]   # 👈 필요하면 가중치 조정 (예: [0.7, 0.3])
+)
+
+# Conversational Retrieval Chain 구성
 qa_chain = ConversationalRetrievalChain.from_llm(
     llm=llm,
-    retriever=vectorstore.as_retriever()
+    retriever=retriever
 )
+
 
 # --- 로깅 설정 ---
 logger = logging.getLogger("rag-logger")

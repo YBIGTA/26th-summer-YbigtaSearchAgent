@@ -28,7 +28,7 @@ if user_question := st.chat_input("질문을 입력하세요..."):
         try:
             # --- (API 요청 부분은 기존과 동일) ---
             response = requests.post(
-                "http://backend:8000/conversation",
+                "http://localhost:8000/conversation",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({
                     "query": user_question,
@@ -49,7 +49,7 @@ if user_question := st.chat_input("질문을 입력하세요..."):
                     with col1:
                         if st.button("👍", key=f"good_{len(st.session_state.chat_history)}"):
                             requests.post(
-                                "http://backend:8000/feedback",
+                                "http://localhost:8000/feedback",
                                 json={"query": user_question, "answer": ai_answer, "feedback": "good"}
                             )
                             st.toast("피드백 감사합니다! 😊")
@@ -57,7 +57,7 @@ if user_question := st.chat_input("질문을 입력하세요..."):
                     with col2:
                         if st.button("👎", key=f"bad_{len(st.session_state.chat_history)}"):
                             requests.post(
-                                "http://backend:8000/feedback",
+                                "http://localhost:8000/feedback",
                                 json={"query": user_question, "answer": ai_answer, "feedback": "bad"}
                             )
                             st.toast("개선에 참고하겠습니다! 🙇")
