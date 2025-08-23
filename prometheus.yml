@@ -1,0 +1,8 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "fastapi"
+    static_configs:
+      # Docker 컨테이너(Prometheus)에서 로컬 호스트의 FastAPI로 접근
+      - targets: ["host.docker.internal:8000"]
