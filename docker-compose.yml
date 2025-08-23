@@ -25,3 +25,14 @@ services:
       - "8501:8501"
     depends_on:
       - backend # 백엔드 서비스가 먼저 실행되도록 보장합니다.
+
+      
+  # 벡터 DB (ChromaDB) 서비스 정의
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chromadb
+    ports:
+      - "8001:8000"   # 호스트 8001 → 컨테이너 8000
+    volumes:
+      - ./chroma:/chroma/data   # 영구 저장을 위한 볼륨 마운트
+    restart: unless-stopped
