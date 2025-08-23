@@ -1,7 +1,31 @@
 {
   "permissions": {
     "allow": [
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "Bash(rm:*)",
+      "Bash(touch:*)",
+      "Bash(chmod:*)",
+      "Bash(ls:*)",
+      "Bash(true)",
+      "Bash(docker build:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker run:*)",
+      "Bash(curl:*)",
+      "Bash(node:*)",
+      "Bash(python:*)",
+      "Bash(source:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(docker:*)",
+      "Bash(DOCKER_BUILDKIT=1 docker-compose up --build)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run build:*)",
+      "Bash(ss:*)",
+      "Bash(pkill:*)"
     ],
     "deny": []
   }
