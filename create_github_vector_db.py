@@ -12,13 +12,21 @@ from langchain_core.documents import Document
 from langchain_community.document_loaders import UnstructuredFileLoader
 from typing import List
 
+# --- Python 버전 확인 ---
+if sys.version_info < (3, 10):
+    print("="*50)
+    print("🚨 오류: 이 스크립트는 Python 3.10 이상이 필요합니다.")
+    print(f"현재 사용 중인 Python 버전은 {sys.version} 입니다.")
+    print("가상환경의 파이썬 버전을 3.10 이상으로 업그레이드해주세요.")
+    print("="*50)
+    sys.exit(1)
+
 # --- 설정 (Configuration) ---
 load_dotenv()
 ORG_NAME = "YBIGTA"
 TEMP_REPOS_DIR = "temp_github_repos"
 GENERATED_READMES_DIR = "generated_readmes"
 FAISS_INDEX_PATH = "github_faiss_index"
-# 이미 처리한 리포지토리를 기록할 캐시 파일
 PROCESSED_REPOS_CACHE = "processed_repos_cache.json"
 
 # --- 맞춤 임베딩 클래스 ---
@@ -66,17 +74,13 @@ class CustomUpstageEmbeddings(Embeddings):
 def update_vectorstore(vectorstore, documents, embeddings):
     if not documents:
         return vectorstore
-
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     split_docs = text_splitter.split_documents(documents)
-    
     print(f"\n💾 {len(documents)}개의 README를 {len(split_docs)}개의 청크로 분할하여 Vector DB에 추가/저장합니다...")
-    
     if vectorstore is None:
         vectorstore = FAISS.from_documents(split_docs, embeddings)
     else:
         vectorstore.add_documents(split_docs)
-    
     vectorstore.save_local(FAISS_INDEX_PATH)
     print("💾 저장 완료.")
     return vectorstore
@@ -85,11 +89,9 @@ def update_vectorstore(vectorstore, documents, embeddings):
 print("="*50)
 print("GitHub README 생성 및 Vector DB 구축 스크립트를 시작합니다.")
 
-# 1. 필요 폴더 생성
 os.makedirs(TEMP_REPOS_DIR, exist_ok=True)
 os.makedirs(GENERATED_READMES_DIR, exist_ok=True)
 
-# 2. 임베딩 모델 및 기존 DB/캐시 로드
 embeddings = CustomUpstageEmbeddings(model="embedding-passage")
 vectorstore = None
 if os.path.exists(FAISS_INDEX_PATH):
@@ -97,8 +99,10 @@ if os.path.exists(FAISS_INDEX_PATH):
         vectorstore = FAISS.load_local(FAISS_INDEX_PATH, embeddings, allow_dangerous_deserialization=True)
         print(f"✅ 기존 '{FAISS_INDEX_PATH}' 인덱스를 불러왔습니다.")
     except Exception as e:
-        print(f"⚠️ 기존 인덱스 로드 실패: {e}. 새로 생성합니다.")
+        print(f"⚠️ 기존 인덱스 로드 실패 (모델 비호환 가능성): {e}")
+        print(f"🔥 기존 '{FAISS_INDEX_PATH}' 인덱스를 삭제하고 새로 생성합니다.")
         shutil.rmtree(FAISS_INDEX_PATH)
+        vectorstore = None
 
 if os.path.exists(PROCESSED_REPOS_CACHE):
     with open(PROCESSED_REPOS_CACHE, 'r', encoding='utf-8') as f:
@@ -107,7 +111,6 @@ if os.path.exists(PROCESSED_REPOS_CACHE):
 else:
     processed_repos = set()
 
-# 3. GitHub 리포지토리 목록 가져오기
 def get_all_repos_from_org(org_name):
     repos = []
     page = 1
@@ -115,7 +118,6 @@ def get_all_repos_from_org(org_name):
     headers = {"Accept": "application/vnd.github.v3+json"}
     if github_token:
         headers["Authorization"] = f"token {github_token}"
-
     while True:
         url = f"https://api.github.com/orgs/{org_name}/repos?type=public&page={page}&per_page=100"
         response = requests.get(url, headers=headers)
@@ -133,8 +135,6 @@ try:
     all_repos = get_all_repos_from_org(ORG_NAME)
     print(f"🔍 총 {len(all_repos)}개의 리포지토리를 발견했습니다.")
 
-    newly_processed_docs = []
-
     for repo_url, repo_name in all_repos:
         print("-" * 50)
         
@@ -147,34 +147,34 @@ try:
         output_readme_path = os.path.join(GENERATED_READMES_DIR, f"{repo_name}_README.md")
 
         try:
-            # 1. Git Clone
             print(f"  - 📂 '{repo_name}'를 복제합니다...")
             if os.path.exists(repo_path):
                 shutil.rmtree(repo_path)
             subprocess.run(["git", "clone", "--depth", "1", repo_url, repo_path], check=True, capture_output=True)
 
-            # 2. readme-ai 실행 (Upstage Solar 모델 사용)
-            print(f"  - 🤖 readme-ai(Upstage Solar)로 README를 생성합니다...")
-            # 👇 [수정] 'readme-ai' 직접 호출 대신 'python -m readmeai.cli.main'을 사용합니다.
+            print(f"  - 🤖 readme-ai(OpenAI)로 README를 생성합니다...")
+            
+            readme_env = os.environ.copy()
+            if not os.getenv("OPENAI_API_KEY"):
+                 print("  - 🚨 실패! .env 파일에 OPENAI_API_KEY가 설정되지 않았습니다.")
+                 continue
+            
+            readme_env["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
+
             readme_command = [
-                sys.executable,
-                "-m",
-                "readmeai.cli.main",
-                "--model", "solar-1-mini", 
-                "--endpoint", "https://api.upstage.ai/v1/chat/completions",
+                sys.executable, "-m", "readmeai.cli.main",
+                "--api", "openai",
+                "--model", "gpt-4o-mini",
                 "--repository", repo_path,
                 "--output", output_readme_path
             ]
-            result = subprocess.run(readme_command, capture_output=True, text=True, check=True)
+            result = subprocess.run(readme_command, capture_output=True, text=True, check=True, env=readme_env)
             print(f"  - ✅ README 생성 성공!")
 
-            # 3. 생성된 README 로드
             loader = UnstructuredFileLoader(output_readme_path)
             doc = loader.load()[0]
             doc.metadata['source'] = f"https://github.com/{ORG_NAME}/{repo_name}"
-            newly_processed_docs.append(doc)
-
-            # 4. 처리 완료 후 캐시에 기록 및 DB에 즉시 저장
+            
             processed_repos.add(repo_name)
             vectorstore = update_vectorstore(vectorstore, [doc], embeddings)
 
@@ -184,7 +184,6 @@ try:
         except Exception as e:
             print(f"  - 🚨 실패! '{repo_name}' 처리 중 예상치 못한 오류 발생: {e}")
         finally:
-            # 5. 임시 클론 폴더 삭제
             if os.path.exists(repo_path):
                 print(f"  - 🧹 '{repo_name}' 임시 폴더를 삭제합니다.")
                 shutil.rmtree(repo_path)
@@ -193,7 +192,6 @@ except Exception as e:
     print(f"\n🚨 스크립트 실행 중 치명적인 오류 발생: {e}")
 
 finally:
-    # 6. 최종 캐시 파일 저장
     print("="*50)
     print("최종 정리 및 저장을 수행합니다...")
     with open(PROCESSED_REPOS_CACHE, 'w', encoding='utf-8') as f:

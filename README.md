@@ -5,6 +5,9 @@
 1. ✅ YBIGTA Notion을 데이터베이스화하여 API와 연동한 뒤 .Env에 notion api key와 database key 저장
 2. ✅ 로봇 계정 만들고 gdrive-credentials.json 받기
 3. ✅ .env에 드라이브 폴더 id 저장
+ 
+ ## 주의 사항
+ This project requires Python >= 3.10
 
 ## 환경 변수 설정
 
