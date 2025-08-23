@@ -15,6 +15,7 @@ google-auth-oauthlib
 unstructured
 readmeai
 tiktoken<0.5.0
+"unstructured[md]"
 
 # Backend API
 fastapi
