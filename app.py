@@ -1,4 +1,4 @@
-# app.py (피드백 기능 추가 버전)
+# app.py (Upstage API 연동 버전)
 
 import streamlit as st
 import requests
