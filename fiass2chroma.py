@@ -272,7 +272,7 @@ if __name__ == "__main__":
 
 '''
 아래 코드로 실행
-python migrate_faiss_to_chroma.py \
+python fiass2chroma.py \
   --chroma-dir ./chroma_store \
   --collection-name my_collection \
   --gdrive-faiss-dir ./gdrive_faiss_index \
