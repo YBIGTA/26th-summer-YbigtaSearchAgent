@@ -1,0 +1,47 @@
+# Multi-stage build for backend optimization
+FROM python:3.11-slim as base
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV UV_SYSTEM_PYTHON=1
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install UV for faster package management
+RUN pip install uv
+
+# Dependencies stage
+FROM base as dependencies
+
+WORKDIR /app
+
+# Copy only dependency files first (for better caching)
+COPY requirements-minimal.txt pyproject.toml ./
+
+# Install dependencies (this layer will be cached if requirements don't change)
+RUN uv pip install --system -r requirements-minimal.txt
+
+# Application stage
+FROM dependencies as app
+
+# Create necessary directories
+RUN mkdir -p data/db data/cache data/indexes data/audio
+
+# Copy source code (this layer changes more frequently)
+COPY src/ ./src/
+COPY .env.example ./.env
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8000/ || exit 1
+
+# Run the application
+CMD ["python", "src/backend/main.py"]
