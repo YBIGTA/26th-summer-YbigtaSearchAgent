@@ -39,7 +39,10 @@ jobs:
 
       # 5. Vector DB 생성 스크립트 실행 (모든 Secret 전달)
       - name: Create Vector DB
-        run: python create_vector_db.py
+        run: |
+          python create_notion_vector_db.py
+          python create_gdrive_vector_db.py
+          python create_github_vector_db.py
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
@@ -51,10 +54,17 @@ jobs:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
 
-      # 6. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
+      # 6. Migrate FAISS to Chroma
+      - name: Migrate FAISS to Chroma
+        run: |
+          python nf2c.py --faiss_dir notion_faiss_index --chroma_dir chroma_notion --collection notion --normalize
+          python nf2c.py --faiss_dir gdrive_faiss_index --chroma_dir chroma_gdrive --collection gdrive --normalize
+          python nf2c.py --faiss_dir github_faiss_index --chroma_dir chroma_github --collection github --normalize
+
+      # 7. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
       - name: Commit and push if it changed
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add faiss_index/
+          git add chroma_*/
           git diff --staged --quiet || (git commit -m "Update Vector DB" && git push)
