@@ -122,6 +122,8 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+
+
 # Docker
 .dockerignore
 
@@ -164,3 +166,5 @@ tmp/
 # *.pt
 # *.h5
 # *.pb
+
+myenv/
