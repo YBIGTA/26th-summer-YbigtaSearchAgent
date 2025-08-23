@@ -37,15 +37,33 @@ jobs:
         run: echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > gdrive-credentials.json
         shell: bash
 
-      # 5. Vector DB 생성 스크립트 실행 (모든 Secret 전달)
+      # 5. Vector DB 생성 스크립트 실행 & 마이그레이션  
       - name: Create Vector DB
         run: |
           python create_notion_vector_db.py
           python create_gdrive_vector_db.py
           python create_github_vector_db.py
+          python migrate_faiss_to_chroma_multi.py \
+            --faiss_dirs gdrive_faiss_index notion_faiss_index github_faiss_index \
+            --labels gdrive notion github \
+            --chroma_dir ./chroma_all \
+            --collection all \
+            --space cosine \
+            --normalize \
+            --batch 1024
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPSTAGE_API_KEY: ${{ secrets.UPSTAGE_API_KEY }}
+          UPSTAGE_API_KEY1: ${{ secrets.UPSTAGE_API_KEY1 }}
+          UPSTAGE_API_KEY2: ${{ secrets.UPSTAGE_API_KEY2 }}
+          UPSTAGE_API_KEY3: ${{ secrets.UPSTAGE_API_KEY3 }}
+          UPSTAGE_API_KEY4: ${{ secrets.UPSTAGE_API_KEY4 }}
+          UPSTAGE_API_KEY5: ${{ secrets.UPSTAGE_API_KEY5 }}
+          UPSTAGE_API_KEY6: ${{ secrets.UPSTAGE_API_KEY6 }}
+          UPSTAGE_API_KEY7: ${{ secrets.UPSTAGE_API_KEY7 }}
+          UPSTAGE_API_KEY8: ${{ secrets.UPSTAGE_API_KEY8 }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # 생략 가능
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_PAGE_ID_1: ${{ secrets.NOTION_PAGE_ID_1 }}
           NOTION_PAGE_ID_2: ${{ secrets.NOTION_PAGE_ID_2 }}
           NOTION_PAGE_ID_3: ${{ secrets.NOTION_PAGE_ID_3 }}
@@ -54,14 +72,7 @@ jobs:
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
 
-      # 6. Migrate FAISS to Chroma
-      - name: Migrate FAISS to Chroma
-        run: |
-          python f2c.py --faiss_dir notion_faiss_index --chroma_dir chroma_notion --collection notion --normalize
-          python f2c.py --faiss_dir gdrive_faiss_index --chroma_dir chroma_gdrive --collection gdrive --normalize
-          python f2c.py --faiss_dir github_faiss_index --chroma_dir chroma_github --collection github --normalize
-
-      # 7. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
+      # 6. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
       - name: Commit and push if it changed
         run: |
           git config user.name "GitHub Actions Bot"

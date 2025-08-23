@@ -126,3 +126,12 @@ if __name__ == "__main__":
 
 
 # python f2c.py --faiss_dir notion_faiss_index --normalize
+
+'''
+python f2c.py \
+  --chroma-dir ./chroma_all \
+  --collection-name all \
+  --gdrive-faiss-dir ./gdrive_faiss_index \
+  --notion-faiss-dir ./notion_faiss_index \
+  --github-faiss-dir ./github_faiss_index \
+'''
