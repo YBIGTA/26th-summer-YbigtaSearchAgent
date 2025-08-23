@@ -89,7 +89,7 @@ all_docs.extend(gdrive_docs)
 print(f"✅ LangChain이 최종적으로 {len(gdrive_docs)}개의 문서를 로드했습니다.")
 
 
---- 3. GitHub 사용자의 모든 리포지토리 README.md 로드 ---
+#--- 3. GitHub 사용자의 모든 리포지토리 README.md 로드 ---
 print("="*50)
 print("Phase 3: GitHub 사용자의 모든 리포지토리에서 README.md를 탐색합니다...")
 
