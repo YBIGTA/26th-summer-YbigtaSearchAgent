@@ -57,9 +57,9 @@ jobs:
       # 6. Migrate FAISS to Chroma
       - name: Migrate FAISS to Chroma
         run: |
-          python nf2c.py --faiss_dir notion_faiss_index --chroma_dir chroma_notion --collection notion --normalize
-          python nf2c.py --faiss_dir gdrive_faiss_index --chroma_dir chroma_gdrive --collection gdrive --normalize
-          python nf2c.py --faiss_dir github_faiss_index --chroma_dir chroma_github --collection github --normalize
+          python f2c.py --faiss_dir notion_faiss_index --chroma_dir chroma_notion --collection notion --normalize
+          python f2c.py --faiss_dir gdrive_faiss_index --chroma_dir chroma_gdrive --collection gdrive --normalize
+          python f2c.py --faiss_dir github_faiss_index --chroma_dir chroma_github --collection github --normalize
 
       # 7. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
       - name: Commit and push if it changed
