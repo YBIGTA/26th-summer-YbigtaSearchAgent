@@ -1,0 +1,536 @@
+{
+  "github:github_topic-modeling": {
+    "content_hash": "502e2adab9ee94a7645f12c924a43018c81fb73b72fce810c6ae8ec5f39b0431",
+    "last_updated": "2025-08-23T18:31:35.297819",
+    "source": "github",
+    "title": "topic-modeling"
+  },
+  "github:github_sentimental-analysis": {
+    "content_hash": "6de8ca6352e8718428983675bf05a32467218d17ec7ff7fb75e2bbd3d6fa5d8e",
+    "last_updated": "2025-08-23T18:31:35.297855",
+    "source": "github",
+    "title": "sentimental-analysis"
+  },
+  "github:github_WeeklyDataScience": {
+    "content_hash": "4953e5e4134915f34fb3ea8edd6d4c8db4a6e5de494a493b843feeb4e723d3f4",
+    "last_updated": "2025-08-23T18:31:35.297877",
+    "source": "github",
+    "title": "WeeklyDataScience"
+  },
+  "github:github_webtoon_stats_api_server": {
+    "content_hash": "04f51b0427243e634b2ea74635d5fc03e8c8f78abd2eb52f35859a2b75f0299c",
+    "last_updated": "2025-08-23T18:31:35.297896",
+    "source": "github",
+    "title": "webtoon_stats_api_server"
+  },
+  "github:github_YBIGTA.github.io": {
+    "content_hash": "15598591ccd0b4234739f42df7d08ac104cffbfa74c5b7ea46891a05ca55abea",
+    "last_updated": "2025-08-23T18:31:35.298104",
+    "source": "github",
+    "title": "YBIGTA.github.io"
+  },
+  "github:github_tensorflow-study": {
+    "content_hash": "d5b45b7a31ac81185263d7f4e29b9eda4333560b63a13f67130ab0af77973300",
+    "last_updated": "2025-08-23T18:31:35.298132",
+    "source": "github",
+    "title": "tensorflow-study"
+  },
+  "github:github_Deep_learning": {
+    "content_hash": "f8bb1ea9571171e3ead801f44a4f554df1566844f09cea2364257ab6e3e044ee",
+    "last_updated": "2025-08-23T18:31:35.298200",
+    "source": "github",
+    "title": "Deep_learning"
+  },
+  "github:github_korea_geo_coder_r": {
+    "content_hash": "228000e7d56d88c75175aea49fb3376928efab8ecb520df648ee0d674d3deee7",
+    "last_updated": "2025-08-23T18:31:35.298256",
+    "source": "github",
+    "title": "korea_geo_coder_r"
+  },
+  "github:github_SparkStudy": {
+    "content_hash": "5c7c8afc4cc22a3c14ee86fa4e6352f86c16dd8d5c44d2f3eec2ce6dc7fa55b9",
+    "last_updated": "2025-08-23T18:31:35.298284",
+    "source": "github",
+    "title": "SparkStudy"
+  },
+  "github:github_Design_web_study": {
+    "content_hash": "858ed5d87728163f757d0d576ac06a88504490c9bc0b2a333b4c9f734bf70576",
+    "last_updated": "2025-08-23T18:31:35.298312",
+    "source": "github",
+    "title": "Design_web_study"
+  },
+  "github:github_chatot-server": {
+    "content_hash": "2a26b855ab327fc4271bf10dd3b252b67bcf971b3a92980e66a878258e3c2442",
+    "last_updated": "2025-08-23T18:31:35.298333",
+    "source": "github",
+    "title": "chatot-server"
+  },
+  "github:github_alpacapaca-test": {
+    "content_hash": "2f967900ba264cd36de91c2c9f1a825837b67229b7211dde162563d0f2b8450c",
+    "last_updated": "2025-08-23T18:31:35.298349",
+    "source": "github",
+    "title": "alpacapaca-test"
+  },
+  "github:github_alpacapaca": {
+    "content_hash": "e910853bb5ba3cd2351519ac4fdd373cf7bd49788abd6793818c88dc2ac249b1",
+    "last_updated": "2025-08-23T18:31:35.298370",
+    "source": "github",
+    "title": "alpacapaca"
+  },
+  "github:github_facebigta": {
+    "content_hash": "e37d0305f26f920fe970dcf4bd701d694893bd98f8794daf926bd326619fddec",
+    "last_updated": "2025-08-23T18:31:35.298387",
+    "source": "github",
+    "title": "facebigta"
+  },
+  "github:github_DeepNLP-Study": {
+    "content_hash": "2d3612096f12573f034cea7aa87c59dcc67c4ce58d5b8b1d718b62dcb7bb656d",
+    "last_updated": "2025-08-23T18:31:35.298414",
+    "source": "github",
+    "title": "DeepNLP-Study"
+  },
+  "github:github_data-science-2018": {
+    "content_hash": "3ea9cabb49c73cffd86a6112b487001b27c604035ea49ddfafa4721172bd51b9",
+    "last_updated": "2025-08-23T18:31:35.298429",
+    "source": "github",
+    "title": "data-science-2018"
+  },
+  "github:github_DLB": {
+    "content_hash": "5d0e45873d35ea0669f61dcd806bbfc49559f7baa5ba1c40722ec1d21051be8f",
+    "last_updated": "2025-08-23T18:31:35.298445",
+    "source": "github",
+    "title": "DLB"
+  },
+  "github:github_HadoopStudy": {
+    "content_hash": "473fcf9e9e15c5b042e3390129a6b010268f9ad5f6de8932ec7231de80fce435",
+    "last_updated": "2025-08-23T18:31:35.298463",
+    "source": "github",
+    "title": "HadoopStudy"
+  },
+  "github:github_AlphaChu": {
+    "content_hash": "cf46ac7b70144b79e8fcb0d6a85afb83bc69c63e8f0116f9b5a1586bc8c7a2af",
+    "last_updated": "2025-08-23T18:31:35.298481",
+    "source": "github",
+    "title": "AlphaChu"
+  },
+  "github:github_CatchTone": {
+    "content_hash": "5c6b65e58677ffa401be5c445c7e8e48beb415f135a6b3ae7b6d3a1013f2178d",
+    "last_updated": "2025-08-23T18:31:35.298504",
+    "source": "github",
+    "title": "CatchTone"
+  },
+  "github:github_Data-Science": {
+    "content_hash": "6d818cde1fe8fe1f69023ce08b050617188b89b9db0c548a4263d157ed42c973",
+    "last_updated": "2025-08-23T18:31:35.298520",
+    "source": "github",
+    "title": "Data-Science"
+  },
+  "github:github_EngineeringTeam": {
+    "content_hash": "b4546a75b47674203fafec18ad05039ef2d37849ce627fcb0416bfb3b13eba17",
+    "last_updated": "2025-08-23T18:31:35.298543",
+    "source": "github",
+    "title": "EngineeringTeam"
+  },
+  "github:github_DL_Models": {
+    "content_hash": "01830e73d97a4f3285a771f8418e4cc0d060d8a65b9550690b9ae496f6bbc67d",
+    "last_updated": "2025-08-23T18:31:35.298558",
+    "source": "github",
+    "title": "DL_Models"
+  },
+  "github:github_pytorch-hair-segmentation": {
+    "content_hash": "3712095dece5b6eb672ccb828eab52e24bba1c6d1ae121b5dce95907c2981965",
+    "last_updated": "2025-08-23T18:31:35.298577",
+    "source": "github",
+    "title": "pytorch-hair-segmentation"
+  },
+  "github:github_EC2-Dashboard": {
+    "content_hash": "1298759df4ab4a989b614879ff617384c1931e61472fe19a8599079571b6cfed",
+    "last_updated": "2025-08-23T18:31:35.298594",
+    "source": "github",
+    "title": "EC2-Dashboard"
+  },
+  "github:github_Alin-Coinboard": {
+    "content_hash": "c77c15d233854e735d4de81e343ad48f57ce418224dcf33d97237a25323a3407",
+    "last_updated": "2025-08-23T18:31:35.298616",
+    "source": "github",
+    "title": "Alin-Coinboard"
+  },
+  "github:github_DataScienceWiki": {
+    "content_hash": "7252a5254e04a2e7d63e790f852d9b679715ec5a91ea680dfa0508b779c47b8b",
+    "last_updated": "2025-08-23T18:31:35.298656",
+    "source": "github",
+    "title": "DataScienceWiki"
+  },
+  "github:github_DataEngineeringWiki": {
+    "content_hash": "cbc57a7448fe69aa59116098ec7ee49fcebb771557654424885bfbfe96307661",
+    "last_updated": "2025-08-23T18:31:35.298670",
+    "source": "github",
+    "title": "DataEngineeringWiki"
+  },
+  "github:github_DataAnalyticsWiki": {
+    "content_hash": "ef848563395efdba9dcefcd60cdb54a4358398548173b6d2468c9c355d644a9b",
+    "last_updated": "2025-08-23T18:31:35.298701",
+    "source": "github",
+    "title": "DataAnalyticsWiki"
+  },
+  "github:github_Archive": {
+    "content_hash": "3660dcd9a080e67026021552800b2a186f997c1366b5d8f5c70109d1830c98f6",
+    "last_updated": "2025-08-23T18:31:35.298728",
+    "source": "github",
+    "title": "Archive"
+  },
+  "github:github_BARD": {
+    "content_hash": "c411c66de50d042747d15d1216e7a13792342c4f075506c075fa48c9080a8c00",
+    "last_updated": "2025-08-23T18:31:35.298749",
+    "source": "github",
+    "title": "BARD"
+  },
+  "github:github_ybigta.org": {
+    "content_hash": "57218d8e470dedaf9fd2cc57bed7e13e71f511d943f8dd41657e84ac00d71932",
+    "last_updated": "2025-08-23T18:31:35.298763",
+    "source": "github",
+    "title": "ybigta.org"
+  },
+  "github:github_Nietzsche": {
+    "content_hash": "69d80e858b566fe78f72f58d72d983cb16e45343e85ceb8999d38978e34d1d66",
+    "last_updated": "2025-08-23T18:31:35.298777",
+    "source": "github",
+    "title": "Nietzsche"
+  },
+  "github:github_24th-project-what-the-food": {
+    "content_hash": "54411c53aaecb138441411684262ae3219d650bbafa183db622c60748424d93c",
+    "last_updated": "2025-08-23T18:31:35.298800",
+    "source": "github",
+    "title": "24th-project-what-the-food"
+  },
+  "github:github_24th-project-demystifying-wall-street": {
+    "content_hash": "f6dc4ced071d5551026e95b4e42e3a0ebe931c5952dc7769374e907c961fac75",
+    "last_updated": "2025-08-23T18:31:35.298817",
+    "source": "github",
+    "title": "24th-project-demystifying-wall-street"
+  },
+  "github:github_24th-project-mbti-prediction": {
+    "content_hash": "d339f13619a71256f40c142ac872509dd01b1190a8c18c35cd83c6738c672a31",
+    "last_updated": "2025-08-23T18:31:35.298844",
+    "source": "github",
+    "title": "24th-project-mbti-prediction"
+  },
+  "github:github_24th-project-playlist-recommendation": {
+    "content_hash": "617ec98d6efdce3924c0836e22777dbecda2a461e6901a77c0d617d25b6cd1f2",
+    "last_updated": "2025-08-23T18:31:35.298919",
+    "source": "github",
+    "title": "24th-project-playlist-recommendation"
+  },
+  "github:github_24th-project-jeju-energy-prediction": {
+    "content_hash": "d7ac5ddacb3444ed6bc4628f2322e618b451ef5ead55ac16407430d72b3c46bd",
+    "last_updated": "2025-08-23T18:31:35.298948",
+    "source": "github",
+    "title": "24th-project-jeju-energy-prediction"
+  },
+  "github:github_.github": {
+    "content_hash": "3ae33646b95f4f7add1dda0ad1cf4fcfb65edd16fea4baf090458cd56fbc017d",
+    "last_updated": "2025-08-23T18:31:35.298973",
+    "source": "github",
+    "title": ".github"
+  },
+  "github:github_24th-de-highlighter": {
+    "content_hash": "1c65623be5d9a5eddeefb6f0a877a2de5522135088dc0f0591391aa90da4590a",
+    "last_updated": "2025-08-23T18:31:35.298995",
+    "source": "github",
+    "title": "24th-de-highlighter"
+  },
+  "github:github_24th-de-juga": {
+    "content_hash": "2aacbb0132c35ee23d8567b1f1b029ef7617b66fb5a6f614a61a7ffc46a71cc4",
+    "last_updated": "2025-08-23T18:31:35.299022",
+    "source": "github",
+    "title": "24th-de-juga"
+  },
+  "github:github_24th-da-projects": {
+    "content_hash": "a966ccb3bad804fa44d125369c4043b36cdd90439547894f206d8b66803f5443",
+    "last_updated": "2025-08-23T18:31:35.299040",
+    "source": "github",
+    "title": "24th-da-projects"
+  },
+  "github:github_24th-conference-yourtube": {
+    "content_hash": "23ef0e65f050d657b7291f47b030283adf10a60397e99104af24f472c0be4b77",
+    "last_updated": "2025-08-23T18:31:35.299082",
+    "source": "github",
+    "title": "24th-conference-yourtube"
+  },
+  "github:github_24th-conference-text2storyboard": {
+    "content_hash": "1e32e5da6715b0bc4e2dfc4615500de00780d517102978f0f70e5ad357d642bb",
+    "last_updated": "2025-08-23T18:31:35.299128",
+    "source": "github",
+    "title": "24th-conference-text2storyboard"
+  },
+  "github:github_24th-conference-yoso": {
+    "content_hash": "5799e7942452b18bee62b3a59f03e02a838e52b6404d0e9e26fc8b3b6c11a63f",
+    "last_updated": "2025-08-23T18:31:35.299168",
+    "source": "github",
+    "title": "24th-conference-yoso"
+  },
+  "github:github_24th-conference-us": {
+    "content_hash": "d70fc108611834f745d1acad5ac67f4e8b6d6022f9003706b89b13997149d20b",
+    "last_updated": "2025-08-23T18:31:35.299210",
+    "source": "github",
+    "title": "24th-conference-us"
+  },
+  "github:github_24th-conference-gustomate": {
+    "content_hash": "f81dcf2f703d6df958666189713e360625cb89056cef681ca3b57722177db46e",
+    "last_updated": "2025-08-23T18:31:35.299274",
+    "source": "github",
+    "title": "24th-conference-gustomate"
+  },
+  "github:github_24th-conference-tripbeats": {
+    "content_hash": "0d6a97b5f0731778a10756b1cf48ec0b79c2554c1ef0d37e3f146df840109796",
+    "last_updated": "2025-08-23T18:31:35.299329",
+    "source": "github",
+    "title": "24th-conference-tripbeats"
+  },
+  "github:github_25th-project-BitcoinPredictor": {
+    "content_hash": "155cad9727255dd12ac19b80fce7518692a1f8d83256b79a58b03fa8c6ce54f6",
+    "last_updated": "2025-08-23T18:31:35.299346",
+    "source": "github",
+    "title": "25th-project-BitcoinPredictor"
+  },
+  "github:github_25th-project-InsideOutDJ": {
+    "content_hash": "06d42e1811b9650c4ae3de7bcb814cae073787eb2c44e4e0e56eee8321f978b9",
+    "last_updated": "2025-08-23T18:31:35.299368",
+    "source": "github",
+    "title": "25th-project-InsideOutDJ"
+  },
+  "github:github_25th-project-OutfitToCafe": {
+    "content_hash": "79aaa33dda2e8a9ac943879cf1cfec2af8f9cc0f450affeaa3b6c44cc898a62d",
+    "last_updated": "2025-08-23T18:31:35.299386",
+    "source": "github",
+    "title": "25th-project-OutfitToCafe"
+  },
+  "github:github_25th-project-BubbleFreeNewsletter": {
+    "content_hash": "60ddfd7f5de327002a61a4766e9a7129584ace472c4aeeaffb05a2de53631569",
+    "last_updated": "2025-08-23T18:31:35.299412",
+    "source": "github",
+    "title": "25th-project-BubbleFreeNewsletter"
+  },
+  "github:github_25th-project-EverytimeAnalyzer": {
+    "content_hash": "82cd6573168df9b0151df1c22cc7cbd19398f73252d1ef3e26675d4325a7fbc1",
+    "last_updated": "2025-08-23T18:31:35.299453",
+    "source": "github",
+    "title": "25th-project-EverytimeAnalyzer"
+  },
+  "github:github_25th-da-outlier-detection": {
+    "content_hash": "674ea0e1edd390bb62836cbff3ad42ef5f570283ea07a1d2fdeea553171fdebb",
+    "last_updated": "2025-08-23T18:31:35.299476",
+    "source": "github",
+    "title": "25th-da-outlier-detection"
+  },
+  "github:github_25th-conference-ori-gogi": {
+    "content_hash": "d00453e7ec96b8c8ee25ae7e277fe0bf4163bb42978c4f40e25868209767a2d1",
+    "last_updated": "2025-08-23T18:31:35.299518",
+    "source": "github",
+    "title": "25th-conference-ori-gogi"
+  },
+  "github:github_25th-conference-EvenT": {
+    "content_hash": "c912eb9b9e9e3c6bd76c55c121aeb499df90d401b297ee67067e2d6de5fa0ed9",
+    "last_updated": "2025-08-23T18:31:35.299554",
+    "source": "github",
+    "title": "25th-conference-EvenT"
+  },
+  "github:github_25th-conference-crowdworks": {
+    "content_hash": "2e289b0b429a35b58ea8edb9620afbebd7f93e50764eb08d3a51e4ae59cccf8f",
+    "last_updated": "2025-08-23T18:31:35.299570",
+    "source": "github",
+    "title": "25th-conference-crowdworks"
+  },
+  "github:github_25th-conference-PosePal": {
+    "content_hash": "76b0dc5970b128396b844352054d04a88a55e177018ea92178c487637ce933cc",
+    "last_updated": "2025-08-23T18:31:35.299630",
+    "source": "github",
+    "title": "25th-conference-PosePal"
+  },
+  "github:github_25th-conference-NoticeHub": {
+    "content_hash": "6088a7246a3293cb9e37c4d30d9f227c8dc01110ab43e3858b52271a8b6b0fd3",
+    "last_updated": "2025-08-23T18:31:35.299661",
+    "source": "github",
+    "title": "25th-conference-NoticeHub"
+  },
+  "github:github_25th-conference-fakebusters": {
+    "content_hash": "eec1674f980653c59d301ce2d4832ebd6f8312e52c845054096b343bd8f53d08",
+    "last_updated": "2025-08-23T18:31:35.299738",
+    "source": "github",
+    "title": "25th-conference-fakebusters"
+  },
+  "github:github_25th-conference-SantaTellMe": {
+    "content_hash": "59d21020b94be1521e7e16dc8e72483c84fa49e4a75598f24539ceaeef2d9af9",
+    "last_updated": "2025-08-23T18:31:35.299826",
+    "source": "github",
+    "title": "25th-conference-SantaTellMe"
+  },
+  "github:github_26th-project-JeMeChu": {
+    "content_hash": "deef8e1279a04c6e85035e3de548afcfadd3a0eea79beaa8f95e13e85ea1b62e",
+    "last_updated": "2025-08-23T18:31:35.299880",
+    "source": "github",
+    "title": "26th-project-JeMeChu"
+  },
+  "github:github_26th-project-BookProfile": {
+    "content_hash": "0ce4fab53bbcde5a622b622695bf6416e1446a03cd3401cf4cfbb223c19e6699",
+    "last_updated": "2025-08-23T18:31:35.299903",
+    "source": "github",
+    "title": "26th-project-BookProfile"
+  },
+  "github:github_26th-project-MindLog": {
+    "content_hash": "aa7d9b710712cbfaee50fe2409e64b701c530c606c46d67f790f9cf3b968fa2a",
+    "last_updated": "2025-08-23T18:31:35.300011",
+    "source": "github",
+    "title": "26th-project-MindLog"
+  },
+  "github:github_26th-project-UniRent": {
+    "content_hash": "881a95a915453fdcf2bfc3cce37e0b000694a7b8e53b94bd36cdf131e6fb8300",
+    "last_updated": "2025-08-23T18:31:35.300044",
+    "source": "github",
+    "title": "26th-project-UniRent"
+  },
+  "github:github_26th-project-IPO-ValueX": {
+    "content_hash": "422348294c4f4474b20a5aa50166d328a22b9b602992e8318758ff14b8aad8c2",
+    "last_updated": "2025-08-23T18:31:35.300077",
+    "source": "github",
+    "title": "26th-project-IPO-ValueX"
+  },
+  "github:github_26th-conference-Legent": {
+    "content_hash": "0d1ac648d1480b32d535fcc95fc047f1e2f26c25e086283e247fe7861cc6919f",
+    "last_updated": "2025-08-23T18:31:35.300412",
+    "source": "github",
+    "title": "26th-conference-Legent"
+  },
+  "github:github_26th-conference-VisionCourt": {
+    "content_hash": "7db2d0c9e820d6fca22508e42daa05b7e189ec0ec3ea51924d799dc3df8b6fcb",
+    "last_updated": "2025-08-23T18:31:35.300487",
+    "source": "github",
+    "title": "26th-conference-VisionCourt"
+  },
+  "github:github_26th-conference-OneMaSol": {
+    "content_hash": "0d2ed896fac330bd4456852832ef55c332cd8755797d6ae42fd5749577b1c1cd",
+    "last_updated": "2025-08-23T18:31:35.300536",
+    "source": "github",
+    "title": "26th-conference-OneMaSol"
+  },
+  "github:github_26th-conference-Plantmate": {
+    "content_hash": "17b68a4074deea1cd99bed2951aa184e0fb17a3c48904f47f58cf30d65065bec",
+    "last_updated": "2025-08-23T18:31:35.300611",
+    "source": "github",
+    "title": "26th-conference-Plantmate"
+  },
+  "github:github_26th-conference-MusicContextProtocol": {
+    "content_hash": "90fa11aa1e66b715b43a9c62ef01b2341a9b7389ff84fbdc8ad9fac82a6f3820",
+    "last_updated": "2025-08-23T18:31:35.300636",
+    "source": "github",
+    "title": "26th-conference-MusicContextProtocol"
+  },
+  "github:github_YourTube_Service": {
+    "content_hash": "1dea0c9ad8c8810a6c1072c38dc6eb75ccbeba8045ff59b59d9742a2919a0f79",
+    "last_updated": "2025-08-23T18:31:35.300680",
+    "source": "github",
+    "title": "YourTube_Service"
+  },
+  "github:github_26th-DS-summer": {
+    "content_hash": "b0c5f6791f09a0736fe118e2271982907444d6b96019f436d5122ced5a94a09e",
+    "last_updated": "2025-08-23T18:31:35.300700",
+    "source": "github",
+    "title": "26th-DS-summer"
+  },
+  "github:github_26th-summer-ResearchAgent": {
+    "content_hash": "272957ac1243ac8e5c0115fda4952712b49e6a6d1a4bd9e91ef483eccdfaa6f3",
+    "last_updated": "2025-08-23T18:31:35.300737",
+    "source": "github",
+    "title": "26th-summer-ResearchAgent"
+  },
+  "github:github_26th-summer-NotebookLocal": {
+    "content_hash": "3fa610547c2c6271ce95498dacef800e4699aaf1a3a7d6869880bdb508479300",
+    "last_updated": "2025-08-23T18:31:35.300846",
+    "source": "github",
+    "title": "26th-summer-NotebookLocal"
+  },
+  "github:github_26th-summer-YbigtaSearchAgent": {
+    "content_hash": "8277ede77d20cd77cef0b8776386600e0b998d6a4fde5acb3681e6aa24c585dc",
+    "last_updated": "2025-08-23T18:31:35.300886",
+    "source": "github",
+    "title": "26th-summer-YbigtaSearchAgent"
+  },
+  "github:github_26th-summer-MindLog2": {
+    "content_hash": "dc12887a64ad9488281fb6be1f7fa7a0e318d8c5928a87616b56baa54569e22b",
+    "last_updated": "2025-08-23T18:31:35.300913",
+    "source": "github",
+    "title": "26th-summer-MindLog2"
+  },
+  "github:github_26th-summer-MedicationAgent": {
+    "content_hash": "949b6006ba39c649e036639f1fcdf45e6e8bcf069243780b2a03f076e29250c4",
+    "last_updated": "2025-08-23T18:31:35.300935",
+    "source": "github",
+    "title": "26th-summer-MedicationAgent"
+  },
+  "github:github_27th-project-speech2sql": {
+    "content_hash": "d12a54900775f598a645e87332ea2fec7e36216c5494bb6355f229428552bef0",
+    "last_updated": "2025-08-23T18:31:35.300994",
+    "source": "github",
+    "title": "27th-project-speech2sql"
+  },
+  "github:github_27th-project-feedback": {
+    "content_hash": "5bc10e59ee8c6cffa46e378b1030561f92cc8d9b0d47ba97c3ea6dfb9ffa3d53",
+    "last_updated": "2025-08-23T18:31:35.301034",
+    "source": "github",
+    "title": "27th-project-feedback"
+  },
+  "github:github_27th-project-baekjoon": {
+    "content_hash": "cd950c014e3ee639fed8c69c3cd8e9e831787fee9d87d953c7e3746e869a290d",
+    "last_updated": "2025-08-23T18:31:35.301055",
+    "source": "github",
+    "title": "27th-project-baekjoon"
+  },
+  "github:github_27th-project-multimodal": {
+    "content_hash": "809a650f127701daf80542c3c5a3191066e2be50d14b02007a5d08083ec15f45",
+    "last_updated": "2025-08-23T18:31:35.301084",
+    "source": "github",
+    "title": "27th-project-multimodal"
+  },
+  "github:github_27th-project-game": {
+    "content_hash": "1ba02aeda615de80384b22cd34d0a35da5e1802fe394f8e026ba04ae6612991b",
+    "last_updated": "2025-08-23T18:31:35.301110",
+    "source": "github",
+    "title": "27th-project-game"
+  },
+  "github:github_27th-project-kakao": {
+    "content_hash": "c97599962b41f965a6cde65887b4486a160329df1cfdc662a1f61cf4be04bf81",
+    "last_updated": "2025-08-23T18:31:35.301163",
+    "source": "github",
+    "title": "27th-project-kakao"
+  },
+  "notion:94961447e70841a9b5d5851155fc84d6": {
+    "content_hash": "b2b5d70f5c7b1f72273e1e3b2d7f279bce254e71ea07a427d1bf69d06afdda3d",
+    "last_updated": "2025-08-23T18:31:37.279334",
+    "source": "notion",
+    "title": "YBIGTA"
+  },
+  "notion:eb317c1ba96640a4bf591274c61c1181": {
+    "content_hash": "aac5cbbb8563263b4bab8bc99598d1e4d10c51b8c0a1d1a7ffb4dbd59f7d5957",
+    "last_updated": "2025-08-23T18:31:37.279353",
+    "source": "notion",
+    "title": "CONFERENCE : 컨퍼런스"
+  },
+  "notion:533f81f19ffb478391605339af4394e0": {
+    "content_hash": "e80a69799f1cc490f6ffae53d4d1aad6f14a22027c19c73377aa266b8eae09f1",
+    "last_updated": "2025-08-23T18:31:37.279463",
+    "source": "notion",
+    "title": "Data Engineering"
+  },
+  "notion:1ad8360423c980ed9938e8e43f932393": {
+    "content_hash": "27b7e6ebddc8c18dfcf8bf903000b4b440ef6bc233e81d40879e67308efc7bdd",
+    "last_updated": "2025-08-23T18:31:37.279493",
+    "source": "notion",
+    "title": "Data Science"
+  },
+  "notion:1ad8360423c980d0b1bcfdab20fb0d61": {
+    "content_hash": "e80a69799f1cc490f6ffae53d4d1aad6f14a22027c19c73377aa266b8eae09f1",
+    "last_updated": "2025-08-23T18:31:37.279509",
+    "source": "notion",
+    "title": "Data Analytics"
+  }
+}

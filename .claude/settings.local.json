@@ -27,6 +27,9 @@
       "Bash(ss:*)",
       "Bash(pkill:*)"
     ],
-    "deny": []
+    "deny": [],
+    "additionalDirectories": [
+      "/mnt/c/Users/jason/Documents/카카오톡 받은 파일"
+    ]
   }
 }

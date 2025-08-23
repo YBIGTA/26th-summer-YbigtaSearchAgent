@@ -204,12 +204,12 @@ class MeetingAnalysisPipeline:
         try:
             result = self.stt_manager.transcribe(
                 file_path, 
-                options.get("stt_engine", "whisper"),
+                options.get("stt_engine", "returnzero"),
                 options.get("language", "ko")
             )
             
             return {
-                "engine_used": options.get("stt_engine", "whisper"),
+                "engine_used": options.get("stt_engine", "returnzero"),
                 "language": options.get("language", "ko"),
                 "segments": result.get("segments", []),
                 "full_text": result.get("text", ""),

@@ -154,11 +154,11 @@ temp/
 tmp/
 
 # Data files and databases
-data/db/
-data/cache/
-data/indexes/
-*.db
-*.sqlite
+# data/db/
+# data/cache/
+# data/indexes/
+# *.db
+# *.sqlite
 
 # Audio files (large)
 data/audio/*.wav
