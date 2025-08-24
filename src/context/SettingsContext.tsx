@@ -45,7 +45,7 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
   const [notionPages, setNotionPages] = useState<string[]>([]);
   const [sttEngines, setSTTEngines] = useState<Record<string, STTEngine>>({});
 
-  const API_BASE_URL = 'http://localhost:8000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
 
   const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -107,9 +107,9 @@ export const SettingsProvider: React.FC<SettingsProviderProps> = ({ children }) 
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
-  // 초기 로드
+  // 초기 로드 (임시로 비활성화 - API 통신 문제 해결 후 활성화)
   useEffect(() => {
-    loadSTTEngines();
+    // loadSTTEngines();
   }, []);
 
   // Notion 페이지 변경 시 자동 저장

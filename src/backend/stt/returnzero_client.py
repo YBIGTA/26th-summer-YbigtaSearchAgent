@@ -27,7 +27,7 @@ class ReturnZeroSTTClient:
         """JWT 토큰을 발급받습니다."""
         try:
             response = requests.post(
-                f"{self.base_url}/v1/authenticate",
+                f"{self.base_url}/authenticate",
                 data={
                     "client_id": self.client_id,
                     "client_secret": self.client_secret
@@ -113,7 +113,7 @@ class ReturnZeroSTTClient:
             # 1단계: 전사 작업 시작
             with open(audio_file_path, "rb") as audio_file:
                 response = requests.post(
-                    f"{self.base_url}/v1/transcribe",
+                    f"{self.base_url}/transcribe",
                     headers={"Authorization": f"Bearer {token}"},
                     data={"config": json.dumps(config)},
                     files={"file": audio_file}
@@ -155,7 +155,7 @@ class ReturnZeroSTTClient:
         while time.time() - start_time < max_wait_time:
             try:
                 response = requests.get(
-                    f"{self.base_url}/v1/transcribe/{transcribe_id}",
+                    f"{self.base_url}/transcribe/{transcribe_id}",
                     headers={"Authorization": f"Bearer {token}"}
                 )
                 response.raise_for_status()

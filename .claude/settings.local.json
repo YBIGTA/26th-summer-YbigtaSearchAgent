@@ -25,7 +25,9 @@
       "Bash(npx tsc:*)",
       "Bash(npm run build:*)",
       "Bash(ss:*)",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "additionalDirectories": [
