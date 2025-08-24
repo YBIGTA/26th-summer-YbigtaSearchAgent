@@ -6,7 +6,7 @@ Notion 페이지 및 데이터베이스와의 통합을 담당
 import os
 import asyncio
 import aiohttp
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from langchain_core.documents import Document
 
 
@@ -179,10 +179,11 @@ class NotionClient:
         
         return doc
 
-    async def load_all_pages(self, check_updates: bool = True) -> List[Document]:
+    async def load_all_pages(self, since: Optional[str] = None, check_updates: bool = True) -> List[Document]:
         """모든 Notion 페이지를 병렬로 로드합니다. 
         
         Args:
+            since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 수정된 페이지만 가져옵니다.
             check_updates: True면 페이지 업데이트 상태를 확인합니다.
         """
         page_ids = self.get_page_ids_from_env()
@@ -192,6 +193,16 @@ class NotionClient:
             return []
         
         print(f"🔍 총 {len(page_ids)}개의 Notion 페이지를 발견했습니다.")
+        
+        # since 파라미터가 있으면 필터링된 페이지만 가져오기
+        if since:
+            print(f"📅 {since} 이후에 수정된 페이지만 가져옵니다.")
+            filtered_page_ids = await self._filter_pages_by_last_edited_time(page_ids, since)
+            if not filtered_page_ids:
+                print("📅 지정된 시간 이후에 수정된 페이지가 없습니다.")
+                return []
+            page_ids = filtered_page_ids
+            print(f"🔍 필터링 후 {len(page_ids)}개의 페이지가 수정되었습니다.")
         
         async with aiohttp.ClientSession() as session:
             tasks = []
@@ -210,3 +221,29 @@ class NotionClient:
                     docs.append(result)
             
             return docs
+
+    async def _filter_pages_by_last_edited_time(self, page_ids: List[str], since: str) -> List[str]:
+        """마지막 수정 시간을 기준으로 페이지를 필터링합니다."""
+        filtered_ids = []
+        
+        async with aiohttp.ClientSession() as session:
+            for page_id in page_ids:
+                try:
+                    # 페이지 메타데이터 가져오기
+                    page_metadata = await self.get_page_metadata(session, page_id)
+                    last_edited_time = page_metadata.get('last_edited_time')
+                    
+                    if last_edited_time and last_edited_time > since:
+                        filtered_ids.append(page_id)
+                        print(f"✅ 페이지 {page_id}가 {since} 이후에 수정됨: {last_edited_time}")
+                    else:
+                        print(f"⏭️ 페이지 {page_id}는 {since} 이후에 수정되지 않음: {last_edited_time}")
+                        
+                except Exception as e:
+                    print(f"❌ 페이지 {page_id} 필터링 실패: {e}")
+                    # 오류 발생 시 안전하게 포함
+                    filtered_ids.append(page_id)
+                
+                await asyncio.sleep(0.1)  # Rate limit protection
+        
+        return filtered_ids

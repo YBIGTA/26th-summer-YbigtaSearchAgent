@@ -6,7 +6,7 @@ Google Drive 문서 수집 및 처리
 import os
 import io
 import tempfile
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseDownload
@@ -28,13 +28,29 @@ class GoogleDriveClient:
         )
         return build("drive", "v3", credentials=creds)
     
-    def list_files_in_folder(self, folder_id: str = None, recursive: bool = True) -> List[Dict[str, Any]]:
-        """폴더 내의 모든 파일을 나열합니다."""
+    def list_files_in_folder(self, folder_id: str = None, recursive: bool = True, since: Optional[str] = None) -> List[Dict[str, Any]]:
+        """폴더 내의 모든 파일을 나열합니다.
+        
+        Args:
+            folder_id: 폴더 ID (None이면 환경변수에서 가져옴)
+            recursive: 하위 폴더까지 재귀적으로 검색할지 여부
+            since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 수정된 파일만 가져옵니다.
+        """
         folder_id = folder_id or self.folder_id
         all_files = []
         
         def list_files_recursive(current_folder_id: str, path: str = ""):
-            query = f"'{current_folder_id}' in parents and trashed = false"
+            # 기본 쿼리 조건
+            query_parts = [f"'{current_folder_id}' in parents", "trashed = false"]
+            
+            # since 파라미터가 있으면 수정 시간 필터 추가
+            if since:
+                # Google Drive API는 RFC 3339 형식을 사용하므로 ISO 8601을 변환
+                modified_time_filter = f"modifiedTime > '{since}'"
+                query_parts.append(modified_time_filter)
+                print(f"📅 {since} 이후에 수정된 파일만 필터링합니다.")
+            
+            query = " and ".join(query_parts)
             page_token = None
             
             while True:
@@ -141,18 +157,26 @@ class GoogleDriveClient:
         
         return None
     
-    def load_all_documents(self) -> List[Document]:
-        """Google Drive의 모든 문서를 로드합니다."""
+    def load_all_documents(self, since: Optional[str] = None) -> List[Document]:
+        """Google Drive의 모든 문서를 로드합니다.
+        
+        Args:
+            since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 수정된 파일만 가져옵니다.
+        """
         if not self.folder_id:
             print("⚠️ GDRIVE_FOLDER_ID가 설정되지 않았습니다.")
             return []
         
-        files = self.list_files_in_folder()
+        files = self.list_files_in_folder(since=since)
         print(f"🔍 총 {len(files)}개의 파일을 발견했습니다.")
+        
+        if since and len(files) == 0:
+            print(f"📅 {since} 이후에 수정된 파일이 없습니다.")
+            return []
         
         documents = []
         for i, file_info in enumerate(files, 1):
-            print(f"\\n📄 파일 {i}/{len(files)}: {file_info['name']}")
+            print(f"\n📄 파일 {i}/{len(files)}: {file_info['name']}")
             
             doc = self.process_file(file_info)
             if doc:

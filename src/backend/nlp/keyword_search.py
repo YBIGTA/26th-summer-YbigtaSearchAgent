@@ -8,6 +8,8 @@ import logging
 import re
 from typing import Dict, List, Any, Optional
 from collections import defaultdict
+from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +17,8 @@ logger = logging.getLogger(__name__)
 class KeywordSearchEngine:
     """키워드 기반 검색 엔진"""
     
-    def __init__(self, index_manager=None):
+    def __init__(self, db_session_factory=None, index_manager=None):
+        self.db_session_factory = db_session_factory
         self.index_manager = index_manager
         self.stopwords = set([
             "은", "는", "이", "가", "을", "를", "에", "의", "와", "과", 
@@ -50,7 +53,7 @@ class KeywordSearchEngine:
             keywords = self._extract_keywords(processed_query)
             
             # 검색 실행
-            if self.index_manager:
+            if self.db_session_factory:
                 results = await self._search_in_index(keywords, filters, top_k, sources)
             else:
                 results = await self._fallback_search(keywords, query, top_k)
@@ -88,24 +91,103 @@ class KeywordSearchEngine:
                               filters: Optional[Dict], 
                               top_k: int, 
                               sources: Optional[List[str]]) -> Dict[str, Any]:
-        """인덱스에서 검색 (실제 구현)"""
+        """FTS5 인덱스에서 검색"""
         
         try:
-            # TODO: 실제 전문 검색 인덱스 연동 (예: PostgreSQL FTS, Elasticsearch)
-            # 현재는 더미 구현
+            if not self.db_session_factory:
+                logger.warning("데이터베이스 세션 팩토리가 설정되지 않았습니다.")
+                return await self._fallback_search(keywords, " ".join(keywords), top_k)
+            
+            # FTS 쿼리 구성
+            fts_query = self._build_fts_query(keywords)
+            
+            # 필터 조건 구성
+            where_conditions = self._build_where_conditions(filters, sources)
+            
+            # SQL 쿼리 실행
+            with self.db_session_factory() as session:
+                results = await self._execute_fts_query(session, fts_query, where_conditions, top_k)
+            
+            return results
+            
+        except Exception as e:
+            logger.error(f"FTS 검색 오류: {str(e)}")
+            return {"documents": [], "scores": [], "metadata": []}
+    
+    def _build_fts_query(self, keywords: List[str]) -> str:
+        """FTS 쿼리 구성"""
+        if not keywords:
+            return ""
+        
+        # 각 키워드를 큰따옴표로 감싸고 OR로 연결
+        quoted_keywords = [f'"{keyword}"' for keyword in keywords]
+        return " OR ".join(quoted_keywords)
+    
+    def _build_where_conditions(self, filters: Optional[Dict], sources: Optional[List[str]]) -> str:
+        """WHERE 조건 구성"""
+        conditions = []
+        
+        if filters:
+            for key, value in filters.items():
+                if isinstance(value, str):
+                    conditions.append(f"d.{key} = '{value}'")
+                elif isinstance(value, list):
+                    placeholders = "', '".join(value)
+                    conditions.append(f"d.{key} IN ('{placeholders}')")
+                else:
+                    conditions.append(f"d.{key} = {value}")
+        
+        if sources:
+            placeholders = "', '".join(sources)
+            conditions.append(f"d.source IN ('{placeholders}')")
+        
+        return " AND ".join(conditions) if conditions else "1=1"
+    
+    async def _execute_fts_query(self, session: Session, fts_query: str, where_conditions: str, top_k: int) -> Dict[str, Any]:
+        """FTS 쿼리 실행"""
+        
+        # FTS 검색과 documents 테이블 JOIN
+        sql_query = f"""
+        SELECT 
+            d.id,
+            d.title,
+            d.content,
+            d.source,
+            d.url,
+            d.doc_metadata,
+            fts.rank,
+            fts.highlight(document_fts, 0, '<mark>', '</mark>') as highlighted_content
+        FROM document_fts fts
+        JOIN documents d ON fts.rowid = d.id
+        WHERE document_fts MATCH ? AND {where_conditions}
+        ORDER BY fts.rank
+        LIMIT ?
+        """
+        
+        try:
+            result = session.execute(text(sql_query), {"query": fts_query, "limit": top_k})
+            rows = result.fetchall()
             
             documents = []
             scores = []
             metadata = []
             
-            for i, keyword in enumerate(keywords[:top_k]):
-                documents.append(f"키워드 검색 결과: '{keyword}' 관련 문서")
-                scores.append(1.0 - (i * 0.1))  # 순서대로 점수 감소
+            for row in rows:
+                # FTS rank를 점수로 변환 (rank가 낮을수록 높은 점수)
+                # rank는 0에 가까울수록 더 관련성이 높음
+                score = self._convert_rank_to_score(row.rank)
+                
+                documents.append(row.content or "")
+                scores.append(score)
                 metadata.append({
-                    "source": "keyword",
-                    "type": "document",
-                    "matched_keywords": [keyword],
-                    "match_type": "exact"
+                    "id": row.id,
+                    "title": row.title,
+                    "source": row.source,
+                    "url": row.url,
+                    "highlighted_content": row.highlighted_content,
+                    "doc_metadata": row.doc_metadata,
+                    "rank": row.rank,
+                    "type": "fts_search"
                 })
             
             return {
@@ -115,8 +197,20 @@ class KeywordSearchEngine:
             }
             
         except Exception as e:
-            logger.error(f"인덱스 검색 오류: {str(e)}")
+            logger.error(f"FTS 쿼리 실행 오류: {str(e)}")
             return {"documents": [], "scores": [], "metadata": []}
+    
+    def _convert_rank_to_score(self, rank: float) -> float:
+        """FTS rank를 점수로 변환"""
+        # FTS rank는 0에 가까울수록 더 관련성이 높음
+        # 0~1 범위의 점수로 변환
+        if rank == 0:
+            return 1.0
+        elif rank < 0:
+            return 0.5  # 음수 rank는 중간 점수
+        else:
+            # rank가 클수록 점수 감소 (최소 0.1)
+            return max(0.1, 1.0 / (1.0 + rank))
     
     async def _fallback_search(self, keywords: List[str], original_query: str, top_k: int) -> Dict[str, Any]:
         """폴백 검색 (인덱스가 없을 때)"""
@@ -192,13 +286,15 @@ class KeywordSearchEngine:
         """검색 통계 반환"""
         
         return {
-            "engine_type": "keyword",
+            "engine_type": "keyword_fts",
             "stopwords_count": len(self.stopwords),
+            "database_available": self.db_session_factory is not None,
             "index_available": self.index_manager is not None,
             "supported_features": [
+                "fts5_search",
                 "exact_match",
-                "fuzzy_match", 
-                "tf_idf_scoring",
-                "keyword_highlighting"
+                "keyword_highlighting",
+                "rank_scoring",
+                "metadata_filtering"
             ]
         }

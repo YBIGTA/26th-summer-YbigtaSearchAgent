@@ -3,7 +3,7 @@ SQLite 데이터베이스 모델
 회의록, 설정, 메타데이터 저장
 """
 
-from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, JSON, ForeignKey, Boolean
+from sqlalchemy import create_engine, Column, Integer, String, Text, DateTime, Float, JSON, ForeignKey, Boolean, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from datetime import datetime
@@ -190,11 +190,64 @@ class UserSetting(Base):
     user = relationship("User", back_populates="settings")
 
 
+# --- FTS 테이블을 활성화하는 SQLAlchemy 이벤트 리스너 ---
+def setup_fts_events(dbapi_connection, connection_record):
+    """FTS5 가상 테이블과 자동 동기화 트리거를 설정합니다."""
+    # SQLAlchemy event listener provides the raw DBAPI connection object
+    
+    # Use a cursor to execute SQL statements
+    cursor = dbapi_connection.cursor()
+
+    # FTS 테이블 생성 (기존 테이블이 없으면)
+    cursor.execute("""
+        CREATE VIRTUAL TABLE IF NOT EXISTS document_fts
+        USING fts5(
+            title,
+            content,
+            content='documents',
+            content_rowid='id',
+            tokenize = 'porter unicode61'
+        );
+    """)
+
+    # --- 데이터 동기화를 위한 트리거 설정 ---
+    triggers = [
+        """
+        CREATE TRIGGER IF NOT EXISTS documents_ai AFTER INSERT ON documents BEGIN
+            INSERT INTO document_fts(rowid, title, content)
+            VALUES (new.id, new.title, new.content);
+        END;
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS documents_ad AFTER DELETE ON documents BEGIN
+            INSERT INTO document_fts(document_fts, rowid, title, content)
+            VALUES ('delete', old.id, old.title, old.content);
+        END;
+        """,
+        """
+        CREATE TRIGGER IF NOT EXISTS documents_au AFTER UPDATE ON documents BEGIN
+            INSERT INTO document_fts(document_fts, rowid, title, content)
+            VALUES ('delete', old.id, old.title, old.content);
+            INSERT INTO document_fts(rowid, title, content)
+            VALUES (new.id, new.title, new.content);
+        END;
+        """
+    ]
+    for trigger in triggers:
+        cursor.execute(trigger)
+
+    cursor.close()
+
+
 # 데이터베이스 초기화
 def init_db(db_path: str = "data/db/app.db"):
     """데이터베이스를 초기화합니다."""
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     engine = create_engine(f'sqlite:///{db_path}')
+    
+    # ✅ FTS 이벤트 리스너 등록 (이제 다시 활성화합니다)
+    event.listen(engine, 'connect', setup_fts_events)
+    
     Base.metadata.create_all(engine)
     return engine
 
@@ -203,3 +256,11 @@ def get_session(engine):
     """데이터베이스 세션을 생성합니다."""
     Session = sessionmaker(bind=engine)
     return Session()
+
+
+# --- SQLAlchemy 엔진이 처음 연결될 때 위 함수를 실행하도록 설정 ---
+# 사용 예시:
+# from sqlalchemy import create_engine
+# from sqlalchemy import event
+# engine = create_engine("sqlite:///./data/db/app.db")
+# event.listen(engine, 'connect', setup_fts_events)

@@ -23,6 +23,7 @@ tiktoken>=0.5.0
 fastapi==0.116.1
 uvicorn==0.35.0
 sqlalchemy==2.0.42
+python-multipart  # 파일 업로드 지원
 
 # Audio Processing
 whisper==1.1.10

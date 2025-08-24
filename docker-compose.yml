@@ -21,7 +21,9 @@ services:
       retries: 3
       start_period: 10s
     restart: unless-stopped
-    
+    depends_on:
+      - chromadb 
+
   frontend:
     build:
       context: .
@@ -41,5 +43,17 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  chromadb:
+    image: chromadb/chroma
+    ports:
+      - "8001:8000" # backend의 8000번 포트와 충돌을 피하기 위해 8001로 설정
+    volumes:
+      - chroma_data:/chroma/chroma # 데이터 영속성을 위해 볼륨 사용
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
 volumes:
   node_modules:
+  chroma_data: 

@@ -11,6 +11,10 @@ from typing import Optional, Dict, Any, List
 import os
 import sys
 import uuid
+from dotenv import load_dotenv
+
+# 환경 변수 로드
+load_dotenv()
 
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -63,11 +67,32 @@ class PipelineRequest(BaseModel):
     audio_file_path: str
     analysis_options: Optional[Dict[str, Any]] = None
 
+class SearchRequest(BaseModel):
+    query: str
+    top_k: int = 10
+    search_type: str = "hybrid"  # "hybrid", "semantic", "keyword"
+    filters: Optional[Dict[str, Any]] = None
+    sources: Optional[List[str]] = None
+
+class SearchResponse(BaseModel):
+    query: str
+    search_type: str
+    results: Dict[str, Any]
+    total_found: int
+    response_time: float
+    search_metadata: Dict[str, Any]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
     global db_engine, chroma_manager, embeddings, update_scheduler, agent_orchestrator, hybrid_retriever, speaker_diarizer, meeting_pipeline
+    
+    # 환경 변수 확인
+    upstage_api_key = os.getenv("UPSTAGE_API_KEY")
+    if not upstage_api_key:
+        print("⚠️ UPSTAGE_API_KEY가 설정되지 않았습니다.")
+        print("환경 변수를 확인하거나 .env 파일을 설정해주세요.")
     
     # 시작 시 초기화
     print("🚀 백엔드 서버 초기화 중...")
@@ -76,9 +101,13 @@ async def lifespan(app: FastAPI):
     db_engine = init_db()
     print("✅ 데이터베이스 초기화 완료")
     
-    # 임베딩 모델 초기화
-    embeddings = AsyncUpstageEmbeddings()
-    print("✅ 임베딩 모델 초기화 완료")
+    # 임베딩 모델 초기화 (조건부)
+    try:
+        embeddings = AsyncUpstageEmbeddings()
+        print("✅ 임베딩 모델 초기화 완료")
+    except Exception as e:
+        print(f"⚠️ 임베딩 모델 초기화 실패: {e}")
+        embeddings = None
     
     # ChromaDB 인덱스 초기화
     chroma_manager = ChromaIndexManager()
@@ -88,7 +117,8 @@ async def lifespan(app: FastAPI):
     # 하이브리드 검색 시스템 초기화
     hybrid_retriever = HybridRetriever(
         chroma_manager=chroma_manager,
-        embedding_client=embeddings
+        embedding_client=embeddings,
+        db_session_factory=get_session
     )
     print("✅ 하이브리드 검색 시스템 초기화 완료")
     
@@ -120,7 +150,7 @@ async def lifespan(app: FastAPI):
     print("✅ 회의 분석 파이프라인 초기화 완료")
     
     # 업데이트 스케줄러 초기화
-    update_scheduler = UpdateScheduler(chroma_manager)
+    update_scheduler = UpdateScheduler(chroma_manager, db_session_factory=get_session, db_engine=db_engine)
     update_scheduler.start()
     print("✅ 문서 업데이트 스케줄러 시작")
     
@@ -171,6 +201,35 @@ async def get_stats():
     """시스템 통계 반환"""
     stats = chroma_manager.get_statistics()
     return stats
+
+@app.get("/api/search/stats")
+async def get_search_stats():
+    """검색 시스템 통계 반환"""
+    try:
+        if not hybrid_retriever:
+            raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
+        
+        search_stats = hybrid_retriever.get_search_stats()
+        
+        # 각 검색 엔진의 상태 확인
+        engine_stats = {}
+        if hybrid_retriever.semantic_engine:
+            engine_stats["semantic"] = hybrid_retriever.semantic_engine.get_search_stats()
+        if hybrid_retriever.keyword_engine:
+            engine_stats["keyword"] = hybrid_retriever.keyword_engine.get_search_stats()
+        
+        return {
+            "hybrid_retriever": search_stats,
+            "engines": engine_stats,
+            "chroma_manager": chroma_manager.get_statistics() if chroma_manager else None,
+            "embeddings": {
+                "available": embeddings is not None,
+                "type": "AsyncUpstageEmbeddings" if embeddings else None
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # === 설정 관리 ===
@@ -346,9 +405,42 @@ async def get_transcript(transcript_id: int):
 
 # === 검색 ===
 
+@app.post("/api/v1/search", response_model=SearchResponse)
+async def search_endpoint(request: SearchRequest):
+    """통합 검색 API - 하이브리드, 의미적, 키워드 검색 지원"""
+    import time
+    start_time = time.time()
+    
+    try:
+        if not hybrid_retriever:
+            raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
+        
+        # 검색 실행
+        results = await hybrid_retriever.search(
+            query=request.query,
+            top_k=request.top_k,
+            search_type=request.search_type,
+            filters=request.filters,
+            sources=request.sources
+        )
+        
+        response_time = time.time() - start_time
+        
+        return SearchResponse(
+            query=request.query,
+            search_type=request.search_type,
+            results=results,
+            total_found=len(results.get("results", {}).get("documents", [])),
+            response_time=response_time,
+            search_metadata=results.get("search_metadata", {})
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"검색 중 오류 발생: {str(e)}")
+
 @app.post("/api/search/hybrid")
 async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[Dict[str, Any]] = None, sources: Optional[List[str]] = None):
-    """고급 하이브리드 검색"""
+    """고급 하이브리드 검색 (하위 호환성)"""
     try:
         if not hybrid_retriever:
             raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
@@ -363,7 +455,7 @@ async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[D
         return {
             "query": query,
             "results": results,
-            "total_found": len(results.get("documents", []))
+            "total_found": len(results.get("results", {}).get("documents", []))
         }
         
     except Exception as e:
@@ -374,10 +466,13 @@ async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[D
 async def vector_search(query: str, top_k: int = 5):
     """벡터 검색만"""
     try:
-        if not hybrid_retriever:
+        if not hybrid_retriever or not hybrid_retriever.semantic_engine:
             # 폴백: 기존 ChromaDB 사용
-            results = chroma_manager.vector_search(query, top_k)
-            return {"results": results}
+            if chroma_manager:
+                results = chroma_manager.vector_search(query, top_k)
+                return {"results": results}
+            else:
+                raise HTTPException(status_code=503, detail="벡터 검색 시스템이 초기화되지 않았습니다.")
         
         results = await hybrid_retriever.semantic_engine.search(
             query=query,
@@ -393,13 +488,16 @@ async def vector_search(query: str, top_k: int = 5):
 async def keyword_search(query: str, top_k: int = 5):
     """키워드 검색만"""
     try:
-        if not hybrid_retriever:
+        if not hybrid_retriever or not hybrid_retriever.keyword_engine:
             # 폴백: 메타데이터 검색
-            filter = {"$or": [{"title": {"$contains": query}}, {"source": {"$contains": query}}]}
-            results = chroma_manager.metadata_search(filter, top_k)
-            return {"results": results}
-            
-        results = await hybrid_retriever.keyword_engine.search(
+            if chroma_manager:
+                filter = {"$or": [{"title": {"$contains": query}}, {"source": {"$contains": query}}]}
+                results = chroma_manager.metadata_search(filter, top_k)
+                return {"results": results}
+            else:
+                raise HTTPException(status_code=503, detail="키워드 검색 시스템이 초기화되지 않았습니다.")
+        
+                results = await hybrid_retriever.keyword_engine.search(
             query=query,
             top_k=top_k
         )
@@ -413,6 +511,27 @@ async def keyword_search(query: str, top_k: int = 5):
 async def text_search(query: str, top_k: int = 5):
     """텍스트 검색 (하위 호환성)"""
     return await keyword_search(query, top_k)
+
+@app.post("/api/search/config")
+async def update_search_config(config: Dict[str, Any]):
+    """검색 시스템 설정 업데이트"""
+    try:
+        if not hybrid_retriever:
+            raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
+        
+        success = await hybrid_retriever.update_configuration(config)
+        
+        if success:
+            return {
+                "status": "success",
+                "message": "검색 시스템 설정이 업데이트되었습니다.",
+                "updated_config": config
+            }
+        else:
+            raise HTTPException(status_code=400, detail="설정 업데이트 실패")
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # === 지식베이스 동기화 ===

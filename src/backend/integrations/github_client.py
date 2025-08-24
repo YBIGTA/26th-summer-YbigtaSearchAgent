@@ -6,7 +6,7 @@ GitHub 리포지토리 문서 수집 및 README 생성
 import os
 import requests
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from langchain_core.documents import Document
 
 
@@ -19,14 +19,18 @@ class GitHubClient:
         } if self.token else {"Accept": "application/vnd.github.v3+json"}
         self.org_name = "YBIGTA"
         
-    def get_all_repos(self) -> List[Dict[str, Any]]:
-        """조직의 모든 공개 리포지토리를 가져옵니다."""
+    def get_all_repos(self, since: Optional[str] = None) -> List[Dict[str, Any]]:
+        """조직의 모든 공개 리포지토리를 가져옵니다.
+        
+        Args:
+            since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 업데이트된 리포지토리만 가져옵니다.
+        """
         repos = []
         page = 1
         
         while True:
             url = f"https://api.github.com/orgs/{self.org_name}/repos"
-            params = {"type": "public", "page": page, "per_page": 100}
+            params = {"type": "public", "page": page, "per_page": 100, "sort": "updated", "direction": "desc"}
             
             response = requests.get(url, headers=self.headers, params=params)
             if response.status_code != 200:
@@ -36,8 +40,25 @@ class GitHubClient:
             data = response.json()
             if not data:
                 break
+            
+            # since 파라미터가 있으면 필터링
+            if since:
+                filtered_data = []
+                for repo in data:
+                    if repo.get('updated_at') and repo['updated_at'] > since:
+                        filtered_data.append(repo)
+                        print(f"✅ 리포지토리 {repo['name']}가 {since} 이후에 업데이트됨: {repo['updated_at']}")
+                    else:
+                        print(f"⏭️ 리포지토리 {repo['name']}는 {since} 이후에 업데이트되지 않음: {repo.get('updated_at', 'N/A')}")
                 
-            repos.extend(data)
+                repos.extend(filtered_data)
+                
+                # 마지막 리포지토리가 since보다 이전이면 더 이상 확인할 필요 없음
+                if data and data[-1].get('updated_at') and data[-1]['updated_at'] <= since:
+                    break
+            else:
+                repos.extend(data)
+            
             page += 1
             
         return repos
@@ -110,12 +131,20 @@ class GitHubClient:
         
         return content
     
-    def load_all_repos(self) -> List[Document]:
-        """모든 리포지토리의 문서를 로드합니다."""
-        repos = self.get_all_repos()
+    def load_all_repos(self, since: Optional[str] = None) -> List[Document]:
+        """모든 리포지토리의 문서를 로드합니다.
+        
+        Args:
+            since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 업데이트된 리포지토리만 가져옵니다.
+        """
+        repos = self.get_all_repos(since=since)
         documents = []
         
         print(f"🔍 총 {len(repos)}개의 리포지토리를 발견했습니다.")
+        
+        if since and len(repos) == 0:
+            print(f"📅 {since} 이후에 업데이트된 리포지토리가 없습니다.")
+            return []
         
         for i, repo in enumerate(repos, 1):
             print(f"\\n📦 리포지토리 {i}/{len(repos)}: {repo['name']}")
