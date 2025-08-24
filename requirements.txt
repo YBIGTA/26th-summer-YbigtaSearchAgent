@@ -37,3 +37,4 @@ apscheduler==3.10.4
 
 # AI APIs
 openai>=1.86.0,<2.0.0
+langchain-upstage>=0.2.0

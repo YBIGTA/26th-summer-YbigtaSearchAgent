@@ -95,16 +95,25 @@ class BaseAgent(ABC):
     
     async def _call_llm(self, system_prompt: str, user_prompt: str) -> str:
         """
-        LLM 호출 (서브클래스에서 구체적으로 구현)
-        
-        현재는 더미 구현, 실제로는 OpenAI/Upstage API 호출
+        LLM 호출 (Upstage API 사용)
         """
-        if self.llm_client:
-            # TODO: 실제 LLM 클라이언트 연동
-            await asyncio.sleep(1)  # 시뮬레이션
-            return f"{self.name}의 분석 결과 (더미)"
-        else:
+        if not self.llm_client:
+            logger.error(f"{self.name}: LLM 클라이언트가 설정되지 않았습니다.")
             return f"{self.name}: LLM 클라이언트 미설정"
+        
+        try:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ]
+            
+            # Upstage 클라이언트의 invoke_async 메서드 사용
+            response = await self.llm_client.invoke_async(messages)
+            return response
+            
+        except Exception as e:
+            logger.error(f"{self.name}: LLM 호출 실패: {e}")
+            return f"{self.name}: LLM 호출 실패 - {str(e)}"
     
     def get_status(self) -> Dict[str, Any]:
         """에이전트 상태 반환"""

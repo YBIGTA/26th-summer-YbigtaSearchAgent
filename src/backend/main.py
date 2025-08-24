@@ -27,6 +27,7 @@ from stt.speaker_diarization import SpeakerDiarizationEngine
 from core.update_scheduler import UpdateScheduler
 from core.meeting_pipeline import MeetingAnalysisPipeline
 from agents.multi_agent_orchestrator import MultiAgentOrchestrator
+from llm import create_upstage_client
 from nlp.hybrid_retriever import HybridRetriever
 
 # 전역 변수
@@ -95,10 +96,17 @@ async def lifespan(app: FastAPI):
     speaker_diarizer = SpeakerDiarizationEngine()
     print("✅ 화자 분리 시스템 초기화 완료")
     
+    # LLM 클라이언트 초기화
+    llm_client = create_upstage_client()
+    if llm_client:
+        print("✅ Upstage LLM 클라이언트 초기화 완료")
+    else:
+        print("⚠️ Upstage LLM 클라이언트 초기화 실패 - 에이전트가 제한된 기능으로 동작합니다")
+    
     # 멀티에이전트 오케스트레이터 초기화
     agent_orchestrator = MultiAgentOrchestrator(
         retriever=hybrid_retriever,
-        llm_client=None  # TODO: LLM 클라이언트 설정
+        llm_client=llm_client
     )
     print("✅ 멀티에이전트 오케스트레이터 초기화 완료")
     
@@ -124,7 +132,7 @@ async def lifespan(app: FastAPI):
     print("👋 백엔드 서버 종료 중...")
     if update_scheduler:
         update_scheduler.stop()
-    if agent_orchestrator:
+    if agent_orchestrator and hasattr(agent_orchestrator, 'cleanup'):
         await agent_orchestrator.cleanup()
 
 
@@ -135,12 +143,17 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS 설정 (Electron 앱과 통신)
+# CORS 설정 (프론트엔드-백엔드 통신)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "file://"],
+    allow_origins=[
+        "http://localhost:3000",  # 개발 서버
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",  # 자체 서버
+        "http://127.0.0.1:8000"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
