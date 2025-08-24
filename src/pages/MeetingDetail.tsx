@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useApi, PipelineResults } from '../context/ApiContext';
 
 interface Speaker {
   id: string;
@@ -37,109 +38,140 @@ interface MeetingDetailData {
   key_points: string[];
   action_items: string[];
   participants_analysis: Record<string, any>;
+  raw_results?: any;
 }
 
 const MeetingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { getPipelineResults } = useApi();
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
   const [activeTab, setActiveTab] = useState<'transcript' | 'summary' | 'analysis'>('transcript');
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // 데모 데이터
-  useEffect(() => {
-    // 실제로는 API 호출
-    setTimeout(() => {
-      setMeeting({
-        id: id || '1',
-        title: '2024년 1분기 팀 미팅',
-        date: '2024-01-15',
-        duration: '45분',
-        status: 'completed',
-        speakers: [
-          { id: '1', name: '김팀장', color: '#007a5a' },
-          { id: '2', name: '박개발자', color: '#1164a3' },
-          { id: '3', name: '이디자이너', color: '#e01e5a' },
-          { id: '4', name: '최기획자', color: '#ecb22e' }
-        ],
-        utterances: [
-          {
-            id: '1',
-            speaker_id: '1',
-            text: '안녕하세요, 오늘 1분기 팀 미팅을 시작하겠습니다. 먼저 프로젝트 진행 상황을 점검해보죠.',
-            start_time: 0,
-            end_time: 8.5,
-            confidence: 0.95
-          },
-          {
-            id: '2',
-            speaker_id: '2',
-            text: '네, 백엔드 API 개발은 거의 완료되었습니다. 현재 테스트를 진행 중이고, 이번 주 내에 완료 예정입니다.',
-            start_time: 9.0,
-            end_time: 18.2,
-            confidence: 0.92
-          },
-          {
-            id: '3',
-            speaker_id: '3',
-            text: 'UI 디자인은 80% 정도 완료되었어요. 사용자 피드백을 반영해서 몇 가지 수정사항이 있는데, 이 부분도 이번 주에 마무리하겠습니다.',
-            start_time: 19.5,
-            end_time: 32.1,
-            confidence: 0.88
-          },
-          {
-            id: '4',
-            speaker_id: '4',
-            text: '기획 문서 업데이트는 완료했습니다. 다음 분기 로드맵도 준비되어 있으니 검토 부탁드립니다.',
-            start_time: 33.0,
-            end_time: 42.8,
-            confidence: 0.91
-          }
-        ],
-        agendas: [
-          {
-            id: '1',
-            title: '프로젝트 진행 상황 점검',
-            description: '각 팀원별 작업 현황 공유',
-            start_time: 0,
-            end_time: 1200
-          },
-          {
-            id: '2',
-            title: '다음 분기 계획 수립',
-            description: '2분기 목표 및 일정 논의',
-            start_time: 1200,
-            end_time: 2700
-          }
-        ],
-        summary: '2024년 1분기 마지막 팀 미팅에서 각 팀원의 작업 진행 상황을 점검하고, 2분기 계획을 논의했습니다. 대부분의 작업이 계획대로 진행되고 있으며, 이번 주 내에 1분기 목표를 달성할 수 있을 것으로 예상됩니다.',
-        key_points: [
-          '백엔드 API 개발 거의 완료, 테스트 진행 중',
-          'UI 디자인 80% 완료, 사용자 피드백 반영 중',
-          '기획 문서 업데이트 완료',
-          '2분기 로드맵 준비 완료'
-        ],
-        action_items: [
-          '백엔드 API 테스트 완료 - 박개발자 (이번 주)',
-          'UI 디자인 수정사항 적용 - 이디자이너 (이번 주)',
-          '2분기 로드맵 검토 - 전 팀원 (다음 주)'
-        ],
-        participants_analysis: {
-          '1': { speaking_time: 480, participation_rate: 0.35, keywords: ['프로젝트', '진행', '계획'] },
-          '2': { speaking_time: 320, participation_rate: 0.25, keywords: ['API', '개발', '테스트'] },
-          '3': { speaking_time: 280, participation_rate: 0.22, keywords: ['디자인', '피드백', '수정'] },
-          '4': { speaking_time: 220, participation_rate: 0.18, keywords: ['기획', '문서', '로드맵'] }
-        }
+  // 파이프라인 결과에서 MeetingDetailData로 변환
+  const transformPipelineResults = (results: PipelineResults): MeetingDetailData => {
+    const pipelineData = results.results;
+    const transcript = pipelineData.transcript || {};
+    const sttData = pipelineData.stt || {};
+    const agentAnalysis = pipelineData.agent_analysis || {};
+    
+    // 화자 정보 생성
+    const speakers: Speaker[] = [];
+    const speakerStats = transcript.speaker_summary || {};
+    Object.keys(speakerStats).forEach((speakerName, index) => {
+      const colors = ['#007a5a', '#1164a3', '#e01e5a', '#ecb22e', '#36c5f0', '#2eb67d'];
+      speakers.push({
+        id: speakerName,
+        name: speakerName,
+        color: colors[index % colors.length]
       });
-      setIsLoading(false);
-    }, 1000);
-  }, [id]);
+    });
+
+    // 발화 정보 변환
+    const utterances: Utterance[] = (sttData.segments || transcript.segments || []).map((segment: any, index: number) => ({
+      id: index.toString(),
+      speaker_id: segment.speaker || 'Unknown',
+      text: segment.text || '',
+      start_time: segment.start || 0,
+      end_time: segment.end || 0,
+      confidence: segment.confidence || 0
+    }));
+
+    // 아젠다 정보 변환
+    const agendas: AgendaItem[] = (agentAnalysis.agendas?.agendas || []).map((agenda: any) => ({
+      id: agenda.id?.toString() || '',
+      title: agenda.title || '',
+      description: agenda.description || '',
+      start_time: 0,
+      end_time: 0
+    }));
+
+    // 요약 및 주요 포인트
+    const summaryData = agentAnalysis.summary || {};
+    const executiveSummary = summaryData.executive_summary || {};
+    
+    return {
+      id: results.job_id,
+      title: pipelineData.validation?.file_name?.replace(/\.[^/.]+$/, '') || '회의 분석',
+      date: new Date(results.completed_at || Date.now()).toISOString().split('T')[0],
+      duration: transcript.metadata?.total_duration ? 
+                Math.floor(transcript.metadata.total_duration / 60) + '분' : '분석됨',
+      status: 'completed',
+      speakers,
+      utterances,
+      agendas,
+      summary: executiveSummary.executive_recommendation || 
+               summaryData.detailed_analysis?.agenda_analysis ? 
+               `총 ${summaryData.detailed_analysis.agenda_analysis.total_agendas}개 아젠다가 논의되었습니다.` : 
+               '회의 분석이 완료되었습니다.',
+      key_points: executiveSummary.key_outcomes || 
+                 (agentAnalysis.agendas?.agendas || []).map((a: any) => a.title),
+      action_items: summaryData.action_items?.map((item: any) => item.task) || [],
+      participants_analysis: Object.fromEntries(
+        speakers.map(speaker => [
+          speaker.id,
+          {
+            speaking_time: speakerStats[speaker.name]?.total_duration || 0,
+            participation_rate: speakerStats[speaker.name]?.utterance_count / utterances.length || 0,
+            keywords: ['분석', '회의', '논의']
+          }
+        ])
+      ),
+      raw_results: pipelineData
+    };
+  };
+
+  // 실제 API 데이터 로드
+  useEffect(() => {
+    const loadMeetingData = async () => {
+      if (!id) {
+        setError('회의 ID가 제공되지 않았습니다.');
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const results = await getPipelineResults(id);
+        
+        if (results.status === 'completed' && results.results) {
+          const meetingData = transformPipelineResults(results);
+          setMeeting(meetingData);
+        } else {
+          setError('아직 분석이 완료되지 않았습니다.');
+        }
+      } catch (err) {
+        console.error('회의 데이터 로드 오류:', err);
+        setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadMeetingData();
+  }, [id, getPipelineResults]);
 
   if (isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: '48px' }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
         <h2>회의록을 불러오는 중...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ textAlign: 'center', padding: '48px' }}>
+        <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+        <h2>오류가 발생했습니다</h2>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>
+          {error}
+        </p>
+        <Link to="/" className="btn btn-primary">
+          대시보드로 돌아가기
+        </Link>
       </div>
     );
   }
