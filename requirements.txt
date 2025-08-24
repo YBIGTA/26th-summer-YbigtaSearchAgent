@@ -11,6 +11,7 @@ aiohttp==3.12.15
 # Vector Store & Search
 chromadb==0.4.22
 faiss-cpu==1.11.0.post1
+numpy==1.26.4
 
 # Data Sources
 google-api-python-client==2.178.0
@@ -25,7 +26,7 @@ uvicorn==0.35.0
 sqlalchemy==2.0.42
 
 # Audio Processing
-whisper==1.1.10
+openai-whisper>=20231117
 librosa==0.10.1
 pyannote.audio==3.1.1
 

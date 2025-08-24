@@ -4,6 +4,7 @@ import Layout from './components/Layout/Layout';
 import Dashboard from './pages/Dashboard';
 import Settings from './pages/Settings';
 import MeetingDetail from './pages/MeetingDetail';
+import Upload from './pages/Upload';
 import { ApiProvider } from './context/ApiContext';
 import { SettingsProvider } from './context/SettingsContext';
 import './styles/slack-theme.css';
@@ -46,6 +47,7 @@ function App() {
             <Layout>
               <Routes>
                 <Route path="/" element={<Dashboard />} />
+                <Route path="/upload" element={<Upload />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/meeting/:id" element={<MeetingDetail />} />
               </Routes>
