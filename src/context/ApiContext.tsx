@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { Meeting } from '../types/electron';
 
 // API 관련 타입 정의
 export interface ApiKey {
@@ -6,6 +7,23 @@ export interface ApiKey {
   index?: number;
   masked_value: string;
   is_valid?: boolean;
+}
+
+export interface STTOptions {
+  engine?: string;
+  language?: string;
+  enable_diarization?: boolean;
+}
+
+export interface AgentAnalysisOptions {
+  analysis_options?: Record<string, any>;
+  priority?: string;
+}
+
+export interface SearchOptions {
+  top_k?: number;
+  filters?: Record<string, any>;
+  sources?: string[];
 }
 
 export interface ApiService {
@@ -36,14 +54,49 @@ interface ApiContextType {
   apiKeys: ApiKey[];
   isLoading: boolean;
   error: string | null;
+  
+  // API 키 관리
   saveApiKey: (provider: string, key: string, index?: number) => Promise<void>;
   loadApiKeys: () => Promise<void>;
   removeApiKey: (provider: string, index?: number) => Promise<void>;
   testApiKey: (provider: string, key: string) => Promise<boolean>;
+  
+  // 오디오 및 STT
   uploadAudio: (file: File, onProgress?: (progress: number) => void) => Promise<any>;
+  processSTT: (fileId: number, options?: STTOptions) => Promise<any>;
+  
+  // 파일 업로드 및 회의 관리
+  uploadFile: (file: File) => Promise<{ success: boolean; job_id: string; error?: string }>;
+  getMeetings: () => Promise<Meeting[]>;
+  
+  // 파이프라인 분석
   startPipelineAnalysis: (file: File) => Promise<{ job_id: string; message: string }>;
   getPipelineStatus: (jobId: string) => Promise<PipelineStatus>;
   getPipelineResults: (jobId: string) => Promise<PipelineResults>;
+  
+  // AI 에이전트
+  startAgentAnalysis: (transcriptId: number, options?: AgentAnalysisOptions) => Promise<any>;
+  getAgentStatus: (jobId: string) => Promise<any>;
+  getAgentResults: (jobId: string) => Promise<any>;
+  
+  // 검색
+  hybridSearch: (query: string, options?: SearchOptions) => Promise<any>;
+  vectorSearch: (query: string, options?: SearchOptions) => Promise<any>;
+  keywordSearch: (query: string, options?: SearchOptions) => Promise<any>;
+  searchDocuments: (query: string, options?: SearchOptions) => Promise<any>;
+  
+  // 채팅
+  getChatResponse: (query: string) => Promise<any>;
+  
+  // 지식베이스 동기화
+  syncNotion: () => Promise<any>;
+  syncGitHub: () => Promise<any>;
+  syncGoogleDrive: () => Promise<any>;
+  getSyncStatus: () => Promise<any>;
+  
+  // 트랜스크립트
+  getTranscripts: () => Promise<any>;
+  getTranscript: (id: number) => Promise<any>;
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
@@ -225,14 +278,6 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
   };
 
   const startPipelineAnalysis = async (file: File): Promise<{ job_id: string; message: string }> => {
-    console.log('=== startPipelineAnalysis 호출됨 ===');
-    console.log('API_BASE_URL:', API_BASE_URL);
-    console.log('파일 정보:', {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    });
-    
     setIsLoading(true);
     setError(null);
 
@@ -240,74 +285,24 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      console.log('FormData 생성 완료');
-      console.log('FormData entries:');
-      const entries = Array.from(formData.entries());
-      entries.forEach(([key, value]) => {
-        console.log('  ', key, ':', value);
-        if (value instanceof File) {
-          console.log('    파일 이름:', value.name);
-          console.log('    파일 크기:', value.size);
-          console.log('    파일 타입:', value.type);
-        }
+      const response = await fetch(`${API_BASE_URL}/meetings/analyze-upload`, {
+        method: 'POST',
+        body: formData,
       });
 
-      console.log('API 요청 시작:', `${API_BASE_URL}/meetings/analyze-upload`);
-
-      // AbortController로 타임아웃 처리
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('요청 타임아웃! 30초 경과');
-        controller.abort();
-      }, 30000);
-
-      try {
-        const response = await fetch(`${API_BASE_URL}/meetings/analyze-upload`, {
-          method: 'POST',
-          body: formData,
-          signal: controller.signal,
-          // FormData 사용시 Content-Type 헤더를 명시적으로 설정하지 않아야 함
-          // 브라우저가 boundary를 포함한 multipart/form-data로 자동 설정
-        });
-        
-        clearTimeout(timeoutId);
-        console.log('API 응답 수신 완료!');
-        console.log('API 응답 상태:', response.status, response.statusText);
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error('API 에러 응답:', errorData);
-          throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
-        console.log('API 응답 성공:', result);
-        
-        return {
-          job_id: result.job_id || result.id,
-          message: result.message || '분석이 시작되었습니다.'
-        };
-        
-      } catch (fetchError) {
-        clearTimeout(timeoutId);
-        
-        if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-          console.error('요청이 타임아웃되었습니다');
-          throw new Error('요청 시간이 초과되었습니다 (30초)');
-        }
-        
-        console.error('Fetch 에러:', fetchError);
-        throw fetchError;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
+
+      const result = await response.json();
+      
+      return {
+        job_id: result.job_id || result.id,
+        message: result.message || '분석이 시작되었습니다.'
+      };
       
     } catch (err) {
-      console.error('startPipelineAnalysis 에러:', err);
-      console.error('에러 타입:', typeof err);
-      console.error('에러 상세:', {
-        message: err instanceof Error ? err.message : String(err),
-        stack: err instanceof Error ? err.stack : undefined
-      });
-      
       setError(err instanceof Error ? err.message : '파이프라인 분석 시작에 실패했습니다.');
       throw err;
     } finally {
@@ -345,18 +340,356 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     }
   };
 
+  // STT 처리
+  const processSTT = async (fileId: number, options: STTOptions = {}): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/stt/${fileId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(options),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'STT 처리에 실패했습니다.');
+    }
+  };
+
+  // AI 에이전트 분석
+  const startAgentAnalysis = async (transcriptId: number, options: AgentAnalysisOptions = {}): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agents/analyze`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transcript_id: transcriptId, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '에이전트 분석 시작에 실패했습니다.');
+    }
+  };
+
+  const getAgentStatus = async (jobId: string): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agents/status/${jobId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '에이전트 상태 조회에 실패했습니다.');
+    }
+  };
+
+  const getAgentResults = async (jobId: string): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/agents/results/${jobId}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '에이전트 결과 조회에 실패했습니다.');
+    }
+  };
+
+  // 검색 기능
+  const hybridSearch = async (query: string, options: SearchOptions = {}): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/search/hybrid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '하이브리드 검색에 실패했습니다.');
+    }
+  };
+
+  const vectorSearch = async (query: string, options: SearchOptions = {}): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/search/vector`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '벡터 검색에 실패했습니다.');
+    }
+  };
+
+  const keywordSearch = async (query: string, options: SearchOptions = {}): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/search/keyword`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '키워드 검색에 실패했습니다.');
+    }
+  };
+
+  // 지식베이스 동기화
+  const syncNotion = async (): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sync/notion`, { method: 'POST' });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Notion 동기화에 실패했습니다.');
+    }
+  };
+
+  const syncGitHub = async (): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sync/github`, { method: 'POST' });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'GitHub 동기화에 실패했습니다.');
+    }
+  };
+
+  const syncGoogleDrive = async (): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sync/drive`, { method: 'POST' });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : 'Google Drive 동기화에 실패했습니다.');
+    }
+  };
+
+  const getSyncStatus = async (): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/sync/status`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '동기화 상태 조회에 실패했습니다.');
+    }
+  };
+
+  // 트랜스크립트
+  const getTranscripts = async (): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/transcripts`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '트랜스크립트 목록 조회에 실패했습니다.');
+    }
+  };
+
+  const getTranscript = async (id: number): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/transcripts/${id}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '트랜스크립트 조회에 실패했습니다.');
+    }
+  };
+
+  // 파일 업로드 및 회의 관리
+  const uploadFile = async (file: File): Promise<{ success: boolean; job_id: string; error?: string }> => {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE_URL}/pipeline/start`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      return { success: true, job_id: result.job_id };
+    } catch (err) {
+      return { 
+        success: false, 
+        job_id: '', 
+        error: err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.' 
+      };
+    }
+  };
+
+  const getMeetings = async (): Promise<Meeting[]> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/meetings`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.meetings || [];
+    } catch (err) {
+      console.error('회의 목록 조회 오류:', err);
+      return [];
+    }
+  };
+
+  // 검색 및 채팅
+  const searchDocuments = async (query: string, options?: SearchOptions): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/search/hybrid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, ...options }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '문서 검색에 실패했습니다.');
+    }
+  };
+
+  const getChatResponse = async (query: string): Promise<any> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (err) {
+      throw new Error(err instanceof Error ? err.message : '채팅 응답 생성에 실패했습니다.');
+    }
+  };
+
   const contextValue: ApiContextType = {
     apiKeys,
     isLoading,
     error,
+    
+    // API 키 관리
     saveApiKey,
     loadApiKeys,
     removeApiKey,
     testApiKey,
+    
+    // 오디오 및 STT
     uploadAudio,
+    processSTT,
+    
+    // 파일 업로드 및 회의 관리
+    uploadFile,
+    getMeetings,
+    
+    // 파이프라인 분석
     startPipelineAnalysis,
     getPipelineStatus,
     getPipelineResults,
+    
+    // AI 에이전트
+    startAgentAnalysis,
+    getAgentStatus,
+    getAgentResults,
+    
+    // 검색
+    hybridSearch,
+    vectorSearch,
+    keywordSearch,
+    searchDocuments,
+    
+    // 채팅
+    getChatResponse,
+    
+    // 지식베이스 동기화
+    syncNotion,
+    syncGitHub,
+    syncGoogleDrive,
+    getSyncStatus,
+    
+    // 트랜스크립트
+    getTranscripts,
+    getTranscript,
   };
 
   return (

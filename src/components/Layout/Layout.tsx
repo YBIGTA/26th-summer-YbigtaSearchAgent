@@ -36,11 +36,25 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="slack-sidebar-section">
             <div className="slack-sidebar-section-title">메뉴</div>
             <Link
+              to="/upload"
+              className={`slack-sidebar-item ${isActive('/upload') ? 'active' : ''}`}
+            >
+              <span className="slack-sidebar-item-icon">📁</span>
+              파일 업로드
+            </Link>
+            <Link
               to="/"
               className={`slack-sidebar-item ${isActive('/') ? 'active' : ''}`}
             >
               <span className="slack-sidebar-item-icon">📊</span>
               대시보드
+            </Link>
+            <Link
+              to="/chat"
+              className={`slack-sidebar-item ${isActive('/chat') ? 'active' : ''}`}
+            >
+              <span className="slack-sidebar-item-icon">💬</span>
+              AI 채팅
             </Link>
             <Link
               to="/settings"
@@ -72,12 +86,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           <div className="slack-sidebar-section">
             <div className="slack-sidebar-section-title">빠른 실행</div>
             <div className="slack-sidebar-item">
-              <span className="slack-sidebar-item-icon">📁</span>
-              파일 업로드
-            </div>
-            <div className="slack-sidebar-item">
               <span className="slack-sidebar-item-icon">🔄</span>
               벡터 DB 업데이트
+            </div>
+            <div className="slack-sidebar-item">
+              <span className="slack-sidebar-item-icon">🤖</span>
+              AI 에이전트 실행
             </div>
           </div>
         </div>
@@ -94,6 +108,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="slack-main-header">
           <div className="slack-main-title">
             {location.pathname === '/' && '대시보드'}
+            {location.pathname === '/upload' && '파일 업로드'}
+            {location.pathname === '/chat' && 'AI 채팅'}
             {location.pathname === '/settings' && '설정'}
             {location.pathname.startsWith('/meeting/') && '회의록 상세'}
           </div>
