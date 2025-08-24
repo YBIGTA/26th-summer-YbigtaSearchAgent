@@ -116,6 +116,47 @@ class BaseAgent(ABC):
             "last_activity": self.conversation_history[-1]["timestamp"] if self.conversation_history else None
         }
     
+    async def analyze(self, input_data: Any) -> Dict[str, Any]:
+        """
+        에이전트 분석 수행 (process 메서드의 래퍼)
+        
+        Args:
+            input_data: 분석할 데이터 (문자열이나 딕셔너리)
+            
+        Returns:
+            분석 결과
+        """
+        # 입력 데이터를 딕셔너리 형태로 변환
+        if isinstance(input_data, str):
+            processed_input = {
+                "transcript": input_data,  # AgendaMiner가 기대하는 키 사용
+                "speakers": [],
+                "timeline": [],
+                "metadata": {},
+                "timestamp": datetime.now().isoformat()
+            }
+        elif isinstance(input_data, dict):
+            # 이미 딕셔너리인 경우 필요한 키들이 있는지 확인하고 없으면 추가
+            processed_input = input_data.copy()
+            if "transcript" not in processed_input and "content" in processed_input:
+                processed_input["transcript"] = processed_input["content"]
+            if "speakers" not in processed_input:
+                processed_input["speakers"] = []
+            if "timeline" not in processed_input:
+                processed_input["timeline"] = []
+            if "metadata" not in processed_input:
+                processed_input["metadata"] = {}
+        else:
+            processed_input = {
+                "transcript": str(input_data),
+                "speakers": [],
+                "timeline": [],
+                "metadata": {},
+                "timestamp": datetime.now().isoformat()
+            }
+        
+        return await self.process(processed_input)
+    
     def reset(self):
         """에이전트 상태 초기화"""
         self.conversation_history.clear()

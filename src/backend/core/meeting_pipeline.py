@@ -64,7 +64,7 @@ class MeetingAnalysisPipeline:
         
         # 기본 옵션 설정
         default_options = {
-            "stt_engine": "whisper",
+            "stt_engine": "returnzero",
             "language": "ko", 
             "enable_diarization": True,
             "enable_agents": True,
@@ -286,7 +286,9 @@ class MeetingAnalysisPipeline:
             agent_results = {}
             
             meeting_data = {
-                "transcript": transcript,
+                "transcript": transcript.get("full_text", ""),
+                "speakers": transcript.get("speakers", []),
+                "timeline": transcript.get("segments", []),
                 "metadata": transcript.get("metadata", {}),
                 "content": transcript.get("full_text", "")
             }
@@ -294,17 +296,17 @@ class MeetingAnalysisPipeline:
             # 각 에이전트 순차 실행 (실제로는 병렬 실행 가능)
             if agent_config.get("agenda_miner", True):
                 agent_results["agendas"] = await self.agent_orchestrator.agenda_miner.analyze(
-                    meeting_data["content"]
+                    meeting_data
                 )
             
             if agent_config.get("claim_checker", True):
                 agent_results["claims"] = await self.agent_orchestrator.claim_checker.analyze(
-                    meeting_data["content"]
+                    meeting_data
                 )
             
             if agent_config.get("counter_arguer", True):
                 agent_results["counter_arguments"] = await self.agent_orchestrator.counter_arguer.analyze(
-                    meeting_data["content"]
+                    meeting_data
                 )
             
             if agent_config.get("evidence_hunter", True):
