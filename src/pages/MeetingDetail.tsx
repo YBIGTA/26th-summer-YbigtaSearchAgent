@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useApi, PipelineResults } from '../context/ApiContext';
+import AudioPlayer from '../components/Meeting/AudioPlayer';
 
 interface Speaker {
   id: string;
@@ -39,16 +40,81 @@ interface MeetingDetailData {
   action_items: string[];
   participants_analysis: Record<string, any>;
   raw_results?: any;
+  audio_file?: string; // 오디오 파일 URL 추가
 }
 
 const MeetingDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { getPipelineResults } = useApi();
+  const { 
+    getPipelineResults, 
+    getTranscript, 
+    getAgentResults,
+    getAgentStatus 
+  } = useApi();
   const [meeting, setMeeting] = useState<MeetingDetailData | null>(null);
   const [activeTab, setActiveTab] = useState<'transcript' | 'summary' | 'analysis'>('transcript');
   const [selectedSpeaker, setSelectedSpeaker] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // 컴포넌트 마운트 시 데이터 불러오기
+  useEffect(() => {
+    if (id) {
+      loadMeetingData();
+    }
+  }, [id]);
+
+  // 회의 데이터 불러오기
+  const loadMeetingData = async () => {
+    if (!id) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // 먼저 트랜스크립트 정보 불러오기
+      const transcript = await getTranscript(parseInt(id));
+      console.log('트랜스크립트 데이터:', transcript);
+      
+      if (transcript) {
+        // 기본 회의 정보 설정
+        const basicMeetingData: MeetingDetailData = {
+          id: id,
+          title: transcript.title || `회의 ${id}`,
+          date: transcript.date || new Date().toISOString().split('T')[0],
+          duration: transcript.duration ? `${Math.floor(transcript.duration / 60)}분` : '분석됨',
+          status: transcript.status || 'completed',
+          speakers: [],
+          utterances: [],
+          agendas: [],
+          summary: transcript.summary || '분석 완료',
+          key_points: [],
+          action_items: [],
+          participants_analysis: {},
+          raw_results: transcript,
+          audio_file: transcript.audio_file || transcript.file_path || null // 오디오 파일 URL 설정
+        };
+        
+        setMeeting(basicMeetingData);
+        
+        // 파이프라인 결과가 있다면 추가 데이터 로드
+        if (transcript.job_id) {
+          try {
+            const pipelineResults = await getPipelineResults(transcript.job_id);
+            const enhancedData = transformPipelineResults(pipelineResults);
+            setMeeting(enhancedData);
+          } catch (pipelineErr) {
+            console.log('파이프라인 결과 없음, 기본 데이터만 사용');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('회의 데이터 불러오기 실패:', err);
+      setError(err instanceof Error ? err.message : '데이터를 불러올 수 없습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 파이프라인 결과에서 MeetingDetailData로 변환
   const transformPipelineResults = (results: PipelineResults): MeetingDetailData => {
@@ -123,34 +189,7 @@ const MeetingDetail: React.FC = () => {
     };
   };
 
-  // 실제 API 데이터 로드
-  useEffect(() => {
-    const loadMeetingData = async () => {
-      if (!id) {
-        setError('회의 ID가 제공되지 않았습니다.');
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const results = await getPipelineResults(id);
-        
-        if (results.status === 'completed' && results.results) {
-          const meetingData = transformPipelineResults(results);
-          setMeeting(meetingData);
-        } else {
-          setError('아직 분석이 완료되지 않았습니다.');
-        }
-      } catch (err) {
-        console.error('회의 데이터 로드 오류:', err);
-        setError(err instanceof Error ? err.message : '데이터를 불러오는데 실패했습니다.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadMeetingData();
-  }, [id, getPipelineResults]);
+  // 중복된 useEffect 제거 (위에서 loadMeetingData 함수로 대체됨)
 
   if (isLoading) {
     return (
@@ -268,6 +307,26 @@ const MeetingDetail: React.FC = () => {
       {/* 전사록 탭 */}
       {activeTab === 'transcript' && (
         <div>
+          {/* 오디오 플레이어 */}
+          {meeting.audio_file && (
+            <div className="card" style={{ marginBottom: '24px' }}>
+              <div className="card-header">
+                <h3 className="card-title">🎵 오디오 재생</h3>
+                <p className="card-description">회의 녹음 파일을 재생하고 탐색할 수 있습니다.</p>
+              </div>
+              <div style={{ marginTop: '16px' }}>
+                <AudioPlayer
+                  audioUrl={meeting.audio_file}
+                  title={meeting.title}
+                  onTimeUpdate={(currentTime, duration) => {
+                    // 시간 업데이트 시 필요한 로직
+                    console.log('현재 시간:', currentTime, '전체 길이:', duration);
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* 화자 필터 */}
           <div className="card" style={{ marginBottom: '24px' }}>
             <div className="card-header">

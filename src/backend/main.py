@@ -11,6 +11,10 @@ from typing import Optional, Dict, Any, List
 import os
 import sys
 import uuid
+from dotenv import load_dotenv
+
+# .env 파일 로딩
+load_dotenv()
 
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

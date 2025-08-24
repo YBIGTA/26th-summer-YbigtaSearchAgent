@@ -3,13 +3,29 @@ import { useApi } from '../context/ApiContext';
 import { useSettings } from '../context/SettingsContext';
 
 const Settings: React.FC = () => {
-  const { apiKeys, saveApiKey, loadApiKeys, removeApiKey, testApiKey, isLoading, error } = useApi();
+  const { 
+    apiKeys, 
+    saveApiKey, 
+    loadApiKeys, 
+    removeApiKey, 
+    testApiKey, 
+    syncNotion,
+    syncGitHub,
+    syncGoogleDrive,
+    getSyncStatus,
+    isLoading, 
+    error 
+  } = useApi();
   const { sttEngine, setSttEngine, language, setLanguage, sttEngines, loadSTTEngines, validateEngine } = useSettings();
 
   // API 키 입력 상태
   const [newApiKeys, setNewApiKeys] = useState<Record<string, string>>({});
   const [testResults, setTestResults] = useState<Record<string, boolean | null>>({});
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['api-keys']));
+  
+  // 동기화 상태
+  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [syncLoading, setSyncLoading] = useState<Record<string, boolean>>({});
 
   // 지원하는 API 프로바이더
   const apiProviders = [
@@ -30,7 +46,52 @@ const Settings: React.FC = () => {
   useEffect(() => {
     loadApiKeys();
     loadSTTEngines();
+    loadSyncStatus();
   }, []);
+
+  // 동기화 상태 로드
+  const loadSyncStatus = async () => {
+    try {
+      const status = await getSyncStatus();
+      setSyncStatus(status);
+    } catch (err) {
+      console.error('동기화 상태 로드 실패:', err);
+    }
+  };
+
+  // 지식베이스 동기화 실행
+  const handleSync = async (source: 'notion' | 'github' | 'drive') => {
+    setSyncLoading(prev => ({ ...prev, [source]: true }));
+    
+    try {
+      let result;
+      switch (source) {
+        case 'notion':
+          result = await syncNotion();
+          break;
+        case 'github':
+          result = await syncGitHub();
+          break;
+        case 'drive':
+          result = await syncGoogleDrive();
+          break;
+      }
+      
+      console.log(`${source} 동기화 완료:`, result);
+      
+      // 동기화 상태 새로고침
+      await loadSyncStatus();
+      
+      // 성공 메시지 표시
+      alert(`${source} 동기화가 완료되었습니다.`);
+      
+    } catch (err) {
+      console.error(`${source} 동기화 실패:`, err);
+      alert(`${source} 동기화에 실패했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+    } finally {
+      setSyncLoading(prev => ({ ...prev, [source]: false }));
+    }
+  };
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -276,6 +337,117 @@ const Settings: React.FC = () => {
                 )}
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* 지식베이스 동기화 */}
+      <div className="card">
+        <div 
+          className="card-header"
+          style={{ cursor: 'pointer' }}
+          onClick={() => toggleSection('knowledge-base')}
+        >
+          <h2 className="card-title">
+            지식베이스 동기화 {expandedSections.has('knowledge-base') ? '▼' : '▶'}
+          </h2>
+          <p className="card-description">
+            외부 지식베이스와 동기화하여 검색 품질을 향상시킵니다.
+          </p>
+        </div>
+
+        {expandedSections.has('knowledge-base') && (
+          <div style={{ marginTop: '16px' }}>
+            {/* Notion 동기화 */}
+            <div className="card" style={{ backgroundColor: 'var(--bg-tertiary)', marginBottom: '16px' }}>
+              <div className="card-header">
+                <h4 className="card-title">📝 Notion</h4>
+                <p className="card-description">Notion 페이지와 동기화</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {syncStatus?.notion && (
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      마지막 동기화: {new Date(syncStatus.notion.last_sync).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleSync('notion')}
+                  disabled={syncLoading.notion}
+                  className="btn btn-primary"
+                  style={{ minWidth: '100px' }}
+                >
+                  {syncLoading.notion ? '동기화 중...' : '동기화'}
+                </button>
+              </div>
+            </div>
+
+            {/* GitHub 동기화 */}
+            <div className="card" style={{ backgroundColor: 'var(--bg-tertiary)', marginBottom: '16px' }}>
+              <div className="card-header">
+                <h4 className="card-title">🐙 GitHub</h4>
+                <p className="card-description">GitHub 저장소와 동기화</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {syncStatus?.github && (
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      마지막 동기화: {new Date(syncStatus.github.last_sync).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleSync('github')}
+                  disabled={syncLoading.github}
+                  className="btn btn-primary"
+                  style={{ minWidth: '100px' }}
+                >
+                  {syncLoading.github ? '동기화 중...' : '동기화'}
+                </button>
+              </div>
+            </div>
+
+            {/* Google Drive 동기화 */}
+            <div className="card" style={{ backgroundColor: 'var(--bg-tertiary)', marginBottom: '16px' }}>
+              <div className="card-header">
+                <h4 className="card-title">☁️ Google Drive</h4>
+                <p className="card-description">Google Drive 문서와 동기화</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {syncStatus?.drive && (
+                    <div style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+                      마지막 동기화: {new Date(syncStatus.drive.last_sync).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => handleSync('drive')}
+                  disabled={syncLoading.drive}
+                  className="btn btn-primary"
+                  style={{ minWidth: '100px' }}
+                >
+                  {syncLoading.drive ? '동기화 중...' : '동기화'}
+                </button>
+              </div>
+            </div>
+
+            {/* 전체 동기화 */}
+            <div style={{ marginTop: '24px', textAlign: 'center' }}>
+              <button
+                onClick={async () => {
+                  await handleSync('notion');
+                  await handleSync('github');
+                  await handleSync('drive');
+                }}
+                disabled={Object.values(syncLoading).some(Boolean)}
+                className="btn btn-secondary"
+                style={{ minWidth: '150px' }}
+              >
+                전체 동기화
+              </button>
+            </div>
           </div>
         )}
       </div>
