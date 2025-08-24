@@ -531,3 +531,26 @@ class Summarizer(BaseAgent):
         
         final_confidence = min(weighted_confidence + completeness_bonus, 1.0)
         return round(final_confidence, 2)
+    
+    async def generate_report(self, agent_results: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        보고서 생성 (파이프라인 호환용 래퍼 메서드)
+        
+        Args:
+            agent_results: 다른 에이전트들의 분석 결과들
+            
+        Returns:
+            종합 보고서
+        """
+        # agent_results를 process 메서드에 맞는 형식으로 변환
+        input_data = {
+            "agenda_results": agent_results.get("agendas", {}),
+            "claim_results": agent_results.get("claims", {}),
+            "counter_results": agent_results.get("counter_arguments", {}),
+            "evidence_results": agent_results.get("evidence", {}),
+            "meeting_metadata": agent_results.get("metadata", {}),
+            "original_transcript": agent_results.get("transcript", {}).get("full_text", ""),
+            "timestamp": agent_results.get("timestamp")
+        }
+        
+        return await self.process(input_data)

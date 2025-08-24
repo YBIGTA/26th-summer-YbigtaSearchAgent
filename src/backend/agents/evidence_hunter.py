@@ -419,3 +419,40 @@ class EvidenceHunter(BaseAgent):
             confidence += 0.1
         
         return min(confidence, 1.0)
+    
+    async def search_and_verify(self, content: str, meeting_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        검색 및 검증 (파이프라인 호환용 래퍼 메서드)
+        
+        Args:
+            content: 회의 내용 텍스트
+            meeting_data: 전체 회의 데이터
+            
+        Returns:
+            증거 수집 및 검증 결과
+        """
+        # meeting_data에서 claims, counter_arguments 등을 추출하거나 기본값 사용
+        input_data = {
+            "claims": meeting_data.get("claims", []),
+            "counter_arguments": meeting_data.get("counter_arguments", []),
+            "agendas": meeting_data.get("agendas", []),
+            "search_context": {
+                "content": content,
+                "meeting_metadata": meeting_data.get("metadata", {})
+            },
+            "sources": ["all"],
+            "timestamp": meeting_data.get("timestamp")
+        }
+        
+        # 만약 claims가 없다면 content를 기반으로 기본 claim 생성
+        if not input_data["claims"] and content:
+            input_data["claims"] = [
+                {
+                    "id": 1,
+                    "claim": content[:200] + "..." if len(content) > 200 else content,
+                    "type": "general_discussion",
+                    "confidence": 0.8
+                }
+            ]
+        
+        return await self.process(input_data)
