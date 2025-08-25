@@ -122,8 +122,6 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
-
-
 # Docker
 .dockerignore
 
@@ -171,3 +169,52 @@ myenv/
 node_modules
 unified_chroma_db
 data/indexes/chroma_db
+
+# === 추가된 큰 파일 및 캐시 파일들 ===
+# 캐시 파일들
+processed_repos_cache.json
+parsed_cache.json
+*.cache
+*.cache.json
+cache/
+caches/
+
+# 벡터 데이터베이스 파일들
+*.faiss
+faiss_index/
+faiss_index_*/
+*.pkl
+*.pickle
+*.bin
+*.vec
+
+# 임베딩 모델 파일들
+*.model
+*.emb
+embeddings/
+embedding_models/
+
+# 대용량 데이터 파일들
+*.h5
+*.hdf5
+*.parquet
+*.feather
+*.arrow
+*.avro
+*.orc
+
+# 압축 파일들
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 백업 파일들
+*.bak
+*.backup
+*.old
+*.orig
+
+# 크롬 브라우저 캐시 (혹시 모를 경우)
+.chrome/
+.chromium/
