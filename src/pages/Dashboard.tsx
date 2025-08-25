@@ -192,19 +192,33 @@ const Dashboard: React.FC = () => {
   const generateMeetingReport = useCallback(async (meeting: Meeting) => {
     setIsReportLoading(true);
     try {
-      // 백엔드 API에서 개별 회의 보고서 가져오기
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/meetings/${meeting.id}/report`);
-      if (response.ok) {
-        const reportData = await response.json();
-        return reportData;
-      } else {
-        // API 응답이 없으면 해당 회의의 파이프라인 결과 기반으로 보고서 생성
-        return meeting.pipeline_results || sampleReport;
+      // 먼저 파이프라인 결과를 가져와서 보고서 생성
+      if (meeting.job_id) {
+        try {
+          // 파이프라인 결과 조회
+          const pipelineResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/pipeline/results/${meeting.job_id}`);
+          if (pipelineResponse.ok) {
+            const pipelineData = await pipelineResponse.json();
+            if (pipelineData.results && pipelineData.results.final_report) {
+              // 백엔드에서 생성된 보고서가 있으면 사용
+              return pipelineData.results.final_report;
+            }
+          }
+        } catch (pipelineError) {
+          console.log('파이프라인 결과 조회 실패, 기본 데이터 사용:', pipelineError);
+        }
       }
+      
+      // 파이프라인 결과가 없으면 회의 데이터 기반으로 보고서 생성
+      if (meeting.pipeline_results) {
+        return meeting.pipeline_results;
+      }
+      
+      // 아무것도 없으면 기본 보고서 사용
+      return sampleReport;
     } catch (error) {
       console.error('보고서 생성 오류:', error);
-      // 에러 시 해당 회의의 파이프라인 결과 또는 샘플 보고서 사용
-      return meeting.pipeline_results || sampleReport;
+      return sampleReport;
     } finally {
       setIsReportLoading(false);
     }
@@ -212,12 +226,34 @@ const Dashboard: React.FC = () => {
 
   // 최신 완료된 회의의 보고서를 자동으로 표시
   useEffect(() => {
+    if (meetings.length === 0) {
+      setFinalReport(null);
+      return;
+    }
+    
+    // 완료된 회의가 있으면 가장 최근 것 사용
     const completedMeetings = meetings.filter((m: Meeting) => m.status === 'completed');
     if (completedMeetings.length > 0) {
-      // 가장 최근 완료된 회의의 보고서 표시
       const latestMeeting = completedMeetings[0];
       generateMeetingReport(latestMeeting).then(setFinalReport);
+      return;
     }
+
+    // 진행 중인 회의가 있으면 해당 데이터 사용
+    const processingMeetings = meetings.filter((m: Meeting) => m.status === 'processing');
+    if (processingMeetings.length > 0) {
+      const latestProcessing = processingMeetings[0];
+      if (latestProcessing.pipeline_results) {
+        setFinalReport(latestProcessing.pipeline_results);
+      } else {
+        // 파이프라인 결과가 없으면 빈 상태로 표시
+        setFinalReport(null);
+      }
+      return;
+    }
+    
+    // 아무것도 없으면 빈 상태로 표시
+    setFinalReport(null);
   }, [meetings, generateMeetingReport]);
 
   return (
