@@ -307,35 +307,212 @@ const Upload: React.FC = () => {
         </div>
       )}
 
-      {/* 파이프라인 단계 설명 */}
-      <div className="card" style={{ marginBottom: '24px' }}>
+      {/* 파이프라인 단계 */}
+      <div className="card" style={{ marginBottom: '32px' }}>
         <div className="card-header">
           <h2 className="card-title">📋 파이프라인 단계</h2>
-          <p className="card-description">
-            회의 파일이 처리되는 전체 과정을 단계별로 설명합니다.
-          </p>
+          <p className="card-description">회의 파일이 처리되는 전체 과정을 단계별로 설명합니다.</p>
         </div>
-        <div style={{ marginTop: '16px' }}>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { stage: 'uploading', title: '파일 업로드', description: '음성/비디오 파일 검증 및 서버 전송', icon: '📁' },
-              { stage: 'stt', title: '음성 인식', description: 'ReturnZero VITO API를 통한 음성-텍스트 변환', icon: '🎵' },
-              { stage: 'diarization', title: '화자 분리', description: '여러 화자의 음성을 개별적으로 분리', icon: '👥' },
-              { stage: 'transcript', title: '회의록 생성', description: '화자별 발화 내용을 시간순으로 정리', icon: '📝' },
-              { stage: 'agent_analysis', title: 'AI 분석', description: '5개 AI 에이전트의 순차적 분석', icon: '🤖' },
-              { stage: 'report_generation', title: '보고서 생성', description: '분석 결과를 종합한 최종 보고서', icon: '📊' }
-            ].map((step, index) => (
-              <div key={step.stage} className="p-4 border border-gray-200 rounded-lg bg-white">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="text-2xl">{step.icon}</div>
-                  <div>
-                    <h4 className="font-medium text-gray-900">{step.title}</h4>
-                    <p className="text-sm text-gray-600">{step.description}</p>
-                  </div>
+        
+        <div style={{ marginTop: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            {/* 1단계: 파일 업로드 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📁</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>
+                  파일 업로드
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '16px', lineHeight: '1.5' }}>
+                  음성/비디오 파일 검증 및 서버 전송
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  단계 1/6
                 </div>
-                <div className="text-xs text-gray-500">단계 {index + 1}/6</div>
               </div>
-            ))}
+            </div>
+
+            {/* 2단계: 음성 인식 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(240, 147, 251, 0.3)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>🎵</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>
+                  음성 인식
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '16px', lineHeight: '1.5' }}>
+                  ReturnZero VITO API를 통한 음성-텍스트 변환
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  단계 2/6
+                </div>
+              </div>
+            </div>
+
+            {/* 3단계: 화자 분리 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(79, 172, 254, 0.3)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>👥</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>
+                  화자 분리
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '16px', lineHeight: '1.5' }}>
+                  여러 화자의 음성을 개별적으로 분리
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  단계 3/6
+                </div>
+              </div>
+            </div>
+
+            {/* 4단계: 회의록 생성 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(250, 112, 154, 0.3)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📝</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px', color: 'white' }}>
+                  회의록 생성
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.9, marginBottom: '16px', lineHeight: '1.5' }}>
+                  화자별 발화 내용을 시간순으로 정리
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>
+                  단계 4/6
+                </div>
+              </div>
+            </div>
+
+            {/* 5단계: AI 분석 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: '#2d3748',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(168, 237, 234, 0.3)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.2)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>🤖</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                  AI 분석
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '16px', lineHeight: '1.5' }}>
+                  5개 AI 에이전트의 순차적 분석
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                  단계 5/6
+                </div>
+              </div>
+            </div>
+
+            {/* 6단계: 보고서 생성 */}
+            <div style={{
+              background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: '#744210',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(255, 236, 210, 0.4)'
+            }}>
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '120px',
+                height: '120px',
+                background: 'rgba(255, 255, 255, 0.3)',
+                borderRadius: '50%'
+              }} />
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '40px', marginBottom: '16px' }}>📊</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
+                  보고서 생성
+                </h3>
+                <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '16px', lineHeight: '1.5' }}>
+                  분석 결과를 종합한 최종 보고서
+                </p>
+                <div style={{ fontSize: '12px', opacity: 0.7 }}>
+                  단계 6/6
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

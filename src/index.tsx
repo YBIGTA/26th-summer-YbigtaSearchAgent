@@ -7,6 +7,7 @@ import Upload from './pages/Upload';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 import MeetingDetail from './pages/MeetingDetail';
+import DatabaseExplorer from './pages/DatabaseExplorer';
 import { ApiProvider } from './context/ApiContext';
 import { SettingsProvider } from './context/SettingsContext';
 import './styles/slack-theme.css';
@@ -27,6 +28,7 @@ root.render(
               <Route path="/chat" element={<Chat />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/meeting/:id" element={<MeetingDetail />} />
+              <Route path="/database" element={<DatabaseExplorer />} />
             </Routes>
           </Layout>
         </Router>

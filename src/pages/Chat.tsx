@@ -52,24 +52,39 @@ const Chat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // AI 응답 생성 (시뮬레이션)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 실제 백엔드 API 호출
+      const result = await getChatResponse(inputValue.trim());
       
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
-        content: `"${inputValue.trim()}"에 대한 답변입니다. YBIGTA DB와 회의록 분석 결과를 기반으로 답변드렸습니다.`,
+        content: result.response || "죄송합니다. 응답을 생성할 수 없습니다.",
         timestamp: new Date(),
         metadata: {
-          sources: ['YBIGTA_Project_2024', 'Meeting_Log_001'],
-          confidence: 0.92,
-          processing_time: 1200
+          sources: result.sources || [],
+          confidence: result.confidence || 0,
+          processing_time: result.processing_time || 0
         }
       };
 
       setMessages(prev => [...prev, aiResponse]);
     } catch (error) {
       console.error('AI 응답 생성 오류:', error);
+      
+      // 에러 발생시 에러 메시지 표시
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+        timestamp: new Date(),
+        metadata: {
+          sources: [],
+          confidence: 0,
+          processing_time: 0
+        }
+      };
+      
+      setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
     }
