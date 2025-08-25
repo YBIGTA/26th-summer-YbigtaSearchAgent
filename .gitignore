@@ -193,4 +193,4 @@ requirements-*.txt
 myenv/
 
 # ChromaDB
-data/indexes/chroma_db/
+src/backend/data/indexes/chroma_db/
