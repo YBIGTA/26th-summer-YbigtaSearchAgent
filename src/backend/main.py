@@ -419,6 +419,96 @@ async def text_search(query: str, top_k: int = 5):
     return await keyword_search(query, top_k)
 
 
+@app.get("/api/knowledge/projects")
+async def get_projects_overview():
+    """ChromaDB에서 프로젝트 목록과 메타데이터를 조회합니다."""
+    try:
+        if not chroma_manager or not chroma_manager.available:
+            raise HTTPException(status_code=503, detail="ChromaDB가 초기화되지 않았습니다.")
+        
+        # 메타데이터 파일에서 프로젝트 정보 로드
+        metadata = chroma_manager._load_metadata()
+        
+        # 소스별로 프로젝트 분류
+        projects_by_source = {
+            "github": [],
+            "gdrive": [],
+            "meeting": []
+        }
+        
+        for doc_id, doc_info in metadata.items():
+            source = doc_info.get('source', 'unknown')
+            title = doc_info.get('title', 'Unknown Project')
+            
+            project_info = {
+                "id": doc_id,
+                "title": title,
+                "source": source,
+                "last_updated": doc_info.get('last_updated'),
+                "content_hash": doc_info.get('content_hash'),
+                "type": _classify_project_type(title),
+                "description": _generate_project_description(title, source)
+            }
+            
+            if source in projects_by_source:
+                projects_by_source[source].append(project_info)
+        
+        # 통계 정보 생성
+        stats = {
+            "total_projects": len(metadata),
+            "github_count": len(projects_by_source["github"]),
+            "gdrive_count": len(projects_by_source["gdrive"]),
+            "meeting_count": len(projects_by_source["meeting"]),
+            "last_sync": max([doc['last_updated'] for doc in metadata.values()]) if metadata else None
+        }
+        
+        return {
+            "projects": projects_by_source,
+            "stats": stats,
+            "total_found": len(metadata)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로젝트 조회 오류: {str(e)}")
+
+
+def _classify_project_type(title: str) -> str:
+    """프로젝트 제목을 기반으로 타입을 분류합니다."""
+    title_lower = title.lower()
+    
+    if any(keyword in title_lower for keyword in ['deep', 'learning', 'ml', 'ai', 'neural']):
+        return "AI/ML"
+    elif any(keyword in title_lower for keyword in ['web', 'api', 'server', 'frontend', 'backend']):
+        return "Web Development"
+    elif any(keyword in title_lower for keyword in ['data', 'analysis', 'visualization', 'stats']):
+        return "Data Science"
+    elif any(keyword in title_lower for keyword in ['study', 'tutorial', 'course']):
+        return "Study/Education"
+    elif any(keyword in title_lower for keyword in ['project', '27th', '26th', '25th']):
+        return "YBIGTA Project"
+    else:
+        return "기타"
+
+
+def _generate_project_description(title: str, source: str) -> str:
+    """프로젝트 설명을 생성합니다."""
+    project_type = _classify_project_type(title)
+    
+    descriptions = {
+        "AI/ML": "인공지능 및 머신러닝 관련 프로젝트",
+        "Web Development": "웹 개발 및 API 구축 프로젝트",
+        "Data Science": "데이터 분석 및 시각화 프로젝트",
+        "Study/Education": "학습 및 교육 관련 자료",
+        "YBIGTA Project": "YBIGTA 기수별 프로젝트",
+        "기타": "기타 프로젝트"
+    }
+    
+    base_desc = descriptions.get(project_type, "YBIGTA 관련 프로젝트")
+    source_desc = {"github": "GitHub 저장소", "gdrive": "Google Drive 문서", "meeting": "회의록"}.get(source, "문서")
+    
+    return f"{base_desc} ({source_desc})"
+
+
 # === 지식베이스 동기화 ===
 
 @app.post("/api/sync/notion")
@@ -728,6 +818,7 @@ async def run_evidence_hunter(transcript_id: int, query: Optional[str] = None):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 
 @app.post("/api/agents/summarizer")

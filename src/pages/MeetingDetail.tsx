@@ -272,35 +272,268 @@ const MeetingDetail: React.FC = () => {
         </div>
       </div>
 
-      {/* 탭 네비게이션 */}
-      <div style={{ 
-        borderBottom: '1px solid var(--border-primary)', 
-        marginBottom: '24px' 
-      }}>
-        <div style={{ display: 'flex', gap: '0' }}>
-          {[
-            { key: 'transcript', label: '전사록', icon: '📝' },
-            { key: 'summary', label: '요약', icon: '📋' },
-            { key: 'analysis', label: '분석', icon: '📊' }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as any)}
-              style={{
-                padding: '12px 16px',
-                border: 'none',
-                background: 'none',
-                color: activeTab === tab.key ? 'var(--accent-primary)' : 'var(--text-secondary)',
-                borderBottom: activeTab === tab.key ? '2px solid var(--accent-primary)' : '2px solid transparent',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: activeTab === tab.key ? 600 : 400,
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {tab.icon} {tab.label}
-            </button>
-          ))}
+      {/* 회의 요약 리포트 (대시보드 스타일) */}
+      <div style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '20px' }}>
+          🤖 에이전트 회의 요약 리포트
+        </h2>
+        
+        <div style={{ display: 'grid', gap: '24px' }}>
+          {/* 실행 요약 */}
+          <div style={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius: '20px',
+            padding: '28px',
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+          }}>
+            {/* 배경 장식 */}
+            <div style={{
+              position: 'absolute',
+              top: '-50px',
+              right: '-50px',
+              width: '150px',
+              height: '150px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.1)',
+              pointerEvents: 'none'
+            }} />
+            <div style={{
+              position: 'absolute',
+              bottom: '-30px',
+              left: '-30px',
+              width: '100px',
+              height: '100px',
+              borderRadius: '50%',
+              background: 'rgba(255, 255, 255, 0.08)',
+              pointerEvents: 'none'
+            }} />
+            
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: 'white' }}>
+                실행 요약
+              </h3>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                {/* 핵심 결과 */}
+                <div>
+                  <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
+                    핵심 결과
+                  </h4>
+                  <div style={{ display: 'grid', gap: '8px' }}>
+                    {meeting.key_points?.length > 0 ? (
+                      meeting.key_points.slice(0, 3).map((point: string, index: number) => (
+                        <div key={index} style={{ 
+                          display: 'flex', 
+                          alignItems: 'flex-start', 
+                          gap: '8px',
+                          padding: '8px 12px',
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          borderRadius: '8px'
+                        }}>
+                          <div style={{ 
+                            width: '6px', 
+                            height: '6px', 
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                            borderRadius: '50%', 
+                            marginTop: '6px',
+                            flexShrink: 0
+                          }}></div>
+                          <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>{point}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '16px' }}>
+                        <div style={{ fontSize: '24px', marginBottom: '8px', opacity: 0.7 }}>📋</div>
+                        <p style={{ fontSize: '13px', fontWeight: '500', marginBottom: '4px', opacity: 0.9 }}>
+                          {meeting.summary || '회의 요약을 분석 중입니다'}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                {/* 메타데이터 */}
+                <div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px', opacity: 0.8 }}>
+                      생성 시간
+                    </h4>
+                    <p style={{ fontSize: '13px', opacity: 0.9 }}>
+                      {meeting.date}
+                    </p>
+                  </div>
+                  <div style={{ marginBottom: '16px' }}>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px', opacity: 0.8 }}>
+                      화자 수
+                    </h4>
+                    <p style={{ fontSize: '13px', opacity: 0.9 }}>
+                      {meeting.speakers.length}명
+                    </p>
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '6px', opacity: 0.8 }}>
+                      발화 수
+                    </h4>
+                    <p style={{ fontSize: '13px', opacity: 0.9 }}>
+                      {meeting.utterances.length}개
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 주요 결정사항 */}
+          <div style={{
+            background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+            borderRadius: '20px',
+            padding: '28px',
+            color: '#2d3748',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(168, 237, 234, 0.3)'
+          }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '32px', marginBottom: '16px' }}>📋</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px' }}>
+                주요 결정사항
+              </h3>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {meeting.action_items?.length > 0 ? (
+                  meeting.action_items.map((item: string, index: number) => (
+                    <div key={index} style={{ 
+                      padding: '16px 20px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(45, 55, 72, 0.1)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <div style={{ 
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px'
+                      }}>
+                        <span style={{ fontSize: '16px', marginTop: '2px' }}>✅</span>
+                        <h4 style={{ fontSize: '14px', fontWeight: '600', lineHeight: '1.5' }}>{item}</h4>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.6 }}>✅</div>
+                    <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
+                      결정사항을 분석 중입니다
+                    </p>
+                    <p style={{ fontSize: '13px', opacity: 0.7, lineHeight: '1.4' }}>
+                      회의에서 논의된 주요 결정사항들이 여기에 표시됩니다
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* 안건별 분석 */}
+          <div style={{
+            background: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+            borderRadius: '20px',
+            padding: '28px',
+            color: '#744210',
+            position: 'relative',
+            overflow: 'hidden',
+            boxShadow: '0 8px 32px rgba(255, 236, 210, 0.4)'
+          }}>
+            <div style={{ position: 'relative', zIndex: 1 }}>
+              <div style={{ fontSize: '32px', marginBottom: '16px' }}>💡</div>
+              <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px' }}>
+                안건별 분석
+              </h3>
+              <div style={{ display: 'grid', gap: '12px' }}>
+                {meeting.agendas?.length > 0 ? (
+                  meeting.agendas.map((agenda: AgendaItem, index: number) => (
+                    <div key={index} style={{ 
+                      padding: '16px 20px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(116, 66, 16, 0.1)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
+                    }}>
+                      <div style={{ 
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px'
+                      }}>
+                        <span style={{ fontSize: '16px', marginTop: '2px' }}>📋</span>
+                        <div>
+                          <h4 style={{ fontSize: '14px', fontWeight: '600', lineHeight: '1.5', marginBottom: '4px' }}>
+                            {agenda.title}
+                          </h4>
+                          {agenda.description && (
+                            <p style={{ fontSize: '12px', opacity: 0.8, lineHeight: '1.4' }}>
+                              {agenda.description}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '12px', opacity: 0.6 }}>📋</div>
+                    <p style={{ fontSize: '15px', fontWeight: '600', marginBottom: '6px' }}>
+                      안건 분석을 준비 중입니다
+                    </p>
+                    <p style={{ fontSize: '13px', opacity: 0.7, lineHeight: '1.4' }}>
+                      회의에서 논의된 안건들이 여기에 표시됩니다
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 상세 분석 섹션 */}
+      <div style={{ marginBottom: '32px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '700', marginBottom: '20px' }}>
+          📊 상세 분석
+        </h2>
+        
+        {/* 탭 네비게이션 */}
+        <div style={{ 
+          borderBottom: '1px solid var(--border-primary)', 
+          marginBottom: '24px' 
+        }}>
+          <div style={{ display: 'flex', gap: '0' }}>
+            {[
+              { key: 'transcript', label: '전사록', icon: '📝' },
+              { key: 'summary', label: '요약', icon: '📋' },
+              { key: 'analysis', label: '분석', icon: '📊' }
+            ].map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                style={{
+                  padding: '12px 16px',
+                  border: 'none',
+                  background: 'none',
+                  color: activeTab === tab.key ? 'var(--accent-primary)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === tab.key ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: activeTab === tab.key ? 600 : 400,
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {tab.icon} {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
