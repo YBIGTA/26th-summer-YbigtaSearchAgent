@@ -13,6 +13,10 @@ import sys
 import uuid
 from datetime import datetime
 
+# 환경변수 로드 (로컬에서 실행 시)
+from dotenv import load_dotenv
+load_dotenv()
+
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
