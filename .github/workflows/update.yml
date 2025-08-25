@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.10'
 
       # 3. Pip 캐시 설정으로 설치 속도 향상
       - name: Cache pip dependencies
