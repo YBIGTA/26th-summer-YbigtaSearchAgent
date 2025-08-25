@@ -77,7 +77,17 @@ class AsyncUpstageEmbeddings(Embeddings):
     
     def embed_documents(self, texts: List[str]) -> List[List[float]]:
         """동기 인터페이스 (LangChain 호환성)"""
-        return asyncio.run(self.aembed_documents(texts))
+        try:
+            # 기존 이벤트 루프가 실행 중인지 확인
+            loop = asyncio.get_running_loop()
+            # 이미 이벤트 루프가 실행 중이면 새 스레드에서 실행
+            import concurrent.futures
+            import nest_asyncio
+            nest_asyncio.apply()
+            return asyncio.run(self.aembed_documents(texts))
+        except RuntimeError:
+            # 이벤트 루프가 실행 중이 아니면 일반적인 방식으로 실행
+            return asyncio.run(self.aembed_documents(texts))
     
     async def aembed_query(self, text: str) -> List[float]:
         """쿼리를 임베딩합니다."""
@@ -87,7 +97,16 @@ class AsyncUpstageEmbeddings(Embeddings):
     
     def embed_query(self, text: str) -> List[float]:
         """동기 인터페이스 (LangChain 호환성)"""
-        return asyncio.run(self.aembed_query(text))
+        try:
+            # 기존 이벤트 루프가 실행 중인지 확인
+            loop = asyncio.get_running_loop()
+            # 이미 이벤트 루프가 실행 중이면 새 스레드에서 실행
+            import nest_asyncio
+            nest_asyncio.apply()
+            return asyncio.run(self.aembed_query(text))
+        except RuntimeError:
+            # 이벤트 루프가 실행 중이 아니면 일반적인 방식으로 실행
+            return asyncio.run(self.aembed_query(text))
 
 
 class SyncUpstageEmbeddings(Embeddings):

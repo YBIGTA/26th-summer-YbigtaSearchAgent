@@ -148,9 +148,12 @@ class ReturnZeroSTTClient:
         import time
         
         start_time = time.time()
-        poll_interval = 2  # 2초마다 체크
+        poll_interval = 3  # 3초마다 체크 (API 부하 감소)
+        poll_count = 0
+        last_status = None
         
         print(f"⏳ 전사 결과 대기 중... (ID: {transcribe_id})")
+        print(f"📊 최대 대기 시간: {max_wait_time}초")
         
         while time.time() - start_time < max_wait_time:
             try:
@@ -161,27 +164,46 @@ class ReturnZeroSTTClient:
                 response.raise_for_status()
                 
                 result = response.json()
-                print(f"🔄 Polling 응답: {result}")
+                poll_count += 1
+                elapsed_time = int(time.time() - start_time)
                 
                 # 상태 확인
                 status = result.get("status")
+                
+                # 상태가 변경되었거나 5번마다 로그 출력
+                if status != last_status or poll_count % 5 == 0:
+                    print(f"🔄 [{poll_count}회 확인, {elapsed_time}초 경과] 상태: {status}")
+                    last_status = status
+                
                 if status == "completed":
                     print("✅ 전사 완료!")
                     return result
                 elif status == "failed":
                     raise Exception(f"전사 실패: {result.get('message', 'Unknown error')}")
-                elif status in ["processing", "waiting"]:
-                    print(f"🔄 처리 중... 상태: {status}")
+                elif status in ["processing", "waiting", "transcribing"]:
+                    # 상태별 메시지 (처음 또는 상태 변경 시에만)
+                    if status != last_status:
+                        status_messages = {
+                            "processing": "🔄 처리 단계로 진입",
+                            "waiting": "⏳ 대기열에서 순번 대기",
+                            "transcribing": "🎤 음성 인식 진행 중"
+                        }
+                        print(f"{status_messages.get(status, '🔄 진행 중')}")
                     time.sleep(poll_interval)
                 else:
-                    print(f"⚠️ 알 수 없는 상태: {status}, 계속 대기...")
+                    # 알 수 없는 상태에 대해서도 계속 진행 (API 업데이트 대응)
+                    if status != last_status:
+                        print(f"📝 새로운 상태 감지: {status} (계속 진행)")
                     time.sleep(poll_interval)
                     
             except requests.RequestException as e:
                 print(f"⚠️ Polling 요청 실패: {e}, 재시도...")
                 time.sleep(poll_interval)
                 
-        raise Exception(f"전사 작업 시간 초과 (최대 {max_wait_time}초)")
+        final_elapsed = int(time.time() - start_time)
+        print(f"⏰ 전사 작업 시간 초과: {final_elapsed}초 경과 (최대 {max_wait_time}초)")
+        print(f"📊 총 {poll_count}회 상태 확인, 마지막 상태: {last_status}")
+        raise Exception(f"전사 작업 시간 초과 (최대 {max_wait_time}초, 마지막 상태: {last_status})")
     
     def _parse_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """ReturnZero API 응답을 파싱합니다."""

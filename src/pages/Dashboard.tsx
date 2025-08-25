@@ -3,79 +3,67 @@ import { useApi } from '../context/ApiContext';
 import { Meeting } from '../types/electron';
 
 const Dashboard: React.FC = () => {
-  const { getMeetings, getPipelineStatus, getPipelineResults } = useApi();
+  const { startPipelineAnalysis, getPipelineStatus, getPipelineResults, getAllReports, getReportByJobId, deleteReport, isLoading, error } = useApi();
+  const [dragActive, setDragActive] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activePolling, setActivePolling] = useState<Set<string>>(new Set());
-  const [finalReport, setFinalReport] = useState<any>(null);
-  const [isReportLoading, setIsReportLoading] = useState(false);
+  
+  // 검색 및 필터링 상태
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'error'>('all');
+  const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
 
-  // 테스트용 샘플 보고서 데이터
-  const sampleReport = {
-    "executive_summary": {
-      "meeting_overview": "총 120.5초 길이의 회의에서 4명의 화자가 참여했습니다.",
-      "key_findings": [
-        "주요 안건: 프로젝트 일정 및 리소스 계획",
-        "주요 안건: 기술 스택 및 아키텍처 검토",
-        "검증된 주장: React Native가 Flutter보다 개발 효율적"
-      ],
-      "action_items": [
-        "보안 인증 시스템 설계",
-        "React Native 개발 환경 구축",
-        "AWS 인프라 설계서 작성"
-      ],
-      "recommendations": [
-        "제시된 반박 의견들을 검토해보시기 바랍니다.",
-        "추가 증거 자료를 참고하여 의사결정하시기 바랍니다."
-      ]
-    },
-    "detailed_analysis": {
-      "transcript_analysis": {
-        "total_duration": 120.5,
-        "total_segments": 45,
-        "speakers_detected": 4,
-        "average_confidence": 0.92,
-        "language": "ko",
-        "processing_timestamp": "2024-01-08T10:30:00Z"
-      },
-      "speaker_analysis": {
-        "speaker_1": {
-          "utterance_count": 12,
-          "total_words": 156,
-          "total_duration": 45.2
-        },
-        "speaker_2": {
-          "utterance_count": 8,
-          "total_words": 98,
-          "total_duration": 32.1
-        },
-        "speaker_3": {
-          "utterance_count": 15,
-          "total_words": 203,
-          "total_duration": 28.7
-        },
-        "speaker_4": {
-          "utterance_count": 10,
-          "total_words": 134,
-          "total_duration": 14.5
-        }
+  // 저장된 보고서 불러오기
+  const loadSavedReports = useCallback(async () => {
+    try {
+      const reports = await getAllReports();
+      const convertedMeetings: Meeting[] = reports.map(report => ({
+        id: report.job_id || report.id,
+        title: report.title || report.original_filename || 'Unknown Meeting',
+        date: report.created_at ? new Date(report.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+        duration: report.duration_seconds ? `${Math.round(report.duration_seconds / 60)}분` : '알 수 없음',
+        speakers: report.num_speakers || 0,
+        status: report.status === 'completed' ? 'completed' as const : 
+               report.status === 'processing' ? 'processing' as const : 
+               report.status === 'failed' ? 'error' as const : 'processing' as const,
+        summary: report.status === 'completed' ? '분석 완료!' :
+                report.status === 'failed' ? `오류: ${report.error_message || '알 수 없는 오류'}` :
+                report.current_stage ? getStageMessage(report.current_stage, report.progress || 0) : '처리 중...',
+        job_id: report.job_id,
+        progress: report.progress || (report.status === 'completed' ? 100 : 0),
+        current_stage: report.current_stage || (report.status === 'completed' ? 'completed' : 'unknown'),
+        error_message: report.error_message
+      }));
+      
+      setMeetings(convertedMeetings);
+      
+      // 처리 중인 작업들에 대해 폴링 시작
+      const processingReports = convertedMeetings.filter(m => m.status === 'processing' && m.job_id);
+      if (processingReports.length > 0) {
+        setActivePolling(prev => {
+          const newSet = new Set(prev);
+          processingReports.forEach(report => {
+            if (report.job_id) {
+              newSet.add(report.job_id);
+            }
+          });
+          return newSet;
+        });
       }
-    },
-    "technical_details": {
-      "processing_pipeline": {
-        "stt_engine": "returnzero",
-        "diarization_enabled": true,
-        "agents_used": ["agendas", "claims", "counter_arguments", "evidence", "summary"]
-      },
-      "quality_metrics": {
-        "stt_confidence": 0.92,
-        "speakers_detected": 4,
-        "processing_time": "2시간 30분"
-      }
-    },
-    "generated_at": "2024-01-08T10:30:00Z",
-    "format_version": "1.0"
-  };
+      
+      console.log(`✅ 저장된 보고서 ${reports.length}개 불러옴`);
+    } catch (err) {
+      console.error('저장된 보고서 불러오기 실패:', err);
+      // 오류가 발생해도 빈 배열로 초기화하여 사용자 경험을 해치지 않음
+      setMeetings([]);
+    }
+  }, [getAllReports]);
+
+  // 컴포넌트 마운트 시 저장된 보고서 불러오기
+  useEffect(() => {
+    loadSavedReports();
+  }, [loadSavedReports]);
 
   // 파이프라인 상태 폴링 함수
   const pollPipelineStatus = useCallback(async (jobId: string, meetingId: string) => {
@@ -128,98 +116,519 @@ const Dashboard: React.FC = () => {
           newSet.delete(jobId);
           return newSet;
         });
-      } else {
-        // 계속 폴링
-        setTimeout(() => pollPipelineStatus(jobId, meetingId), 2000);
+        
+        // 완료 시 성공 메시지 표시
+        if (status.status === 'completed') {
+          console.log(`✅ 회의 분석 완료: ${meetingId}`);
+        }
       }
-    } catch (error) {
-      console.error('파이프라인 상태 조회 오류:', error);
-      // 오류 발생 시에도 폴링 중지
-      setActivePolling(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(jobId);
-        return newSet;
-      });
+    } catch (err) {
+      console.error('파이프라인 상태 폴링 오류:', err);
+      
+      // 네트워크 오류 등의 경우에는 계속 재시도
+      // 너무 많은 실패가 발생하면 폴링 중단을 고려할 수 있음
     }
-  }, [activePolling, getPipelineStatus, getPipelineResults]);
+  }, [getPipelineStatus, activePolling]);
 
   // 단계별 메시지 생성
   const getStageMessage = (stage: string, progress: number) => {
-    const stageMessages: { [key: string]: string } = {
-      'uploading': '파일 업로드 중...',
-      'stt': '음성 인식 중...',
+    const stageMessages: Record<string, string> = {
+      'validation': '파일 검증 중...',
+      'stt_processing': 'STT 음성 인식 중... (시간이 오래 걸릴 수 있습니다)',
       'diarization': '화자 분리 중...',
-      'transcript': '회의록 생성 중...',
-      'agent_analysis': 'AI 에이전트 분석 중...',
-      'report_generation': '보고서 생성 중...'
+      'transcript_processing': '전사록 처리 중...',
+      'agent_analysis': 'AI 에이전트 분석 중... (5개 에이전트 동시 실행)',
+      'report_generation': '최종 보고서 생성 중...',
+      'storage': '결과 저장 중...',
+      'completed': '분석 완료!',
+      'uploading': '파일 업로드 중...',
+      'restarting': '분석을 다시 시작하는 중...'
     };
     
-    return stageMessages[stage] || `처리 중... (${progress}%)`;
+    const message = stageMessages[stage] || '처리 중...';
+    return progress ? `${message} (${progress}%)` : message;
   };
 
   // 회의 목록 로드
   useEffect(() => {
-    const loadMeetings = async () => {
-      try {
-        const meetingsData = await getMeetings();
-        setMeetings(meetingsData);
-        
-        // 진행 중인 파이프라인이 있으면 폴링 시작
-        const processingMeetings = meetingsData.filter((m: Meeting) => m.status === 'processing');
-        processingMeetings.forEach((meeting: Meeting) => {
-          setActivePolling(prev => new Set(prev).add(meeting.id));
-          pollPipelineStatus(meeting.id, meeting.id);
-        });
-      } catch (error) {
-        console.error('회의 목록 로드 오류:', error);
-      } finally {
-        setIsLoading(false);
+    const intervals: NodeJS.Timeout[] = [];
+
+    Array.from(activePolling).forEach(jobId => {
+      const meetingId = meetings.find(m => m.job_id === jobId)?.id;
+      if (meetingId) {
+        const interval = setInterval(() => {
+          pollPipelineStatus(jobId, meetingId);
+        }, 2000); // 2초마다 폴링
+        intervals.push(interval);
       }
+    });
+
+    return () => {
+      intervals.forEach(clearInterval);
     };
+  }, [activePolling, meetings, pollPipelineStatus]);
 
-    loadMeetings();
-  }, [getMeetings, pollPipelineStatus]);
-
-  // 통계 계산
-  const stats = {
-    total: meetings.length,
-    completed: meetings.filter(m => m.status === 'completed').length,
-    processing: meetings.filter(m => m.status === 'processing').length,
-    error: meetings.filter(m => m.status === 'error').length
-  };
-
-  // 파이프라인 결과에서 최종 보고서 생성
-  const generateFinalReport = useCallback(async (jobId: string) => {
-    setIsReportLoading(true);
-    try {
-      // 백엔드 API에서 최종 보고서 가져오기
-      const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/meetings/${jobId}/report`);
-      if (response.ok) {
-        const reportData = await response.json();
-        setFinalReport(reportData);
-      } else {
-        // API 응답이 없으면 sampleReport 사용
-        setFinalReport(sampleReport);
-      }
-    } catch (error) {
-      console.error('보고서 생성 오류:', error);
-      // 에러 시 sampleReport 사용
-      setFinalReport(sampleReport);
-    } finally {
-      setIsReportLoading(false);
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
     }
   }, []);
 
-  // 파이프라인 상태 모니터링 및 보고서 생성
-  useEffect(() => {
-    const processingMeetings = meetings.filter((m: Meeting) => m.status === 'processing');
-    processingMeetings.forEach((meeting: Meeting) => {
-      // 파이프라인 완료 시 보고서 생성
-      if (meeting.pipeline_results && meeting.pipeline_results.status === 'completed') {
-        generateFinalReport(meeting.id);
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFiles(e.dataTransfer.files);
+    }
+  }, []);
+
+  // 지원하는 오디오 포맷 확장
+  const SUPPORTED_AUDIO_EXTENSIONS = [
+    'mp3', 'wav', 'm4a', 'flac', 'ogg', 'opus', 'webm',
+    'aac', 'wma', 'amr', 'ac3', 'aiff', 'au', 'oga',
+    'mp2', 'weba', '3gp', 'spx', 'ape', 'mka'
+  ];
+
+  // 지원하는 비디오 포맷 확장
+  const SUPPORTED_VIDEO_EXTENSIONS = [
+    'mp4', 'avi', 'mov', 'mkv', 'webm', 'flv', 'wmv',
+    'mpg', 'mpeg', 'm4v', 'ogv', 'mts', 'ts', 'vob',
+    '3gp', '3g2', 'divx', 'xvid', 'asf', 'rm', 'rmvb'
+  ];
+
+  // MIME 타입 매핑 (브라우저 호환성 향상)
+  const MIME_TYPE_MAP: Record<string, string> = {
+    'm4a': 'audio/mp4',
+    'wav': 'audio/wav',
+    'mp3': 'audio/mpeg',
+    'flac': 'audio/flac',
+    'ogg': 'audio/ogg',
+    'opus': 'audio/opus',
+    'webm': 'audio/webm',
+    'aac': 'audio/aac',
+    'wma': 'audio/x-ms-wma',
+    'amr': 'audio/amr',
+    'mp4': 'video/mp4',
+    'avi': 'video/x-msvideo',
+    'mov': 'video/quicktime',
+    'mkv': 'video/x-matroska'
+  };
+
+  const handleFiles = async (files: FileList) => {
+    const file = files[0];
+    if (!file) return;
+
+    console.log('=== 파일 업로드 시작 ===');
+    console.log('파일 이름:', file.name);
+    console.log('파일 크기:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+    console.log('브라우저 MIME 타입:', file.type || 'undefined');
+    
+    // 파일 확장자 추출
+    const fileExtension = file.name.toLowerCase().split('.').pop() || '';
+    console.log('파일 확장자:', fileExtension);
+
+    // 모든 지원 확장자 통합
+    const allSupportedExtensions = [...SUPPORTED_AUDIO_EXTENSIONS, ...SUPPORTED_VIDEO_EXTENSIONS];
+
+    // 확장자 기반 검증 (MIME 타입 무시)
+    if (!allSupportedExtensions.includes(fileExtension)) {
+      console.error('지원되지 않는 파일 형식:', fileExtension);
+      const audioFormats = SUPPORTED_AUDIO_EXTENSIONS.slice(0, 8).join(', ');
+      const videoFormats = SUPPORTED_VIDEO_EXTENSIONS.slice(0, 5).join(', ');
+      alert(`지원되지 않는 파일 형식입니다.\n\n오디오: ${audioFormats} 등\n비디오: ${videoFormats} 등\n\n현재 파일: .${fileExtension}`);
+      return;
+    }
+
+    console.log('파일 검증 통과');
+
+    // 파일 크기 검증 (500MB로 증가)
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (file.size > maxSize) {
+      alert(`파일 크기가 너무 큽니다. 500MB 이하의 파일을 업로드해주세요.\n현재 파일: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      return;
+    }
+
+    try {
+      // 진행률 표시 시작
+      setUploadProgress(0);
+      
+      // 임시 회의 추가 (업로드 중 표시)
+      const tempMeetingId = `temp-${Date.now()}`;
+      const tempMeeting: Meeting = {
+        id: tempMeetingId,
+        title: file.name.replace(/\.[^/.]+$/, ''),
+        date: new Date().toISOString().split('T')[0],
+        duration: '분석 중...',
+        speakers: 0,
+        status: 'processing',
+        summary: '파일 업로드 중...',
+        progress: 0,
+        current_stage: 'uploading'
+      };
+      setMeetings(prev => [tempMeeting, ...prev]);
+
+      console.log('파이프라인 분석 시작 중...');
+      console.log('예상 MIME 타입:', MIME_TYPE_MAP[fileExtension || ''] || file.type || 'application/octet-stream');
+      
+      // 파이프라인 분석 시작
+      const result = await startPipelineAnalysis(file);
+      
+      console.log('파이프라인 분석 시작 성공:', result);
+      
+      // 업로드 완료 후 회의 정보 업데이트
+      setMeetings(prev => prev.map(meeting => 
+        meeting.id === tempMeetingId 
+          ? {
+              ...meeting,
+              job_id: result.job_id,
+              summary: '분석 시작됨 - 파일 검증 중...',
+              progress: 5
+            }
+          : meeting
+      ));
+
+      // 폴링 시작
+      setActivePolling(prev => {
+        const newSet = new Set(prev);
+        newSet.add(result.job_id);
+        return newSet;
+      });
+      
+      setUploadProgress(100);
+      setTimeout(() => setUploadProgress(null), 1000);
+      
+    } catch (err) {
+      console.error('파이프라인 분석 시작 실패:', err);
+      console.error('에러 상세:', {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+        type: typeof err
+      });
+      alert(`분석 시작에 실패했습니다: ${err instanceof Error ? err.message : '알 수 없는 오류'}`);
+      
+      // 임시 회의 제거
+      setMeetings(prev => prev.filter(meeting => !meeting.id.startsWith('temp-')));
+      setUploadProgress(null);
+    }
+  };
+
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      handleFiles(e.target.files);
+    }
+  };
+
+
+  const handleRetryAnalysis = async (meeting: Meeting) => {
+    if (!meeting.job_id) {
+      alert('재시도할 수 없습니다. Job ID가 없습니다.');
+      return;
+    }
+
+    if (confirm('이 회의 분석을 다시 시작하시겠습니까?')) {
+      try {
+        // 회의 상태를 다시 처리 중으로 변경
+        setMeetings(prev => prev.map(m => 
+          m.id === meeting.id 
+            ? {
+                ...m,
+                status: 'processing' as const,
+                progress: 0,
+                current_stage: 'restarting',
+                error_message: undefined,
+                summary: '분석을 다시 시작합니다...'
+              }
+            : m
+        ));
+
+        // 폴링 시작
+        setActivePolling(prev => {
+          const newSet = new Set(prev);
+          newSet.add(meeting.job_id!);
+          return newSet;
+        });
+
+        console.log(`재시도 시작: ${meeting.job_id}`);
+        
+      } catch (error) {
+        console.error('재시도 시작 실패:', error);
+        alert('재시도를 시작할 수 없습니다. 잠시 후 다시 시도해주세요.');
+        
+        // 상태를 다시 에러로 되돌리기
+        setMeetings(prev => prev.map(m => 
+          m.id === meeting.id 
+            ? {
+                ...m,
+                status: 'error' as const,
+                error_message: meeting.error_message
+              }
+            : m
+        ));
+      }
+    }
+  };
+
+  const handleDeleteReport = async (meeting: Meeting) => {
+    if (!meeting.job_id) {
+      alert('삭제할 수 없습니다. Job ID가 없습니다.');
+      return;
+    }
+
+    if (confirm(`"${meeting.title}" 보고서를 완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.`)) {
+      try {
+        await deleteReport(meeting.job_id);
+        
+        // 로컬 상태에서도 제거
+        setMeetings(prev => prev.filter(m => m.id !== meeting.id));
+        
+        // 폴링도 중단
+        setActivePolling(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(meeting.job_id!);
+          return newSet;
+        });
+        
+        console.log(`✅ 보고서 삭제 완료: ${meeting.title}`);
+        alert('보고서가 성공적으로 삭제되었습니다.');
+        
+      } catch (error) {
+        console.error('보고서 삭제 실패:', error);
+        alert(`보고서 삭제에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      }
+    }
+  };
+
+  const handleDownloadResults = async (meeting: Meeting, format: 'json' | 'txt' | 'csv' = 'json') => {
+    if (!meeting.job_id || meeting.status !== 'completed') {
+      alert('완료된 분석 결과만 다운로드할 수 있습니다.');
+      return;
+    }
+
+    try {
+      // 저장된 보고서에서 결과 가져오기
+      const reportData = await getReportByJobId(meeting.job_id);
+      
+      if (!reportData) {
+        alert('보고서 데이터를 찾을 수 없습니다.');
+        return;
+      }
+      
+      // getPipelineResults 형식으로 변환
+      const results = {
+        job_id: reportData.job_id,
+        status: 'completed',
+        completed_at: reportData.completed_at,
+        results: reportData.raw_results || {}
+      };
+      
+      let content: string;
+      let filename: string;
+      let mimeType: string;
+
+      switch (format) {
+        case 'json':
+          content = JSON.stringify(results, null, 2);
+          filename = `${meeting.title}_분석결과.json`;
+          mimeType = 'application/json';
+          break;
+        
+        case 'txt':
+          content = generateTextReport(results, meeting);
+          filename = `${meeting.title}_분석결과.txt`;
+          mimeType = 'text/plain';
+          break;
+        
+        case 'csv':
+          content = generateCSVReport(results, meeting);
+          filename = `${meeting.title}_분석결과.csv`;
+          mimeType = 'text/csv';
+          break;
+        
+        default:
+          throw new Error('지원하지 않는 형식입니다.');
+      }
+
+      // 파일 다운로드
+      const blob = new Blob([content], { type: mimeType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      console.log(`다운로드 완료: ${filename}`);
+      
+    } catch (error) {
+      console.error('다운로드 실패:', error);
+      alert(`다운로드에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+    }
+  };
+
+  const generateTextReport = (results: any, meeting: Meeting): string => {
+    const sections = [
+      '='.repeat(50),
+      '회의 분석 보고서',
+      '='.repeat(50),
+      '',
+      `회의 제목: ${meeting.title}`,
+      `분석 날짜: ${meeting.date}`,
+      `지속 시간: ${meeting.duration}`,
+      `참석자 수: ${meeting.speakers}명`,
+      '',
+      '=== 전사 결과 ===',
+      results.results?.transcript?.full_text || results.results?.stt?.full_text || '전사 내용을 불러올 수 없습니다.',
+      '',
+      '=== 주요 아젠다 ===',
+    ];
+
+    // 아젠다 추가
+    const agendas = results.results?.agent_analysis?.agendas?.agendas || [];
+    if (agendas.length > 0) {
+      agendas.forEach((agenda: any, index: number) => {
+        sections.push(`${index + 1}. ${agenda.title || '제목 없음'}`);
+        if (agenda.description) {
+          sections.push(`   ${agenda.description}`);
+        }
+        sections.push('');
+      });
+    } else {
+      sections.push('아젠다 정보가 없습니다.');
+      sections.push('(LLM 분석이 제대로 수행되지 않았을 수 있습니다.)');
+    }
+    
+    sections.push('');
+    sections.push('=== 주요 주장 ===');
+    const claims = results.results?.agent_analysis?.claims?.claims || [];
+    if (claims.length > 0) {
+      claims.forEach((claim: any, index: number) => {
+        sections.push(`${index + 1}. ${claim.claim || '내용 없음'}`);
+        if (claim.speaker) {
+          sections.push(`   발화자: ${claim.speaker}`);
+        }
+        sections.push('');
+      });
+    } else {
+      sections.push('주장 분석 결과가 없습니다.');
+    }
+    
+    sections.push('');
+    sections.push('=== 분석 요약 ===');
+    const summary = results.results?.agent_analysis?.summary || {};
+    if (summary.executive_summary) {
+      sections.push(JSON.stringify(summary.executive_summary, null, 2));
+    } else {
+      sections.push('분석 요약이 없습니다.');
+    }
+
+    sections.push('');
+    sections.push('=== 처리 정보 ===');
+    sections.push(`STT 엔진: ${results.results?.stt?.engine_used || 'Unknown'}`);
+    sections.push(`처리 시간: ${new Date().toISOString()}`);
+    if (results.results?.agent_analysis?.agendas?.processing_note) {
+      sections.push(`처리 노트: ${results.results.agent_analysis.agendas.processing_note}`);
+    }
+    
+    sections.push('');
+    sections.push('=== 분석 완료 ===');
+    
+    return sections.join('\n');
+  };
+
+  const generateCSVReport = (results: any, meeting: Meeting): string => {
+    const headers = ['구분', '내용', '시간', '화자', '상세'];
+    const rows: string[][] = [headers];
+
+    // 기본 정보
+    rows.push(['회의정보', '제목', '', '', meeting.title]);
+    rows.push(['회의정보', '날짜', '', '', meeting.date]);
+    rows.push(['회의정보', '지속시간', '', '', meeting.duration]);
+    rows.push(['회의정보', '참석자수', '', '', meeting.speakers.toString()]);
+
+    // 발화 세그먼트 추가
+    const segments = results.results?.transcript?.segments || [];
+    segments.forEach((segment: any) => {
+      rows.push([
+        '발화',
+        `"${segment.text?.replace(/"/g, '""') || ''}"`, // CSV 내 따옴표 이스케이프
+        `${Math.floor(segment.start || 0)}초`,
+        segment.speaker || '',
+        ''
+      ]);
+    });
+
+    // 아젠다 추가
+    const agendas = results.results?.agent_analysis?.agendas?.agendas || [];
+    agendas.forEach((agenda: any) => {
+      rows.push([
+        '아젠다',
+        `"${agenda.title?.replace(/"/g, '""') || ''}"`,
+        '',
+        '',
+        `"${agenda.description?.replace(/"/g, '""') || ''}"`
+      ]);
+    });
+
+    return rows.map(row => row.join(',')).join('\n');
+  };
+
+  const getStatusBadge = (status: Meeting['status']) => {
+    switch (status) {
+      case 'completed':
+        return <span className="status-badge status-success">완료</span>;
+      case 'processing':
+        return <span className="status-badge status-warning">처리 중</span>;
+      case 'error':
+        return <span className="status-badge status-danger">오류</span>;
+      default:
+        return null;
+    }
+  };
+
+  // 검색 및 필터링된 회의 목록
+  const filteredAndSortedMeetings = React.useMemo(() => {
+    let filtered = meetings;
+
+    // 검색 필터
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(meeting => 
+        meeting.title.toLowerCase().includes(query) ||
+        meeting.summary?.toLowerCase().includes(query) ||
+        meeting.date.includes(query)
+      );
+    }
+
+    // 상태 필터
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(meeting => meeting.status === statusFilter);
+    }
+
+    // 정렬
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date':
+          return new Date(b.date).getTime() - new Date(a.date).getTime();
+        case 'title':
+          return a.title.localeCompare(b.title);
+        case 'status':
+          const statusOrder = { 'processing': 0, 'error': 1, 'completed': 2 };
+          return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
+        default:
+          return 0;
       }
     });
-  }, [meetings, generateFinalReport]);
+
+    return filtered;
+  }, [meetings, searchQuery, statusFilter, sortBy]);
 
   return (
     <div style={{ 
@@ -234,33 +643,117 @@ const Dashboard: React.FC = () => {
         <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px', color: '#1d1c1d' }}>
           📊 대시보드
         </h1>
-        <p style={{ color: '#616061', fontSize: '16px' }}>
-          회의 분석 현황과 주요 지표를 한눈에 확인하세요.
+        <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+          회의 음성을 업로드하여 자동으로 전사하고 분석해보세요.
         </p>
+        {meetings.length === 0 && (
+          <div style={{
+            marginTop: '16px',
+            padding: '16px',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-primary)'
+          }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 600, marginBottom: '8px' }}>
+              🚀 시작하기
+            </h3>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+              파일을 업로드하면 다음 단계로 자동 분석됩니다:
+            </p>
+            <ol style={{ fontSize: '14px', color: 'var(--text-secondary)', paddingLeft: '20px' }}>
+              <li>📄 파일 검증</li>
+              <li>🎵 음성 인식 (ReturnZero VITO API)</li>
+              <li>👥 화자 분리</li>
+              <li>📝 전사록 생성</li>
+              <li>🤖 AI 에이전트 분석 (5개 에이전트)</li>
+              <li>📊 최종 보고서 생성</li>
+            </ol>
+            <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              ⏱️ 분석 시간: 일반적으로 3-5분, 큰 파일은 10분 이상 소요될 수 있습니다.
+              <br />
+              📁 지원 파일: 최대 500MB까지 업로드 가능합니다.
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 통계 카드 */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <span className="text-2xl">📊</span>
-            </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">전체 회의</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.total}</p>
+      {/* 파일 업로드 영역 */}
+      <div className="card" style={{ marginBottom: '32px' }}>
+        <div className="card-header">
+          <h2 className="card-title">새 회의 업로드</h2>
+          <p className="card-description">
+            오디오 또는 비디오 파일을 드래그하거나 클릭하여 업로드하세요.
+          </p>
+        </div>
+
+        <div
+          className={`dropzone ${dragActive ? 'active' : ''}`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById('fileInput')?.click()}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+              파일을 여기에 드래그하세요
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              또는 클릭하여 파일을 선택하세요
+            </p>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+              지원 형식: MP3, WAV, M4A, MP4, AVI, MOV (최대 500MB)
             </div>
           </div>
         </div>
-        
-        <div className="bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <span className="text-2xl">✅</span>
+
+        {/* 에러 메시지 */}
+        {error && (
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '12px',
+            backgroundColor: '#fee2e2',
+            color: '#dc2626',
+            borderRadius: '4px',
+            border: '1px solid #fca5a5'
+          }}>
+            ❌ {error}
+          </div>
+        )}
+
+        {/* 업로드 진행률 */}
+        {uploadProgress !== null && (
+          <div style={{ marginTop: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span>파일 업로드 및 분석 시작 중...</span>
+              <span>{uploadProgress}%</span>
             </div>
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">완료</p>
-              <p className="text-2xl font-bold text-gray-900">{stats.completed}</p>
+            <div style={{ 
+              width: '100%', 
+              height: '8px', 
+              backgroundColor: 'var(--bg-tertiary)', 
+              borderRadius: '4px',
+              overflow: 'hidden'
+            }}>
+              <div
+                style={{
+                  width: `${uploadProgress}%`,
+                  height: '100%',
+                  backgroundColor: 'var(--accent-primary)',
+                  transition: 'width 0.2s ease'
+                }}
+              />
+            </div>
+            <div style={{ 
+              marginTop: '8px', 
+              fontSize: '12px', 
+              color: 'var(--text-secondary)',
+              textAlign: 'center'
+            }}>
+              큰 파일의 경우 업로드와 분석에 수 분이 소요될 수 있습니다.
+              <br />
+              업로드가 완료되면 자동으로 분석이 시작됩니다.
             </div>
           </div>
         </div>
@@ -318,482 +811,435 @@ const Dashboard: React.FC = () => {
                 📁 파일 업로드하기
               </button>
             </div>
-          ) : (
-            <div className="space-y-4">
-              {meetings.map(meeting => (
-                <div key={meeting.id} className="p-4 border border-gray-200 rounded-lg bg-white">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <h3 className="text-lg font-semibold">{meeting.title}</h3>
-                      <p className="text-sm text-gray-600">{meeting.summary}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      meeting.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      meeting.status === 'error' ? 'bg-red-100 text-red-800' :
-                      'bg-blue-100 text-blue-800'
-                    }`}>
-                      {meeting.status === 'completed' ? '완료' :
-                       meeting.status === 'error' ? '오류' : '처리 중'}
-                    </span>
-                  </div>
-                  
-                  {/* 진행률 바 */}
-                  {meeting.status === 'processing' && (
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm text-gray-600">
-                        <span>{getStageMessage(meeting.current_stage, meeting.progress)}</span>
-                        <span>{meeting.progress}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${meeting.progress}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* 오류 메시지 */}
-                  {meeting.error_message && (
-                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                      <p className="text-sm text-red-800">❌ {meeting.error_message}</p>
-                    </div>
-                  )}
-                  
-                  {/* 완료된 경우 결과 링크 */}
-                  {meeting.status === 'completed' && (
-                    <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-sm text-green-800 mb-2">✅ 분석이 완료되었습니다!</p>
-                      <button
-                        onClick={() => setFinalReport(meeting.pipeline_results || sampleReport)}
-                        className="text-sm text-green-700 hover:text-green-900 underline"
-                      >
-                        📊 분석 결과 보기 →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h3 className="card-title">오류</h3>
+            <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--accent-danger)' }}>
+              {meetings.filter(m => m.status === 'error').length}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* 테스트 보고서 버튼 */}
-      <div className="card" style={{ marginBottom: '24px' }}>
+
+      {/* 최근 회의록 목록 */}
+      <div className="card">
         <div className="card-header">
-          <h2 className="card-title">🧪 개발자 테스트 도구</h2>
+          <h2 className="card-title">최근 회의록</h2>
           <p className="card-description">
-            UI 테스트를 위한 샘플 보고서를 확인할 수 있습니다.
+            업로드된 회의록을 확인하고 상세 분석 결과를 확인하세요.
           </p>
         </div>
-        <div style={{ marginTop: '16px' }}>
-          <button
-            onClick={() => setFinalReport(sampleReport)}
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            🧪 테스트 보고서 보기
-          </button>
-        </div>
-      </div>
 
-      {/* 최종 보고서 */}
-      {finalReport && (
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-header">
-            <h2 className="card-title">📊 최종 분석 보고서</h2>
-            <p className="card-description">
-              AI 에이전트가 분석한 회의 내용의 종합 보고서입니다.
-            </p>
-          </div>
-          <div style={{ marginTop: '16px' }}>
-            <div className="space-y-6">
-              {/* 실행 요약 */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 rounded-xl border border-blue-200">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4">🎯 실행 요약</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium text-blue-800 mb-2">핵심 결과</h4>
-                    <div className="space-y-2">
-                      {finalReport.executive_summary?.key_findings?.map((finding: string, index: number) => (
-                        <div key={index} className="flex items-start space-x-2">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <p className="text-blue-700 text-sm">{finding}</p>
-                        </div>
-                      )) || (
-                        <p className="text-blue-700 text-sm">핵심 결과가 없습니다.</p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-blue-800 mb-2">생성 시간</h4>
-                    <p className="text-blue-700 text-sm">
-                      {finalReport.generated_at ? new Date(finalReport.generated_at).toLocaleString('ko-KR') : '시간 정보가 없습니다.'}
-                    </p>
-                    <h4 className="font-medium text-blue-800 mb-2 mt-4">화자 수</h4>
-                    <p className="text-blue-700 text-sm">
-                      {finalReport.detailed_analysis?.speaker_analysis ? Object.keys(finalReport.detailed_analysis.speaker_analysis).length : 'N/A'}명
-                    </p>
-                  </div>
-                </div>
+        {/* 검색 및 필터링 컨트롤 */}
+        {meetings.length > 0 && (
+          <div style={{ 
+            marginTop: '16px', 
+            padding: '16px',
+            backgroundColor: 'var(--bg-secondary)',
+            borderRadius: '8px',
+            border: '1px solid var(--border-primary)'
+          }}>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: '2fr 1fr 1fr', 
+              gap: '12px',
+              alignItems: 'end'
+            }}>
+              {/* 검색 입력 */}
+              <div>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  marginBottom: '4px',
+                  color: 'var(--text-secondary)'
+                }}>
+                  검색
+                </label>
+                <input
+                  type="text"
+                  placeholder="제목, 내용, 날짜로 검색..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px'
+                  }}
+                />
               </div>
-
-              {/* 주요 결정사항 */}
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 p-6 rounded-xl border border-emerald-200">
-                <h3 className="text-lg font-semibold text-emerald-900 mb-4">📋 주요 결정사항</h3>
-                <div className="space-y-4">
-                  {finalReport.executive_summary?.action_items?.map((item: string, index: number) => (
-                    <div key={index} className="p-4 bg-white rounded-lg border border-emerald-100">
-                      <h4 className="font-medium text-emerald-800">{item}</h4>
-                    </div>
-                  )) || (
-                    <p className="text-emerald-700 text-sm">주요 결정사항이 없습니다.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* 권장사항 */}
-              <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-6 rounded-xl border border-purple-200">
-                <h3 className="text-lg font-semibold text-purple-900 mb-4">💡 권장사항</h3>
-                <div className="space-y-3">
-                  {finalReport.executive_summary?.recommendations?.map((rec: string, index: number) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <p className="text-purple-800 text-sm">{rec}</p>
-                    </div>
-                  )) || (
-                    <p className="text-purple-700 text-sm">권장사항이 없습니다.</p>
-                  )}
-                </div>
-              </div>
-
-              {/* 보고서 액션 */}
-              <div className="flex space-x-4 pt-4 border-t border-gray-200">
-                <button
-                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                  onClick={() => {
-                    const reportText = JSON.stringify(finalReport, null, 2);
-                    const blob = new Blob([reportText], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `meeting_report_${Date.now()}.json`;
-                    a.click();
-                    URL.revokeObjectURL(url);
+              
+              {/* 상태 필터 */}
+              <div>
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  marginBottom: '4px',
+                  color: 'var(--text-secondary)'
+                }}>
+                  상태 필터
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px'
                   }}
                 >
-                  📥 JSON 다운로드
-                </button>
-                <button
-                  className="px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-                  onClick={() => setFinalReport(null)}
-                >
-                  ❌ 보고서 닫기
-                </button>
+                  <option value="all">전체</option>
+                  <option value="processing">처리 중</option>
+                  <option value="completed">완료</option>
+                  <option value="error">오류</option>
+                </select>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 회의록 분석 진행 상황 */}
-      <div style={{ marginBottom: '32px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', marginBottom: '20px', color: '#1d1c1d' }}>
-          📊 회의록 분석 진행 상황
-        </h2>
-        
-        {/* 분석 단계별 진행 상황 */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-          {/* STT 진행 상황 */}
-          <div style={{
-            padding: '24px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: '#e3f2fd',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '24px' }}>🎤</span>
-              </div>
+              
+              {/* 정렬 옵션 */}
               <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1976d2', marginBottom: '4px' }}>
-                  음성 인식 (STT)
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                  음성을 텍스트로 변환
-                </p>
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#495057' }}>진행률</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#1976d2' }}>85%</span>
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: '#e9ecef',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: '85%',
-                  height: '100%',
-                  backgroundColor: '#1976d2',
-                  borderRadius: '4px',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-            </div>
-            
-            <div style={{ fontSize: '13px', color: '#6c757d' }}>
-              <div style={{ marginBottom: '4px' }}>• 인식된 텍스트: 2,847자</div>
-              <div style={{ marginBottom: '4px' }}>• 신뢰도: 92.3%</div>
-              <div>• 처리 시간: 3분 24초</div>
-            </div>
-          </div>
-
-          {/* 화자 분리 및 발화 기록 */}
-          <div style={{
-            padding: '24px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: '#f3e5f5',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '24px' }}>👥</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#7b1fa2', marginBottom: '4px' }}>
-                  화자 분리
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                  발화자별 구분 및 기록
-                </p>
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#495057' }}>진행률</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#7b1fa2' }}>100%</span>
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: '#e9ecef',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: '100%',
-                  height: '100%',
-                  backgroundColor: '#7b1fa2',
-                  borderRadius: '4px'
-                }} />
-              </div>
-            </div>
-            
-            <div style={{ fontSize: '13px', color: '#6c757d' }}>
-              <div style={{ marginBottom: '4px' }}>• 감지된 화자: 4명</div>
-              <div style={{ marginBottom: '4px' }}>• 총 발화 횟수: 127회</div>
-              <div>• 화자별 발화 시간 분포 완료</div>
-            </div>
-          </div>
-
-          {/* AI 에이전트 실행 상태 */}
-          <div style={{
-            padding: '24px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: '#e8f5e8',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '24px' }}>🤖</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#2e7d32', marginBottom: '4px' }}>
-                  AI 에이전트
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                  다중 에이전트 분석 실행
-                </p>
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '14px', color: '#495057' }}>진행률</span>
-                <span style={{ fontSize: '14px', fontWeight: '600', color: '#2e7d32' }}>75%</span>
-              </div>
-              <div style={{
-                width: '100%',
-                height: '8px',
-                backgroundColor: '#e9ecef',
-                borderRadius: '4px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  width: '75%',
-                  height: '100%',
-                  backgroundColor: '#2e7d32',
-                  borderRadius: '4px',
-                  transition: 'width 0.3s ease'
-                }} />
-              </div>
-            </div>
-            
-            <div style={{ fontSize: '13px', color: '#6c757d' }}>
-              <div style={{ marginBottom: '4px' }}>• AgendaMiner: ✅ 완료</div>
-              <div style={{ marginBottom: '4px' }}>• ClaimChecker: ✅ 완료</div>
-              <div style={{ marginBottom: '4px' }}>• CounterArguer: 🔄 진행중</div>
-              <div>• EvidenceHunter: ⏳ 대기중</div>
-            </div>
-          </div>
-
-          {/* 최종 보고서 생성 */}
-          <div style={{
-            padding: '24px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '50%',
-                backgroundColor: '#fff3e0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '24px' }}>📋</span>
-              </div>
-              <div>
-                <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#f57c00', marginBottom: '4px' }}>
-                  최종 보고서
-                </h3>
-                <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                  종합 분석 결과 정리
-                </p>
-              </div>
-            </div>
-            
-            {/* 보고서 내용 미리보기 */}
-            <div style={{ marginBottom: '20px' }}>
-              {isReportLoading ? (
-                <div style={{
-                  padding: '20px',
-                  textAlign: 'center',
-                  color: '#6c757d'
+                <label style={{ 
+                  display: 'block', 
+                  fontSize: '12px', 
+                  fontWeight: 600, 
+                  marginBottom: '4px',
+                  color: 'var(--text-secondary)'
                 }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    border: '3px solid #f57c00',
-                    borderTop: '3px solid transparent',
-                    borderRadius: '50%',
-                    animation: 'spin 1s linear infinite',
-                    margin: '0 auto 16px'
-                  }} />
-                  <p>보고서를 생성하고 있습니다...</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: '#fff8e1',
-                    borderRadius: '8px',
-                    border: '1px solid #ffcc02'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>✅</span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#e65100' }}>실행 요약</span>
-                    </div>
-                    <p style={{ fontSize: '13px', color: '#795548', lineHeight: '1.4' }}>
-                      {finalReport?.executive_summary?.meeting_overview || 
-                       '프로젝트 일정 조정으로 2024년 3월 완료 예정, 팀원 2명 추가로 개발 속도 향상, React Native와 AWS 기술 스택 검토로 안정성 개선'}
-                    </p>
+                  정렬
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '4px',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px'
+                  }}
+                >
+                  <option value="date">날짜순</option>
+                  <option value="title">제목순</option>
+                  <option value="status">상태순</option>
+                </select>
+              </div>
+            </div>
+            
+            {/* 검색 결과 요약 */}
+            <div style={{ 
+              marginTop: '12px', 
+              fontSize: '12px', 
+              color: 'var(--text-secondary)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>
+                {filteredAndSortedMeetings.length}개의 회의 (총 {meetings.length}개 중)
+                {searchQuery && ` · "${searchQuery}" 검색 결과`}
+                {statusFilter !== 'all' && ` · ${statusFilter} 상태만`}
+              </span>
+              
+              {(searchQuery || statusFilter !== 'all') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('all');
+                  }}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    backgroundColor: 'transparent',
+                    color: 'var(--accent-primary)',
+                    border: '1px solid var(--accent-primary)',
+                    borderRadius: '3px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  필터 초기화
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        <div style={{ marginTop: '16px' }}>
+          {meetings.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '48px', 
+              color: 'var(--text-secondary)' 
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📝</div>
+              <h3>아직 업로드된 회의가 없습니다</h3>
+              <p>위의 업로드 영역을 사용하여 첫 번째 회의를 업로드해보세요.</p>
+            </div>
+          ) : filteredAndSortedMeetings.length === 0 ? (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '48px', 
+              color: 'var(--text-secondary)' 
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔍</div>
+              <h3>검색 결과가 없습니다</h3>
+              <p>다른 검색어를 시도하거나 필터를 조정해보세요.</p>
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                }}
+                style={{
+                  marginTop: '16px',
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--accent-primary)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer'
+                }}
+              >
+                모든 회의 보기
+              </button>
+            </div>
+          ) : (
+            <div>
+              {filteredAndSortedMeetings.map((meeting, index) => (
+                <div key={meeting.id} className="message" style={{ marginBottom: '8px' }}>
+                  <div className="message-avatar">
+                    {meeting.status === 'completed' ? '✅' : 
+                     meeting.status === 'processing' ? '⏳' : '❌'}
                   </div>
-                  
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: '#e8f5e8',
-                    borderRadius: '8px',
-                    border: '1px solid #4caf50'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>✅</span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#2e7d32' }}>핵심 결과</span>
+                  <div className="message-content">
+                    <div className="message-header">
+                      <Link 
+                        to={`/meeting/${meeting.id}`}
+                        className="message-author"
+                        style={{ textDecoration: 'none', color: 'var(--text-primary)' }}
+                      >
+                        {meeting.title}
+                      </Link>
+                      <div className="message-time">{meeting.date}</div>
+                      {getStatusBadge(meeting.status)}
                     </div>
-                    <p style={{ fontSize: '13px', color: '#388e3c', lineHeight: '1.4' }}>
-                      {finalReport?.executive_summary?.key_findings?.join(', ') || 
-                       'React Native로 모바일 앱 개발 결정, AWS 인프라로 클라우드 마이그레이션, 보안 인증 시스템 구축 우선순위 설정'}
-                    </p>
-                  </div>
-                  
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: '#e3f2fd',
-                    borderRadius: '8px',
-                    border: '1px solid #2196f3'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>✅</span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#1565c0' }}>권장사항</span>
+                    <div className="message-text">
+                      {meeting.summary}
                     </div>
-                    <p style={{ fontSize: '13px', color: '#1976d2', lineHeight: '1.4' }}>
-                      {finalReport?.executive_summary?.recommendations?.join(', ') || 
-                       '보안 인증 시스템 구축을 최우선으로 진행, 단계별 마일스톤 설정으로 진행 상황 모니터링, 정기적인 기술 검토 미팅 진행'}
-                    </p>
-                  </div>
-                  
-                  <div style={{
-                    padding: '12px',
-                    backgroundColor: '#fce4ec',
-                    borderRadius: '8px',
-                    border: '1px solid #e91e63'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '16px' }}>✅</span>
-                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#c2185b' }}>액션 아이템</span>
+                    
+                    {/* 진행률 표시 (처리 중인 경우) */}
+                    {meeting.status === 'processing' && meeting.progress !== undefined && (
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          marginBottom: '4px',
+                          fontSize: '12px',
+                          color: 'var(--text-secondary)'
+                        }}>
+                          <span>{meeting.current_stage && getStageMessage(meeting.current_stage, meeting.progress)}</span>
+                          <span>{meeting.progress}%</span>
+                        </div>
+                        <div style={{ 
+                          width: '100%', 
+                          height: '4px', 
+                          backgroundColor: 'var(--bg-tertiary)', 
+                          borderRadius: '2px',
+                          overflow: 'hidden'
+                        }}>
+                          <div
+                            style={{
+                              width: `${meeting.progress}%`,
+                              height: '100%',
+                              backgroundColor: 'var(--accent-primary)',
+                              transition: 'width 0.5s ease'
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* 에러 메시지 표시 */}
+                    {meeting.status === 'error' && meeting.error_message && (
+                      <div style={{
+                        marginTop: '8px',
+                        padding: '12px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        border: '1px solid #fca5a5'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
+                          <span style={{ fontSize: '14px', marginRight: '6px' }}>🚨</span>
+                          <strong>분석 오류 발생</strong>
+                        </div>
+                        <div style={{ marginBottom: '8px', lineHeight: '1.4' }}>
+                          {meeting.error_message}
+                        </div>
+                        
+                        {/* 추가 오류 정보 */}
+                        <details style={{ marginTop: '8px' }}>
+                          <summary style={{ cursor: 'pointer', fontSize: '11px', color: '#991b1b' }}>
+                            상세 정보 보기
+                          </summary>
+                          <div style={{ 
+                            marginTop: '8px', 
+                            padding: '8px', 
+                            backgroundColor: '#fef2f2',
+                            borderRadius: '3px',
+                            fontSize: '11px',
+                            fontFamily: 'monospace'
+                          }}>
+                            <div><strong>회의 ID:</strong> {meeting.id}</div>
+                            <div><strong>파일명:</strong> {meeting.title}</div>
+                            <div><strong>업로드 시간:</strong> {meeting.date}</div>
+                            <div><strong>Job ID:</strong> {meeting.job_id || 'N/A'}</div>
+                            <div><strong>현재 단계:</strong> {meeting.current_stage || 'Unknown'}</div>
+                            
+                            <div style={{ marginTop: '8px', padding: '4px 0', borderTop: '1px solid #fca5a5' }}>
+                              <strong>해결 방법:</strong>
+                              <ul style={{ margin: '4px 0 0 16px', paddingLeft: '0' }}>
+                                <li>파일 형식이 지원되는지 확인하세요</li>
+                                <li>파일 크기가 500MB 이하인지 확인하세요</li>
+                                <li>네트워크 연결 상태를 확인하세요</li>
+                                <li>API 키가 올바르게 설정되었는지 확인하세요</li>
+                                <li>잠시 후 다시 시도해보세요</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </details>
+                        
+                        {/* 재시도 버튼 */}
+                        <button
+                          onClick={() => handleRetryAnalysis(meeting)}
+                          style={{
+                            marginTop: '8px',
+                            padding: '6px 12px',
+                            backgroundColor: '#dc2626',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '3px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#b91c1c'}
+                          onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#dc2626'}
+                        >
+                          🔄 다시 분석하기
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div style={{ 
+                      marginTop: '8px', 
+                      display: 'flex', 
+                      gap: '16px', 
+                      fontSize: '12px',
+                      color: 'var(--text-muted)',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}>
+                      <div style={{ display: 'flex', gap: '16px' }}>
+                        <span>⏱️ {meeting.duration}</span>
+                        <span>👥 {meeting.speakers}명</span>
+                      </div>
+                      
+                      {/* 다운로드 버튼 (완료된 회의만) */}
+                      {meeting.status === 'completed' && (
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          <button
+                            onClick={() => handleDownloadResults(meeting, 'txt')}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '10px',
+                              backgroundColor: 'var(--accent-secondary)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="텍스트 보고서 다운로드"
+                          >
+                            📄 TXT
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDownloadResults(meeting, 'csv')}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '10px',
+                              backgroundColor: 'var(--accent-success)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="CSV 데이터 다운로드"
+                          >
+                            📊 CSV
+                          </button>
+                          
+                          <button
+                            onClick={() => handleDownloadResults(meeting, 'json')}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: '10px',
+                              backgroundColor: 'var(--accent-primary)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="JSON 원본 데이터 다운로드"
+                          >
+                            🔧 JSON
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* 삭제 버튼 (모든 상태에서) */}
+                      <button
+                        onClick={() => handleDeleteReport(meeting)}
+                        style={{
+                          padding: '4px 8px',
+                          fontSize: '10px',
+                          backgroundColor: 'var(--accent-danger)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px'
+                        }}
+                        title="보고서 삭제"
+                      >
+                        🗑️ 삭제
+                      </button>
                     </div>
-                    <p style={{ fontSize: '13px', color: '#ad1457', lineHeight: '1.4' }}>
-                      {finalReport?.executive_summary?.action_items?.join(', ') || 
-                       '보안 인증 시스템 설계, React Native 개발 환경 구축, AWS 인프라 설계서 작성'}
-                    </p>
                   </div>
                 </div>
               )}

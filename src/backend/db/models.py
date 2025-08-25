@@ -176,6 +176,42 @@ class Chunk(Base):
     document = relationship("Document", back_populates="chunks")
 
 
+class MeetingReport(Base):
+    __tablename__ = 'meeting_reports'
+    
+    id = Column(Integer, primary_key=True)
+    job_id = Column(String(100), unique=True, nullable=False)
+    title = Column(String(255), nullable=False)
+    transcript_id = Column(Integer, ForeignKey('transcripts.id'), nullable=True)
+    original_filename = Column(String(255))
+    file_size = Column(Integer)
+    duration_seconds = Column(Float)
+    num_speakers = Column(Integer, default=0)
+    
+    # 분석 결과 저장
+    raw_results = Column(JSON)  # 전체 분석 결과 JSON
+    executive_summary = Column(JSON)  # 요약 정보
+    agendas = Column(JSON)  # 아젠다 분석 결과
+    claims = Column(JSON)  # 주장 분석 결과
+    counter_arguments = Column(JSON)  # 반박 분석 결과
+    evidence = Column(JSON)  # 증거 분석 결과
+    final_report = Column(JSON)  # 최종 보고서
+    
+    # 상태 정보
+    status = Column(String(50), default='pending')  # pending, processing, completed, failed
+    progress = Column(Integer, default=0)  # 0-100
+    current_stage = Column(String(100))
+    error_message = Column(Text)
+    
+    # 타임스탬프
+    created_at = Column(DateTime, default=datetime.utcnow)
+    completed_at = Column(DateTime)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    transcript = relationship("Transcript", foreign_keys=[transcript_id])
+
+
 class UserSetting(Base):
     __tablename__ = 'user_settings'
     

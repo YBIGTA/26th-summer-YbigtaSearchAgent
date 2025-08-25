@@ -107,7 +107,7 @@ class ChromaIndexManager:
         # LangChain VectorStore 래퍼 초기화
         self.vectorstore = Chroma(
             client=self.client,
-            collection_name=self.collection_name,
+            collection_name=self.collection.name,
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory
         )

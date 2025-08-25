@@ -100,52 +100,61 @@ class AgendaMiner(BaseAgent):
         
         context = f"""
 회의록:
-{transcript[:2000]}...  # 처음 2000자만 사용
+{transcript[:2000]}...
 
 타임라인 정보:
 {json.dumps(timeline[:10], ensure_ascii=False, indent=2) if timeline else "없음"}
 """
         
-        question = """
-이 회의록에서 논의된 주요 토픽들을 추출하고 다음 형식으로 반환하세요:
-
-{
-    "topics": [
-        {
-            "id": 1,
-            "title": "토픽 제목",
-            "keywords": ["키워드1", "키워드2", "키워드3"],
-            "description": "토픽 설명",
-            "importance_score": 0.8,
-            "time_segments": [{"start": "00:05:30", "end": "00:12:15"}]
-        }
-    ]
-}
-
-중요한 토픽일수록 높은 importance_score를 주세요 (0.0-1.0).
-"""
+        question = "이 회의록에서 논의된 주요 토픽들을 추출하여 JSON 형식으로 반환하세요. 중요한 토픽일수록 높은 importance_score를 주세요 (0.0-1.0)."
         
-        response = await self.think(context, question)
+        # 기대하는 형식 정의
+        expected_format = {
+            "topics": [
+                {
+                    "id": 1,
+                    "title": "토픽 제목",
+                    "keywords": ["키워드1", "키워드2", "키워드3"],
+                    "description": "토픽 설명",
+                    "importance_score": 0.8,
+                    "time_segments": [{"start": "00:05:30", "end": "00:12:15"}]
+                }
+            ]
+        }
+        
+        # 기본 fallback 결과
+        fallback_topics = [{
+            "id": 1,
+            "title": "회의 주요 내용",
+            "keywords": ["논의", "결정", "계획"],
+            "description": "회의의 전반적인 논의 내용",
+            "importance_score": 0.7,
+            "time_segments": []
+        }]
         
         try:
-            # JSON 파싱 시도
-            if response.startswith("```json"):
-                response = response.strip("```json").strip("```").strip()
+            result = await self.think_structured(context, question, expected_format)
+            topics = result.get("topics", fallback_topics)
             
-            result = json.loads(response)
-            return result.get("topics", [])
+            # 결과 검증 및 보정
+            validated_topics = []
+            for i, topic in enumerate(topics):
+                if isinstance(topic, dict):
+                    validated_topic = {
+                        "id": topic.get("id", i + 1),
+                        "title": str(topic.get("title", f"토픽 {i + 1}")).strip(),
+                        "keywords": topic.get("keywords", [])[:5],  # 최대 5개
+                        "description": str(topic.get("description", "")).strip(),
+                        "importance_score": max(0.0, min(1.0, float(topic.get("importance_score", 0.5)))),
+                        "time_segments": topic.get("time_segments", [])
+                    }
+                    validated_topics.append(validated_topic)
             
-        except json.JSONDecodeError:
-            logger.warning("AgendaMiner: LLM 응답을 JSON으로 파싱할 수 없습니다.")
-            # 기본 토픽 반환
-            return [{
-                "id": 1,
-                "title": "회의 주요 내용",
-                "keywords": ["논의", "결정", "계획"],
-                "description": "회의의 전반적인 논의 내용",
-                "importance_score": 0.7,
-                "time_segments": []
-            }]
+            return validated_topics if validated_topics else fallback_topics
+            
+        except Exception as e:
+            logger.warning(f"AgendaMiner: 토픽 추출 오류 - {str(e)}")
+            return fallback_topics
     
     async def _identify_agendas(self, topics: List[Dict], speakers: List[str], timeline: List[Dict]) -> List[Dict]:
         """아젠다 식별"""
@@ -160,54 +169,73 @@ class AgendaMiner(BaseAgent):
 참석자: {speakers_str}
 """
         
-        question = """
-추출된 토픽들을 바탕으로 회의의 공식 아젠다를 구성하세요:
-
-{
-    "agendas": [
-        {
-            "id": 1,
-            "title": "아젠다 제목",
-            "description": "아젠다 상세 설명",
-            "category": "discussion|decision|information|planning",
-            "priority": "high|medium|low",
-            "related_topics": [1, 2],
-            "outcomes": ["결과1", "결과2"],
-            "action_items": [
-                {
-                    "task": "할 일",
-                    "assignee": "담당자",
-                    "deadline": "마감일"
-                }
-            ],
-            "discussion_points": ["논의점1", "논의점2"]
-        }
-    ]
-}
-"""
+        question = "추출된 토픽들을 바탕으로 회의의 공식 아젠다를 구성하여 JSON 형식으로 반환하세요."
         
-        response = await self.think(context, question)
+        # 기대하는 형식 정의
+        expected_format = {
+            "agendas": [
+                {
+                    "id": 1,
+                    "title": "아젠다 제목",
+                    "description": "아젠다 상세 설명",
+                    "category": "discussion",
+                    "priority": "high",
+                    "related_topics": [1, 2],
+                    "outcomes": ["결과1", "결과2"],
+                    "action_items": [
+                        {
+                            "task": "할 일",
+                            "assignee": "담당자",
+                            "deadline": "마감일"
+                        }
+                    ],
+                    "discussion_points": ["논의점1", "논의점2"]
+                }
+            ]
+        }
+        
+        # 기본 fallback 결과
+        fallback_agendas = [{
+            "id": 1,
+            "title": "주요 논의사항",
+            "description": "회의에서 논의된 주요 안건들",
+            "category": "discussion",
+            "priority": "high",
+            "related_topics": [t["id"] for t in topics[:3]] if topics else [],
+            "outcomes": [],
+            "action_items": [],
+            "discussion_points": []
+        }]
         
         try:
-            if response.startswith("```json"):
-                response = response.strip("```json").strip("```").strip()
+            result = await self.think_structured(context, question, expected_format)
+            agendas = result.get("agendas", fallback_agendas)
             
-            result = json.loads(response)
-            return result.get("agendas", [])
+            # 결과 검증 및 보정
+            validated_agendas = []
+            valid_categories = ["discussion", "decision", "information", "planning"]
+            valid_priorities = ["high", "medium", "low"]
             
-        except json.JSONDecodeError:
-            # 기본 아젠다 반환
-            return [{
-                "id": 1,
-                "title": "주요 논의사항",
-                "description": "회의에서 논의된 주요 안건들",
-                "category": "discussion",
-                "priority": "high",
-                "related_topics": [t["id"] for t in topics[:3]],
-                "outcomes": [],
-                "action_items": [],
-                "discussion_points": []
-            }]
+            for i, agenda in enumerate(agendas):
+                if isinstance(agenda, dict):
+                    validated_agenda = {
+                        "id": agenda.get("id", i + 1),
+                        "title": str(agenda.get("title", f"아젠다 {i + 1}")).strip(),
+                        "description": str(agenda.get("description", "")).strip(),
+                        "category": agenda.get("category", "discussion") if agenda.get("category") in valid_categories else "discussion",
+                        "priority": agenda.get("priority", "medium") if agenda.get("priority") in valid_priorities else "medium",
+                        "related_topics": agenda.get("related_topics", [])[:5],  # 최대 5개
+                        "outcomes": agenda.get("outcomes", [])[:10],  # 최대 10개
+                        "action_items": agenda.get("action_items", [])[:10],  # 최대 10개
+                        "discussion_points": agenda.get("discussion_points", [])[:10]  # 최대 10개
+                    }
+                    validated_agendas.append(validated_agenda)
+            
+            return validated_agendas if validated_agendas else fallback_agendas
+            
+        except Exception as e:
+            logger.warning(f"AgendaMiner: 아젠다 식별 오류 - {str(e)}")
+            return fallback_agendas
     
     async def _analyze_structure(self, agendas: List[Dict], timeline: List[Dict]) -> Dict[str, Any]:
         """논의 구조 분석"""

@@ -110,49 +110,73 @@ class ClaimChecker(BaseAgent):
 참석자: {', '.join(speakers) if speakers else '정보 없음'}
 """
         
-        question = """
-이 회의록에서 참석자들이 제시한 주장들을 분석하세요:
-
-{
-    "claims": [
-        {
-            "id": 1,
-            "speaker": "발화자명",
-            "claim": "주장 내용",
-            "type": "fact|opinion|proposal|objection",
-            "confidence_level": "high|medium|low",
-            "evidence": [
-                {
-                    "type": "data|example|authority|logic",
-                    "content": "근거 내용",
-                    "strength": "strong|moderate|weak"
-                }
-            ],
-            "context": "주장이 나온 맥락",
-            "implications": ["함의1", "함의2"],
-            "related_claims": [2, 3],
-            "time_reference": "발언 시점 추정"
-        }
-    ]
-}
-
-각 주장에 대해:
-1. 명시적인 주장과 암묵적인 주장을 모두 포함
-2. 제시된 근거의 유형과 강도를 평가
-3. 다른 주장과의 관계를 파악
-"""
+        question = "이 회의록에서 참석자들이 제시한 주장들을 분석하여 JSON 형식으로 반환하세요. 명시적인 주장과 암묵적인 주장을 모두 포함하고, 제시된 근거의 유형과 강도를 평가하세요."
         
-        response = await self.think(context, question)
+        # 기대하는 형식 정의
+        expected_format = {
+            "claims": [
+                {
+                    "id": 1,
+                    "speaker": "발화자명",
+                    "claim": "주장 내용",
+                    "type": "fact",
+                    "confidence_level": "high",
+                    "evidence": [
+                        {
+                            "type": "data",
+                            "content": "근거 내용",
+                            "strength": "strong"
+                        }
+                    ],
+                    "context": "주장이 나온 맥락",
+                    "implications": ["함의1", "함의2"],
+                    "related_claims": [2, 3],
+                    "time_reference": "발언 시점 추정"
+                }
+            ]
+        }
         
         try:
-            if response.startswith("```json"):
-                response = response.strip("```json").strip("```").strip()
+            result = await self.think_structured(context, question, expected_format)
+            claims = result.get("claims", [])
             
-            result = json.loads(response)
-            return result.get("claims", [])
+            # 결과 검증 및 보정
+            validated_claims = []
+            valid_types = ["fact", "opinion", "proposal", "objection"]
+            valid_confidence_levels = ["high", "medium", "low"]
+            valid_evidence_types = ["data", "example", "authority", "logic"]
+            valid_strengths = ["strong", "moderate", "weak"]
             
-        except json.JSONDecodeError:
-            logger.warning("ClaimChecker: 주장 추출 JSON 파싱 실패")
+            for i, claim in enumerate(claims):
+                if isinstance(claim, dict):
+                    # evidence 검증
+                    validated_evidence = []
+                    for evidence in claim.get("evidence", []):
+                        if isinstance(evidence, dict):
+                            validated_evidence.append({
+                                "type": evidence.get("type", "logic") if evidence.get("type") in valid_evidence_types else "logic",
+                                "content": str(evidence.get("content", "")).strip(),
+                                "strength": evidence.get("strength", "weak") if evidence.get("strength") in valid_strengths else "weak"
+                            })
+                    
+                    validated_claim = {
+                        "id": claim.get("id", i + 1),
+                        "speaker": str(claim.get("speaker", "알 수 없음")).strip(),
+                        "claim": str(claim.get("claim", "")).strip(),
+                        "type": claim.get("type", "opinion") if claim.get("type") in valid_types else "opinion",
+                        "confidence_level": claim.get("confidence_level", "medium") if claim.get("confidence_level") in valid_confidence_levels else "medium",
+                        "evidence": validated_evidence[:5],  # 최대 5개
+                        "context": str(claim.get("context", "")).strip(),
+                        "implications": claim.get("implications", [])[:5],  # 최대 5개
+                        "related_claims": claim.get("related_claims", [])[:5],  # 최대 5개
+                        "time_reference": str(claim.get("time_reference", "")).strip()
+                    }
+                    validated_claims.append(validated_claim)
+            
+            return validated_claims
+            
+        except Exception as e:
+            logger.warning(f"ClaimChecker: 주장 추출 오류 - {str(e)}")
             return []
     
     async def _analyze_logical_structure(self, claims: List[Dict], agendas: List[Dict]) -> Dict[str, Any]:
