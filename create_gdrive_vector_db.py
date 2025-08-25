@@ -220,7 +220,7 @@ try:
         process_folder(folder_id)
 
 finally:
-    print("="*50)
+print("="*50)
     print("최종 정리 및 저장을 수행합니다...")
     vectorstore = update_vectorstore(vectorstore, batch_docs, embeddings)
     
