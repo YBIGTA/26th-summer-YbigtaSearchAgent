@@ -153,18 +153,20 @@ logs/
 temp/
 tmp/
 
-# Data files and databases
-# data/db/
-# data/cache/
-# data/indexes/
-# *.db
-# *.sqlite
+# # Data files and databases
+# # data/db/
+# # data/cache/
+# # data/indexes/
+# # *.db
+# # *.sqlite
 
-# Audio files (large)
-data/audio/*.wav
-data/audio/*.mp3
-data/audio/*.m4a
-data/audio/*.mp4
+# # Audio files (large)
+# data/audio/*.wav
+# data/audio/*.mp3
+# data/audio/*.m4a
+# data/audio/*.mp4
+data/unified_chroma_db/
+
 
 # Node.js
 node_modules/

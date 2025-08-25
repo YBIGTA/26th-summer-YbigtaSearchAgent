@@ -261,10 +261,10 @@ class EvidenceHunter(BaseAgent):
             
         try:
             # ChromaDB 하이브리드 검색 수행
-            search_results = self.retriever.hybrid_search(
+            search_results = await self.retriever.search(
                 query=query,
                 top_k=10,  # 충분한 결과 가져오기
-                vector_weight=0.7  # 벡터 검색 가중치
+                weights={"semantic": 0.7, "keyword": 0.3}  # 검색 가중치
             )
             
             formatted_results = []
@@ -296,14 +296,14 @@ class EvidenceHunter(BaseAgent):
             
         try:
             # 소스별 필터 설정
-            source_filter = {"source": source} if source != "all" else None
+            source_filters = {"source": source} if source != "all" else None
             
             # ChromaDB 하이브리드 검색 (필터 적용)
-            search_results = self.retriever.hybrid_search(
+            search_results = await self.retriever.search(
                 query=query,
                 top_k=8,
-                filter=source_filter,
-                vector_weight=0.8  # 특정 소스 검색시 벡터 검색 가중치 높임
+                filters=source_filters,
+                weights={"semantic": 0.8, "keyword": 0.2}  # 특정 소스 검색시 의미론적 검색 가중치 높임
             )
             
             formatted_results = []
@@ -607,11 +607,11 @@ class EvidenceHunter(BaseAgent):
             
             # 각 핵심 주제별로 유사 회의 검색
             for topic in key_topics[:3]:  # 상위 3개 주제만 사용
-                search_results = self.retriever.hybrid_search(
+                search_results = await self.retriever.search(
                     query=topic,
                     top_k=5,
-                    filter=None,  # 모든 소스에서 검색
-                    vector_weight=0.8  # 의미론적 유사도 중시
+                    filters=None,  # 모든 소스에서 검색
+                    weights={"semantic": 0.8, "keyword": 0.2}  # 의미론적 유사도 중시
                 )
                 
                 for result in search_results:

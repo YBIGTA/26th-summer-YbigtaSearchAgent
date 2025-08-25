@@ -15,6 +15,7 @@ import uuid
 logger = logging.getLogger(__name__)
 
 
+
 class MeetingAnalysisPipeline:
     """회의 분석 전체 파이프라인"""
     
@@ -443,8 +444,12 @@ class MeetingAnalysisPipeline:
             return {"saved": False, "error": "데이터베이스 엔진이 없음"}
             
         try:
-            # 데이터베이스 모델 import
-            from ..db.models import get_session, MeetingReport
+            # Import database models inside function
+            try:
+                from db.models import get_session, MeetingReport
+            except ImportError as e:
+                logger.error(f"❌ 데이터베이스 모델을 import할 수 없습니다: {e}")
+                return {"saved": False, "error": "데이터베이스 모델 import 실패"}
             
             job = self.pipeline_jobs.get(job_id, {})
             
