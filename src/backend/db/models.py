@@ -226,6 +226,68 @@ class UserSetting(Base):
     user = relationship("User", back_populates="settings")
 
 
+class ChatSession(Base):
+    __tablename__ = 'chat_sessions'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)  # 익명 사용자 허용
+    session_id = Column(String(100), unique=True, nullable=False)  # UUID
+    title = Column(String(255))  # 첫 번째 질문으로 자동 생성
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+
+
+class ChatMessage(Base):
+    __tablename__ = 'chat_messages'
+    
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey('chat_sessions.id'))
+    role = Column(String(20), nullable=False)  # 'user', 'assistant'
+    content = Column(Text, nullable=False)
+    processing_time = Column(Float)  # 응답 시간 (초)
+    search_type = Column(String(20))  # 'hybrid', 'semantic', 'keyword'
+    top_k = Column(Integer)  # 검색된 문서 수
+    sources_count = Column(Integer)  # 참조된 소스 수
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    session = relationship("ChatSession", back_populates="messages")
+    sources = relationship("ChatMessageSource", back_populates="message", cascade="all, delete-orphan")
+
+
+class ChatMessageSource(Base):
+    __tablename__ = 'chat_message_sources'
+    
+    id = Column(Integer, primary_key=True)
+    message_id = Column(Integer, ForeignKey('chat_messages.id'))
+    source_type = Column(String(50))  # 'notion', 'gdrive', 'github', 'file'
+    source_id = Column(String(255))  # 원본 문서 ID
+    title = Column(String(255))  # 문서 제목
+    content_preview = Column(Text)  # 내용 미리보기
+    relevance_score = Column(Float)  # 관련성 점수
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    message = relationship("ChatMessage", back_populates="sources")
+
+
+class ChatbotSetting(Base):
+    __tablename__ = 'chatbot_settings'
+    
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)
+    default_search_type = Column(String(20), default='hybrid')  # 'hybrid', 'semantic', 'keyword'
+    default_top_k = Column(Integer, default=5)
+    enable_suggestions = Column(Boolean, default=True)
+    enable_source_citation = Column(Boolean, default=True)
+    language = Column(String(10), default='ko')
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 # --- FTS 테이블을 활성화하는 SQLAlchemy 이벤트 리스너 ---
 def setup_fts_events(dbapi_connection, connection_record):
     """FTS5 가상 테이블과 자동 동기화 트리거를 설정합니다."""

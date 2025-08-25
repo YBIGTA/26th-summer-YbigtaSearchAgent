@@ -198,13 +198,20 @@ class UnifiedChromaAdapter:
         return stats
     
     def search_documents(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
-        """unified_db에서 문서 검색 (ChromaDB 검색 래핑)"""
+        """unified_db에서 문서 검색 (Upstage API 임베딩 사용)"""
         if not self.collection:
             return []
         
         try:
+            # Upstage API를 사용하여 쿼리 임베딩 생성
+            query_embedding = self._get_query_embedding(query)
+            if not query_embedding:
+                print("❌ 쿼리 임베딩 생성 실패")
+                return []
+            
+            # 임베딩으로 검색
             results = self.collection.query(
-                query_texts=[query],
+                query_embeddings=[query_embedding],
                 n_results=top_k,
                 include=['documents', 'metadatas', 'distances']
             )
@@ -232,3 +239,29 @@ class UnifiedChromaAdapter:
         except Exception as e:
             print(f"❌ Unified DB 검색 실패: {e}")
             return []
+    
+    def _get_query_embedding(self, query: str) -> List[float]:
+        """Upstage API를 사용하여 쿼리 임베딩 생성"""
+        try:
+            import requests
+            
+            api_key = os.getenv("UPSTAGE_API_KEY")
+            if not api_key:
+                print("❌ UPSTAGE_API_KEY가 설정되지 않았습니다.")
+                return None
+            
+            headers = {"Authorization": f"Bearer {api_key}"}
+            data = {"input": query, "model": "embedding-query"}
+            
+            response = requests.post("https://api.upstage.ai/v1/embeddings", headers=headers, json=data, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result["data"][0]["embedding"]
+            else:
+                print(f"❌ Upstage API 호출 실패: {response.status_code}")
+                return None
+                
+        except Exception as e:
+            print(f"❌ 쿼리 임베딩 생성 실패: {e}")
+            return None

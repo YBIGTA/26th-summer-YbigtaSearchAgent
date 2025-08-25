@@ -35,16 +35,17 @@ class SemanticSearchEngine:
             return {"documents": [], "scores": [], "metadata": []}
 
     async def _get_query_embedding(self, query: str) -> Optional[List[float]]:
-        """쿼리 임베딩 생성"""
+        """쿼리 임베딩을 생성합니다."""
+        
         if not self.embedding_client:
             logger.warning("임베딩 클라이언트가 설정되지 않았습니다.")
             return None
         
         try:
-            # 실제 임베딩 API 호출
+            # 동기 방식으로 임베딩 생성 (uvloop 호환성 문제 해결)
             if hasattr(self.embedding_client, 'embed_query'):
-                # AsyncUpstageEmbeddings 클래스 사용
-                embedding = await self.embedding_client.embed_query(query)
+                # 동기 임베딩 메서드 사용
+                embedding = self.embedding_client.embed_query(query)
                 logger.debug(f"임베딩 생성 성공: {len(embedding)} 차원")
                 return embedding
             elif hasattr(self.embedding_client, 'embed_documents'):
@@ -59,6 +60,7 @@ class SemanticSearchEngine:
                 
         except Exception as e:
             logger.error(f"쿼리 임베딩 생성 실패: {str(e)}")
+            # 임베딩 실패 시에도 검색은 계속 진행 (키워드 검색으로 대체)
             return None
 
     async def _search_in_chroma(self, query: str, query_embedding: List[float], 

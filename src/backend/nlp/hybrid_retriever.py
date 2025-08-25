@@ -39,7 +39,7 @@ class HybridRetriever:
         
         # 검색 엔진 초기화
         self.semantic_engine = SemanticSearchEngine(chroma_manager, embedding_client) if enable_semantic else None
-        self.keyword_engine = KeywordSearchEngine(db_session_factory=db_session_factory) if enable_keyword else None
+        self.keyword_engine = KeywordSearchEngine(db_session_factory=db_session_factory, chroma_manager=chroma_manager) if enable_keyword else None
         
         # RRF 설정
         self.rrf_k = 60  # RRF 상수 (일반적으로 60 사용)
@@ -112,14 +112,28 @@ class HybridRetriever:
         """의미적 검색만 실행"""
         
         if not self.semantic_engine:
+            logger.warning("의미적 검색 엔진이 비활성화되어 있습니다.")
             return {"documents": [], "scores": [], "metadata": []}
         
-        return await self.semantic_engine.search(
-            query=query,
-            filters=filters,
-            top_k=top_k,
-            sources=sources
-        )
+        try:
+            return await self.semantic_engine.search(
+                query=query,
+                filters=filters,
+                top_k=top_k,
+                sources=sources
+            )
+        except Exception as e:
+            logger.error(f"의미적 검색 실패: {str(e)}")
+            # 의미적 검색 실패 시 키워드 검색으로 대체
+            if self.keyword_engine:
+                logger.info("키워드 검색으로 대체합니다.")
+                return await self.keyword_engine.search(
+                    query=query,
+                    filters=filters,
+                    top_k=top_k,
+                    sources=sources
+                )
+            return {"documents": [], "scores": [], "metadata": []}
     
     async def _keyword_search_only(self, query: str, filters: Dict, top_k: int, sources: List[str]) -> Dict[str, Any]:
         """키워드 검색만 실행"""

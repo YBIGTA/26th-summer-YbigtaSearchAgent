@@ -47,13 +47,14 @@ const Chat: React.FC = () => {
       timestamp: new Date()
     };
 
+    const currentInput = inputValue.trim(); // 입력값을 먼저 저장
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsLoading(true);
 
     try {
       // 실제 백엔드 API 호출
-      const result = await getChatResponse(inputValue.trim());
+      const result = await getChatResponse(currentInput);
       
       const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -88,7 +89,7 @@ const Chat: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, isLoading]);
+  }, [inputValue, isLoading, getChatResponse]);
 
   // 엔터키 처리
   const handleKeyPress = (e: React.KeyboardEvent) => {

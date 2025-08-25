@@ -17,9 +17,10 @@ logger = logging.getLogger(__name__)
 class KeywordSearchEngine:
     """키워드 기반 검색 엔진"""
     
-    def __init__(self, db_session_factory=None, index_manager=None):
+    def __init__(self, db_session_factory=None, index_manager=None, chroma_manager=None):
         self.db_session_factory = db_session_factory
         self.index_manager = index_manager
+        self.chroma_manager = chroma_manager
         self.stopwords = set([
             "은", "는", "이", "가", "을", "를", "에", "의", "와", "과", 
             "도", "만", "에서", "로", "으로", "부터", "까지", "에게",
@@ -44,18 +45,24 @@ class KeywordSearchEngine:
             검색 결과
         """
         try:
+            logger.info(f"🔍 키워드 검색 시작: '{query}' (top_k={top_k})")
+            
             # 쿼리 전처리
             processed_query = self._preprocess_query(query)
             if not processed_query:
+                logger.warning("쿼리 전처리 후 빈 문자열")
                 return {"documents": [], "scores": [], "metadata": []}
             
             # 키워드 추출
             keywords = self._extract_keywords(processed_query)
+            logger.info(f"📝 추출된 키워드: {keywords}")
             
             # 검색 실행
             if self.db_session_factory:
                 results = await self._search_in_index(keywords, filters, top_k, sources)
+                logger.info(f"✅ FTS 검색 완료: {len(results.get('documents', []))}개 결과")
             else:
+                logger.warning("DB 세션 팩토리가 없어 폴백 검색 사용")
                 results = await self._fallback_search(keywords, query, top_k)
             
             return results
@@ -91,27 +98,111 @@ class KeywordSearchEngine:
                               filters: Optional[Dict], 
                               top_k: int, 
                               sources: Optional[List[str]]) -> Dict[str, Any]:
-        """FTS5 인덱스에서 검색"""
+        """ChromaDB 기반 키워드 검색"""
         
         try:
-            if not self.db_session_factory:
-                logger.warning("데이터베이스 세션 팩토리가 설정되지 않았습니다.")
+            # ChromaDB 매니저가 있는지 확인
+            if hasattr(self, 'chroma_manager') and self.chroma_manager:
+                return await self._search_in_chroma(keywords, filters, top_k, sources)
+            else:
+                logger.warning("ChromaDB 매니저가 설정되지 않았습니다.")
                 return await self._fallback_search(keywords, " ".join(keywords), top_k)
             
-            # FTS 쿼리 구성
-            fts_query = self._build_fts_query(keywords)
+        except Exception as e:
+            logger.error(f"키워드 검색 오류: {str(e)}")
+            return {"documents": [], "scores": [], "metadata": []}
+    
+    async def _search_in_chroma(self, keywords: List[str], filters: Optional[Dict], top_k: int, sources: Optional[List[str]]) -> Dict[str, Any]:
+        """ChromaDB에서 키워드 검색"""
+        
+        try:
+            # ChromaDB 매니저가 있는지 확인
+            if not self.chroma_manager:
+                logger.warning("ChromaDB 매니저가 설정되지 않았습니다.")
+                return {"documents": [], "scores": [], "metadata": []}
             
-            # 필터 조건 구성
-            where_conditions = self._build_where_conditions(filters, sources)
+            # ChromaDB 컬렉션에서 직접 검색
+            all_documents = []
             
-            # SQL 쿼리 실행
-            with self.db_session_factory() as session:
-                results = await self._execute_fts_query(session, fts_query, where_conditions, top_k)
+            # Unified DB에서 검색
+            if hasattr(self.chroma_manager, 'unified_adapter') and self.chroma_manager.unified_adapter.available:
+                try:
+                    # 모든 문서를 가져와서 키워드 매칭
+                    collection = self.chroma_manager.unified_adapter.collection
+                    if collection:
+                        # ChromaDB에서 모든 문서 가져오기
+                        results = collection.get(include=['documents', 'metadatas'])
+                        
+                        if results and results['documents']:
+                            for i, doc_content in enumerate(results['documents']):
+                                doc_metadata = results['metadatas'][i] if results['metadatas'] else {}
+                                
+                                # 키워드 매칭 점수 계산
+                                score = 0
+                                for keyword in keywords:
+                                    if keyword.lower() in doc_content.lower():
+                                        score += doc_content.lower().count(keyword.lower())
+                                    if keyword.lower() in doc_metadata.get('title', '').lower():
+                                        score += doc_metadata.get('title', '').lower().count(keyword.lower()) * 2
+                                
+                                if score > 0:
+                                    all_documents.append({
+                                        'content': doc_content,
+                                        'metadata': doc_metadata,
+                                        'score': score
+                                    })
+                        
+                        logger.info(f"🔍 Unified DB에서 {len(all_documents)}개 문서 매칭")
+                except Exception as e:
+                    logger.error(f"Unified DB 검색 오류: {e}")
             
-            return results
+            # Incremental DB에서 검색
+            if hasattr(self.chroma_manager, 'incremental_manager') and self.chroma_manager.incremental_manager.available:
+                try:
+                    collection = self.chroma_manager.incremental_manager.collection
+                    if collection:
+                        results = collection.get(include=['documents', 'metadatas'])
+                        
+                        if results and results['documents']:
+                            for i, doc_content in enumerate(results['documents']):
+                                doc_metadata = results['metadatas'][i] if results['metadatas'] else {}
+                                
+                                # 키워드 매칭 점수 계산
+                                score = 0
+                                for keyword in keywords:
+                                    if keyword.lower() in doc_content.lower():
+                                        score += doc_content.lower().count(keyword.lower())
+                                    if keyword.lower() in doc_metadata.get('title', '').lower():
+                                        score += doc_metadata.get('title', '').lower().count(keyword.lower()) * 2
+                                
+                                if score > 0:
+                                    all_documents.append({
+                                        'content': doc_content,
+                                        'metadata': doc_metadata,
+                                        'score': score
+                                    })
+                        
+                        logger.info(f"🔍 Incremental DB에서 {len([d for d in all_documents if d['metadata'].get('storage') == 'incremental'])}개 문서 매칭")
+                except Exception as e:
+                    logger.error(f"Incremental DB 검색 오류: {e}")
+            
+            # 점수 순으로 정렬하고 상위 결과 반환
+            all_documents.sort(key=lambda x: x['score'], reverse=True)
+            
+            documents = [doc['content'] for doc in all_documents[:top_k]]
+            scores = [doc['score'] for doc in all_documents[:top_k]]
+            metadata = [doc['metadata'] for doc in all_documents[:top_k]]
+            
+            logger.info(f"🔍 키워드 검색 결과: {len(documents)}개 문서 (키워드: {keywords})")
+            
+            return {
+                "documents": documents,
+                "scores": scores,
+                "metadata": metadata
+            }
             
         except Exception as e:
-            logger.error(f"FTS 검색 오류: {str(e)}")
+            logger.error(f"ChromaDB 키워드 검색 오류: {str(e)}")
             return {"documents": [], "scores": [], "metadata": []}
     
     def _build_fts_query(self, keywords: List[str]) -> str:
@@ -146,6 +237,8 @@ class KeywordSearchEngine:
     async def _execute_fts_query(self, session: Session, fts_query: str, where_conditions: str, top_k: int) -> Dict[str, Any]:
         """FTS 쿼리 실행"""
         
+        logger.info(f"🔍 FTS 쿼리 실행: '{fts_query}' (top_k={top_k})")
+        
         # FTS 검색과 documents 테이블 JOIN
         sql_query = f"""
         SELECT 
@@ -159,20 +252,26 @@ class KeywordSearchEngine:
             fts.highlight(document_fts, 0, '<mark>', '</mark>') as highlighted_content
         FROM document_fts fts
         JOIN documents d ON fts.rowid = d.id
-        WHERE document_fts MATCH ? AND {where_conditions}
+        WHERE document_fts MATCH :query AND {where_conditions}
         ORDER BY fts.rank
-        LIMIT ?
+        LIMIT :limit
         """
         
         try:
+            logger.info(f"📝 SQL 쿼리: {sql_query}")
+            logger.info(f"📝 파라미터: query='{fts_query}', limit={top_k}")
+            
+            # SQLAlchemy의 명명된 파라미터 사용
             result = session.execute(text(sql_query), {"query": fts_query, "limit": top_k})
             rows = result.fetchall()
+            
+            logger.info(f"📊 FTS 쿼리 결과: {len(rows)}개 행")
             
             documents = []
             scores = []
             metadata = []
             
-            for row in rows:
+            for i, row in enumerate(rows):
                 # FTS rank를 점수로 변환 (rank가 낮을수록 높은 점수)
                 # rank는 0에 가까울수록 더 관련성이 높음
                 score = self._convert_rank_to_score(row.rank)
@@ -189,6 +288,11 @@ class KeywordSearchEngine:
                     "rank": row.rank,
                     "type": "fts_search"
                 })
+                
+                if i < 3:  # 처음 3개 결과만 로그
+                    logger.info(f"  📄 결과 {i+1}: {row.title} (rank={row.rank}, score={score:.3f})")
+            
+            logger.info(f"✅ FTS 검색 완료: {len(documents)}개 문서")
             
             return {
                 "documents": documents,

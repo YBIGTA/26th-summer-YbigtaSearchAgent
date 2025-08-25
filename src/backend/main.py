@@ -3,7 +3,7 @@
 FastAPI 서버 및 라우트 설정
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Response
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
@@ -23,8 +23,7 @@ load_dotenv()
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from db.models import init_db, get_session, MeetingReport
-from core.embeddings import AsyncUpstageEmbeddings
+from db.models import init_db, get_session, MeetingReport, ChatbotSetting
 from core.settings_sync import settings_sync
 from indexers.hybrid_chroma_manager import HybridChromaManager
 from integrations.notion_client import NotionClient
@@ -35,13 +34,44 @@ from stt.speaker_diarization import SpeakerDiarizationEngine
 from core.update_scheduler import UpdateScheduler
 from core.meeting_pipeline import MeetingAnalysisPipeline
 from agents.multi_agent_orchestrator import MultiAgentOrchestrator
+from agents.rag_chatbot import RAGChatbot
 from llm import create_upstage_client
 from nlp.hybrid_retriever import HybridRetriever
 from indexers.build_unified_db import (
     run_github as build_run_github,
     run_notion as build_run_notion,
     run_gdrive as build_run_gdrive,
+    CustomUpstageEmbeddings
 )
+
+# nest_asyncio 적용 (가능한 경우)
+try:
+    import nest_asyncio  # type: ignore
+    import asyncio
+    
+    # uvloop 비활성화 (nest_asyncio 호환성 문제 해결)
+    try:
+        import uvloop
+        # uvloop이 활성화되어 있으면 비활성화
+        if hasattr(asyncio, '_get_running_loop') and asyncio._get_running_loop() is not None:
+            print("⚠️ uvloop이 활성화되어 있어 nest_asyncio 적용이 제한됩니다.")
+        else:
+            # uvloop 비활성화 후 nest_asyncio 적용
+            nest_asyncio.apply()
+            print("✅ nest_asyncio 적용 완료 (uvloop 비활성화)")
+    except Exception as e:
+        print(f"⚠️ uvloop 비활성화 실패: {e}")
+        # 기본 nest_asyncio 적용 시도
+        try:
+            nest_asyncio.apply()
+            print("✅ nest_asyncio 적용 완료")
+        except Exception as e2:
+            print(f"⚠️ nest_asyncio 적용 실패: {e2}")
+            
+except ImportError:
+    print("ℹ️ nest_asyncio 미설치 - 비동기 중첩 호출 제한됨")
+except Exception as e:
+    print(f"⚠️ nest_asyncio 초기화 실패: {e}")
 
 # 로깅 설정
 def setup_logging():
@@ -79,6 +109,7 @@ hybrid_retriever = None
 speaker_diarizer = None
 meeting_pipeline = None
 analysis_jobs = {}  # 분석 작업 상태 저장
+rag_chatbot = None # RAG 챗봇 인스턴스
 sync_logger = setup_logging()
 
 
@@ -118,11 +149,25 @@ class SearchResponse(BaseModel):
     response_time: float
     search_metadata: Dict[str, Any]
 
+class ChatRequest(BaseModel):
+    question: str
+    chat_history: Optional[List[Dict[str, str]]] = None
+    top_k: int = 5
+    search_type: str = "hybrid"  # "hybrid", "semantic", "keyword"
+
+class ChatResponse(BaseModel):
+    answer: str
+    question: str
+    sources: List[Dict[str, Any]]  # str 대신 Any로 변경하여 float 허용
+    processing_time: float
+    timestamp: str
+    suggestions: Optional[List[str]] = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
-    global db_engine, chroma_manager, embeddings, update_scheduler, agent_orchestrator, hybrid_retriever, speaker_diarizer, meeting_pipeline
+    global db_engine, chroma_manager, embeddings, update_scheduler, agent_orchestrator, hybrid_retriever, speaker_diarizer, meeting_pipeline, rag_chatbot
     
     # 환경 변수 확인
     upstage_api_key = os.getenv("UPSTAGE_API_KEY")
@@ -139,7 +184,7 @@ async def lifespan(app: FastAPI):
     
     # 임베딩 모델 초기화 (조건부)
     try:
-        embeddings = AsyncUpstageEmbeddings()
+        embeddings = CustomUpstageEmbeddings(model="embedding-passage")
         print("✅ 임베딩 모델 초기화 완료")
     except Exception as e:
         print(f"⚠️ 임베딩 모델 초기화 실패: {e}")
@@ -157,9 +202,11 @@ async def lifespan(app: FastAPI):
     hybrid_retriever = HybridRetriever(
         chroma_manager=chroma_manager,
         embedding_client=embeddings,
-        db_session_factory=get_session
+        db_session_factory=lambda: get_session(db_engine),
+        enable_semantic=True,
+        enable_keyword=True  # 키워드 검색 활성화
     )
-    print("✅ 하이브리드 검색 시스템 초기화 완료")
+    print("✅ 하이브리드 검색 시스템 초기화 완료 (의미적 검색 + 키워드 검색)")
     
     # 화자 분리 시스템 초기화
     speaker_diarizer = SpeakerDiarizationEngine()
@@ -183,6 +230,14 @@ async def lifespan(app: FastAPI):
         agent_orchestrator = None
         print("⚠️ LLM 클라이언트가 없어 에이전트 오케스트레이터를 초기화하지 않습니다.")
     
+    # RAG 챗봇 초기화
+    if llm_client:
+        rag_chatbot = RAGChatbot(hybrid_retriever, llm_client, db_engine)
+        print("✅ RAG 챗봇 초기화 완료")
+    else:
+        rag_chatbot = None
+        print("⚠️ LLM 클라이언트가 없어 RAG 챗봇을 초기화하지 않습니다.")
+    
     # 회의 분석 파이프라인 초기화
     meeting_pipeline = MeetingAnalysisPipeline(
         stt_manager=stt_manager,
@@ -201,25 +256,29 @@ async def lifespan(app: FastAPI):
     print("🔄 초기 지식베이스 동기화 시작...")
     sync_logger.info("=== 초기 지식베이스 동기화 시작 ===")
     try:
+        # Google Drive 동기화 비활성화 (로딩 시간 단축)
+        print("⏭️ Google Drive 동기화 비활성화됨 (로딩 시간 단축)")
+        sync_logger.info("Google Drive 동기화 비활성화됨")
+        
         # 프리플라이트 체크
-        print("🔎 GDrive 설정 확인...")
-        sync_logger.info("GDrive 설정 확인 시작")
-        if not os.getenv('GDRIVE_FOLDER_ID'):
-            msg = "GDrive 건너뜀: GDRIVE_FOLDER_ID 미설정"
-            print(f"⏭️ {msg}")
-            sync_logger.info(msg)
-        elif not os.path.exists("gdrive-credentials.json"):
-            msg = "GDrive 건너뜀: gdrive-credentials.json 파일 미존재"
-            print(f"⏭️ {msg}")
-            sync_logger.info(msg)
-        else:
-            print("☁️ Google Drive 데이터 동기화 중...")
-            sync_logger.info("Google Drive 데이터 동기화 시작")
-            folder_id = os.getenv("GDRIVE_FOLDER_ID")
-            added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
-            msg = f"Google Drive 동기화 완료: {added}개 청크 추가"
-            print(f"✅ {msg}")
-            sync_logger.info(msg)
+        # print("🔎 GDrive 설정 확인...")
+        # sync_logger.info("GDrive 설정 확인 시작")
+        # if not os.getenv('GDRIVE_FOLDER_ID'):
+        #     msg = "GDrive 건너뜀: GDRIVE_FOLDER_ID 미설정"
+        #     print(f"⏭️ {msg}")
+        #     sync_logger.info(msg)
+        # elif not os.path.exists("gdrive-credentials.json"):
+        #     msg = "GDrive 건너뜀: gdrive-credentials.json 파일 미존재"
+        #     print(f"⏭️ {msg}")
+        #     sync_logger.info(msg)
+        # else:
+        #     print("☁️ Google Drive 데이터 동기화 중...")
+        #     sync_logger.info("Google Drive 데이터 동기화 시작")
+        #     folder_id = os.getenv("GDRIVE_FOLDER_ID")
+        #     added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
+        #     msg = f"Google Drive 동기화 완료: {added}개 청크 추가"
+        #     print(f"✅ {msg}")
+        #     sync_logger.info(msg)
 
         print("🔎 GitHub 설정 확인...")
         print("🔍 GitHub 부분 진입 확인")
@@ -286,6 +345,8 @@ async def lifespan(app: FastAPI):
         update_scheduler.stop()
     if agent_orchestrator and hasattr(agent_orchestrator, 'cleanup'):
         await agent_orchestrator.cleanup()
+    if rag_chatbot and hasattr(rag_chatbot, 'cleanup'):
+        await rag_chatbot.cleanup()
 
 
 # FastAPI 앱 생성
@@ -305,7 +366,7 @@ app.add_middleware(
         "http://127.0.0.1:8000"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
@@ -607,19 +668,22 @@ async def vector_search(query: str, top_k: int = 5):
 
 
 @app.post("/api/search/keyword")
-async def keyword_search(query: str, top_k: int = 5):
+async def keyword_search(request: Dict[str, Any]):
     """키워드 검색만"""
     try:
+        query = request.get("query", "")
+        top_k = request.get("top_k", 5)
+        
         if not hybrid_retriever or not hybrid_retriever.keyword_engine:
             # 폴백: 메타데이터 검색
             if chroma_manager:
-                filter = {"$or": [{"title": {"$contains": query}}, {"source": {"$contains": query}}]}
+                filter = {"$or": [{"title": {"$contains": query}}, {"content": {"$contains": query}}]}
                 results = chroma_manager.metadata_search(filter, top_k)
-                return {"results": results}
+                return {"results": {"documents": results}}
             else:
                 raise HTTPException(status_code=503, detail="키워드 검색 시스템이 초기화되지 않았습니다.")
         
-                results = await hybrid_retriever.keyword_engine.search(
+        results = await hybrid_retriever.keyword_engine.search(
             query=query,
             top_k=top_k
         )
@@ -1517,7 +1581,8 @@ async def health_check():
             "unified_chroma_db": "ok" if chroma_manager and hasattr(chroma_manager, 'unified_adapter') and chroma_manager.unified_adapter.available else "degraded",
             "incremental_chroma_db": "ok" if chroma_manager and hasattr(chroma_manager, 'incremental_manager') and chroma_manager.incremental_manager.available else "degraded",
             "meeting_pipeline": "ok" if meeting_pipeline else "error",
-            "update_scheduler": "ok" if update_scheduler else "error"
+            "update_scheduler": "ok" if update_scheduler else "error",
+            "rag_chatbot": "ok" if rag_chatbot else "error"
         }
     }
     
@@ -1532,6 +1597,341 @@ async def health_check():
         status["active_jobs"] = active_jobs
     
     return status
+
+
+# === RAG 챗봇 엔드포인트 ===
+
+@app.post("/api/chat", response_model=ChatResponse)
+async def chat_with_rag(request: ChatRequest):
+    """RAG 챗봇과 대화"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        # 챗봇 응답
+        result = await rag_chatbot.chat(
+            question=request.question,
+            chat_history=request.chat_history,
+            top_k=request.top_k,
+            search_type=request.search_type
+        )
+        
+        # 제안 질문 생성
+        suggestions = await rag_chatbot.get_chat_suggestions(request.question)
+        
+        return ChatResponse(
+            answer=result["answer"],
+            question=result["question"],
+            sources=result.get("sources", []),
+            processing_time=result.get("processing_time", 0.0),
+            timestamp=result.get("timestamp", ""),
+            suggestions=suggestions
+        )
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"챗봇 오류: {str(e)}")
+
+
+@app.get("/api/chat/suggestions")
+async def get_chat_suggestions(question: str):
+    """질문에 대한 제안 질문들 반환"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        suggestions = await rag_chatbot.get_chat_suggestions(question)
+        
+        return {
+            "question": question,
+            "suggestions": suggestions
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"제안 질문 생성 오류: {str(e)}")
+
+
+@app.get("/api/chat/stats")
+async def get_chatbot_stats():
+    """챗봇 통계 정보"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        stats = rag_chatbot.get_chat_stats()
+        
+        return {
+            "chatbot_status": "active",
+            "stats": stats,
+            "available_features": [
+                "hybrid_search",
+                "semantic_search", 
+                "keyword_search",
+                "chat_suggestions",
+                "source_citation"
+            ]
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"통계 조회 오류: {str(e)}")
+
+
+@app.post("/api/chat/test")
+async def test_chatbot():
+    """챗봇 테스트"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        test_question = "YBIGTA에 대해 간단히 설명해주세요."
+        
+        result = await rag_chatbot.chat(
+            question=test_question,
+            top_k=3,
+            search_type="hybrid"
+        )
+        
+        return {
+            "status": "success",
+            "test_question": test_question,
+            "answer": result["answer"],
+            "processing_time": result.get("processing_time", 0.0),
+            "sources_count": len(result.get("sources", []))
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"테스트 오류: {str(e)}")
+
+
+@app.get("/api/chat/history/{session_id}")
+async def get_chat_history(session_id: str, limit: int = 10):
+    """대화 기록 조회"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        history = rag_chatbot.get_chat_history(session_id, limit)
+        
+        return {
+            "session_id": session_id,
+            "history": history,
+            "total_messages": len(history)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"대화 기록 조회 오류: {str(e)}")
+
+
+@app.get("/api/chat/sessions/{user_id}")
+async def get_user_sessions(user_id: int, limit: int = 20):
+    """사용자의 대화 세션 목록"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        sessions = rag_chatbot.get_user_sessions(user_id, limit)
+        
+        return {
+            "user_id": user_id,
+            "sessions": sessions,
+            "total_sessions": len(sessions)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"세션 목록 조회 오류: {str(e)}")
+
+
+@app.get("/api/chat/settings/{user_id}")
+async def get_user_chatbot_settings(user_id: int):
+    """사용자 챗봇 설정 조회"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        settings = rag_chatbot.get_user_settings(user_id)
+        
+        return {
+            "user_id": user_id,
+            "settings": settings
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"설정 조회 오류: {str(e)}")
+
+
+@app.post("/api/chat/settings/{user_id}")
+async def update_user_chatbot_settings(user_id: int, settings: Dict[str, Any]):
+    """사용자 챗봇 설정 업데이트"""
+    try:
+        if not rag_chatbot:
+            raise HTTPException(status_code=503, detail="RAG 챗봇이 초기화되지 않았습니다.")
+        
+        # DB에 설정 저장
+        db_session = get_session(db_engine)
+        try:
+            existing_settings = db_session.query(ChatbotSetting).filter(
+                ChatbotSetting.user_id == user_id
+            ).first()
+            
+            if existing_settings:
+                # 기존 설정 업데이트
+                for key, value in settings.items():
+                    if hasattr(existing_settings, key):
+                        setattr(existing_settings, key, value)
+                existing_settings.updated_at = datetime.now()
+            else:
+                # 새 설정 생성
+                new_settings = ChatbotSetting(
+                    user_id=user_id,
+                    default_search_type=settings.get("default_search_type", "hybrid"),
+                    default_top_k=settings.get("default_top_k", 5),
+                    enable_suggestions=settings.get("enable_suggestions", True),
+                    enable_source_citation=settings.get("enable_source_citation", True),
+                    language=settings.get("language", "ko")
+                )
+                db_session.add(new_settings)
+            
+            db_session.commit()
+            
+            return {
+                "user_id": user_id,
+                "status": "success",
+                "message": "설정이 업데이트되었습니다.",
+                "settings": settings
+            }
+            
+        except Exception as e:
+            db_session.rollback()
+            raise e
+        finally:
+            db_session.close()
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"설정 업데이트 오류: {str(e)}")
+
+
+@app.get("/api/meetings")
+async def get_meetings():
+    """회의록 목록 조회"""
+    db_session = None
+    try:
+        db_session = get_session(db_engine)
+        meetings = db_session.query(MeetingReport).order_by(MeetingReport.created_at.desc()).all()
+        
+        result = []
+        for meeting in meetings:
+            result.append({
+                "id": meeting.id,
+                "job_id": meeting.job_id,
+                "title": meeting.title,
+                "original_filename": meeting.original_filename,
+                "file_size": meeting.file_size,
+                "duration_seconds": meeting.duration_seconds,
+                "num_speakers": meeting.num_speakers,
+                "status": meeting.status,
+                "progress": meeting.progress,
+                "current_stage": meeting.current_stage,
+                "error_message": meeting.error_message,
+                "created_at": meeting.created_at.isoformat() if getattr(meeting, "created_at", None) else None,
+                "completed_at": meeting.completed_at.isoformat() if getattr(meeting, "completed_at", None) else None,
+                "updated_at": meeting.updated_at.isoformat() if getattr(meeting, "updated_at", None) else None,
+            })
+        
+        return {
+            "meetings": result,
+            "total": len(result)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"회의록 조회 오류: {str(e)}")
+    finally:
+        if db_session is not None:
+            db_session.close()
+
+
+# CORS 프리플라이트 전용 핸들러 (일부 환경에서 400 방지)
+@app.options("/api/chat")
+async def options_chat():
+    return Response(status_code=200)
+
+
+@app.get("/api/knowledge/projects")
+async def get_knowledge_projects():
+    """지식베이스 프로젝트 목록 조회"""
+    try:
+        # ChromaDB에서 프로젝트 관련 문서들을 검색
+        if not hybrid_retriever:
+            raise HTTPException(status_code=503, detail="하이브리드 검색기가 초기화되지 않았습니다.")
+        
+        # 프로젝트 관련 키워드로 검색
+        search_results = await hybrid_retriever.search(
+            query="프로젝트",
+            top_k=10,
+            search_type="hybrid"
+        )
+        
+        projects = []
+        if "results" in search_results and "documents" in search_results["results"]:
+            documents = search_results["results"]["documents"]
+            
+            for doc in documents:
+                metadata = doc.get("metadata", {})
+                source = metadata.get("source", "Unknown")
+                
+                # 프로젝트 관련 문서만 필터링
+                if any(keyword in doc.get("content", "").lower() for keyword in ["프로젝트", "project", "개발", "시스템"]):
+                    projects.append({
+                        "title": metadata.get("title", "Unknown"),
+                        "source": source,
+                        "source_type": metadata.get("source_type", "unknown"),
+                        "content_preview": doc.get("content", "")[:200] + "...",
+                        "relevance_score": doc.get("score", 0.0)
+                    })
+        
+        return {
+            "projects": projects,
+            "total": len(projects)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로젝트 조회 오류: {str(e)}")
+
+
+@app.get("/api/knowledge/documents")
+async def get_knowledge_documents():
+    """지식베이스 문서 목록 조회"""
+    try:
+        # ChromaDB에서 모든 문서 조회
+        if not hybrid_retriever:
+            raise HTTPException(status_code=503, detail="하이브리드 검색기가 초기화되지 않았습니다.")
+        
+        # 일반적인 검색으로 문서 목록 가져오기
+        search_results = await hybrid_retriever.search(
+            query="YBIGTA",
+            top_k=20,
+            search_type="hybrid"
+        )
+        
+        documents = []
+        if "results" in search_results and "documents" in search_results["results"]:
+            docs = search_results["results"]["documents"]
+            
+            for doc in docs:
+                metadata = doc.get("metadata", {})
+                documents.append({
+                    "title": metadata.get("title", "Unknown"),
+                    "source": metadata.get("source", "Unknown"),
+                    "source_type": metadata.get("source_type", "unknown"),
+                    "content_preview": doc.get("content", "")[:150] + "...",
+                    "relevance_score": doc.get("score", 0.0)
+                })
+        
+        return {
+            "documents": documents,
+            "total": len(documents)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"문서 조회 오류: {str(e)}")
 
 
 if __name__ == "__main__":

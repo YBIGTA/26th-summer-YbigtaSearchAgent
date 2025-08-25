@@ -96,17 +96,17 @@ class AsyncUpstageEmbeddings(Embeddings):
             return await self._embed_single(session, text, api_key)
     
     def embed_query(self, text: str) -> List[float]:
-        """동기 인터페이스 (LangChain 호환성)"""
-        try:
-            # 기존 이벤트 루프가 실행 중인지 확인
-            loop = asyncio.get_running_loop()
-            # 이미 이벤트 루프가 실행 중이면 새 스레드에서 실행
-            import nest_asyncio
-            nest_asyncio.apply()
-            return asyncio.run(self.aembed_query(text))
-        except RuntimeError:
-            # 이벤트 루프가 실행 중이 아니면 일반적인 방식으로 실행
-            return asyncio.run(self.aembed_query(text))
+        """쿼리를 임베딩합니다."""
+        # 쿼리용 모델로 전환
+        query_model = self.model.replace("passage", "query")
+        temp_model = self.model
+        self.model = query_model
+        
+        embedding = self._embed([text])[0]
+        
+        # 원래 모델로 복원
+        self.model = temp_model
+        return embedding
 
 
 class SyncUpstageEmbeddings(Embeddings):
@@ -114,19 +114,32 @@ class SyncUpstageEmbeddings(Embeddings):
     
     def __init__(self, model: str = "embedding-passage"):
         self.model = model
-        self.api_key = os.getenv("UPSTAGE_API_KEY")
-        if not self.api_key:
-            raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
-        self.base_url = "https://api.upstage.ai/v1/embeddings"
+        # API 키 풀 설정
+        self.api_keys = []
+        for i in range(1, 9):  # UPSTAGE_API_KEY1 ~ UPSTAGE_API_KEY8
+            key = os.getenv(f"UPSTAGE_API_KEY{i}")
+            if key:
+                self.api_keys.append(key)
+        
+        # 단일 키 폴백
+        if not self.api_keys:
+            single_key = os.getenv("UPSTAGE_API_KEY")
+            if single_key:
+                self.api_keys = [single_key]
+            else:
+                raise ValueError("UPSTAGE_API_KEY가 설정되지 않았습니다.")
+        
+        self.key_cycle = itertools.cycle(self.api_keys)
+        self.base_url = "https://api.upstage.ai/v1"
     
     def _embed(self, texts: List[str]) -> List[List[float]]:
         """텍스트 리스트를 임베딩합니다."""
         import requests
         
-        headers = {"Authorization": f"Bearer {self.api_key}"}
+        headers = {"Authorization": f"Bearer {next(self.key_cycle)}"}
         data = {"input": texts, "model": self.model}
         
-        response = requests.post(self.base_url, headers=headers, json=data)
+        response = requests.post(f"{self.base_url}/embeddings", headers=headers, json=data)
         
         if response.status_code == 200:
             response_data = response.json().get("data", [])

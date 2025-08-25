@@ -311,3 +311,76 @@ class HybridChromaManager:
                 status[source]['last_updated'] = last_updated
         
         return status
+    
+    def metadata_search(self, filter_dict: Dict[str, Any], top_k: int = 10) -> List[Dict[str, Any]]:
+        """메타데이터 기반 검색 (키워드 검색용)"""
+        try:
+            results = []
+            
+            # 하이브리드 메타데이터에서 검색
+            for doc_id, metadata in self.hybrid_metadata.items():
+                if self._matches_filter(metadata, filter_dict):
+                    # 문서 내용 가져오기
+                    content = self._get_document_content(doc_id, metadata)
+                    if content:
+                        results.append({
+                            'id': doc_id,
+                            'content': content,
+                            'metadata': metadata
+                        })
+                        
+                        if len(results) >= top_k:
+                            break
+            
+            return results
+            
+        except Exception as e:
+            print(f"❌ 메타데이터 검색 오류: {e}")
+            return []
+    
+    def _matches_filter(self, metadata: Dict[str, Any], filter_dict: Dict[str, Any]) -> bool:
+        """필터 조건 매칭 확인"""
+        try:
+            for key, condition in filter_dict.items():
+                if key == "$or":
+                    # OR 조건 처리
+                    if not any(self._matches_filter(metadata, sub_condition) for sub_condition in condition):
+                        return False
+                elif key in metadata:
+                    value = metadata[key]
+                    if isinstance(condition, dict):
+                        for op, op_value in condition.items():
+                            if op == "$contains":
+                                if isinstance(value, str) and isinstance(op_value, str):
+                                    if op_value.lower() not in value.lower():
+                                        return False
+                                else:
+                                    return False
+                            else:
+                                return False
+                    else:
+                        if value != condition:
+                            return False
+                else:
+                    return False
+            return True
+        except Exception:
+            return False
+    
+    def _get_document_content(self, doc_id: str, metadata: Dict[str, Any]) -> Optional[str]:
+        """문서 내용 가져오기"""
+        try:
+            storage = metadata.get('storage', 'unified')
+            
+            if storage == 'unified' and self.unified_adapter.available:
+                # Unified DB에서 내용 가져오기
+                return self.unified_adapter.get_document_content(doc_id)
+            elif storage == 'incremental' and self.incremental_manager.available:
+                # Incremental DB에서 내용 가져오기
+                return self.incremental_manager.get_document_content(doc_id)
+            else:
+                return metadata.get('content', '')
+                
+        except Exception as e:
+            print(f"⚠️ 문서 내용 가져오기 실패 (doc_id={doc_id}): {e}")
+            return metadata.get('content', '')
