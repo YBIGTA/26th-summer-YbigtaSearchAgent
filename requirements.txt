@@ -1,0 +1,43 @@
+# Core Libraries
+langchain==0.3.27
+langchain-core==0.3.72
+langchain-community==0.3.27
+langchain-openai==0.3.28
+langchain-text-splitters==0.3.9
+python-dotenv==1.1.1
+requests==2.32.4
+aiohttp==3.12.15
+nest-asyncio==1.6.0
+
+# Vector Store & Search
+chromadb==0.4.22
+faiss-cpu==1.11.0.post1
+numpy==1.26.4
+
+# Data Sources
+google-api-python-client==2.178.0
+google-auth-oauthlib==1.2.2
+google-auth==2.40.3
+unstructured==0.18.3
+tiktoken>=0.5.0
+
+# Backend API
+fastapi==0.116.1
+uvicorn==0.35.0
+sqlalchemy==2.0.42
+python-multipart  # 파일 업로드 지원
+
+# Audio Processing
+openai-whisper>=20231117
+librosa==0.10.1
+pyannote.audio==3.1.1
+
+# Security & Encryption
+cryptography==45.0.5
+
+# Scheduling
+apscheduler==3.10.4
+
+# AI APIs
+openai>=1.86.0,<2.0.0
+langchain-upstage>=0.2.0
