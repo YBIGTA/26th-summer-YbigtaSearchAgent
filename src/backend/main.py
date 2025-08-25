@@ -12,6 +12,7 @@ import os
 import sys
 import uuid
 from datetime import datetime
+import asyncio
 
 # 환경변수 로드 (로컬에서 실행 시)
 from dotenv import load_dotenv
@@ -34,6 +35,11 @@ from core.meeting_pipeline import MeetingAnalysisPipeline
 from agents.multi_agent_orchestrator import MultiAgentOrchestrator
 from llm import create_upstage_client
 from nlp.hybrid_retriever import HybridRetriever
+from indexers.build_unified_db import (
+    run_github as build_run_github,
+    run_notion as build_run_notion,
+    run_gdrive as build_run_gdrive,
+)
 
 # 전역 변수
 db_engine = None
@@ -161,6 +167,44 @@ async def lifespan(app: FastAPI):
     update_scheduler = UpdateScheduler(chroma_manager, db_session_factory=get_session, db_engine=db_engine)
     update_scheduler.start()
     print("✅ 문서 업데이트 스케줄러 시작")
+    
+    # 초기 동기화 실행 (백그라운드에서)
+    print("🔄 초기 지식베이스 동기화 시작...")
+    try:
+        # Notion 동기화
+        try:
+            if os.getenv('NOTION_API_KEY'):
+                print("📄 Notion 데이터 동기화 중...")
+                added = await asyncio.to_thread(build_run_notion, collection_name="unified_knowledge_db")
+                print(f"✅ Notion 동기화 완료: {added}개 청크 추가")
+        except Exception as e:
+            print(f"⚠️ Notion 동기화 실패: {e}")
+        
+        # GitHub 동기화
+        try:
+            if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
+                print("🐙 GitHub 데이터 동기화 중...")
+                org_name = os.getenv("ORG_NAME", "YBIGTA")
+                added = await asyncio.to_thread(build_run_github, org_name, collection_name="unified_knowledge_db")
+                print(f"✅ GitHub 동기화 완료: {added}개 청크 추가")
+        except Exception as e:
+            print(f"⚠️ GitHub 동기화 실패: {e}")
+        
+        # Google Drive 동기화
+        try:
+            if os.getenv('GDRIVE_FOLDER_ID'):
+                print("☁️ Google Drive 데이터 동기화 중...")
+                folder_id = os.getenv("GDRIVE_FOLDER_ID")
+                added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
+                print(f"✅ Google Drive 동기화 완료: {added}개 청크 추가")
+        except Exception as e:
+            print(f"⚠️ Google Drive 동기화 실패: {e}")
+        
+        print("🎉 초기 지식베이스 동기화 완료!")
+        
+    except Exception as e:
+        print(f"⚠️ 초기 동기화 중 오류 발생: {e}")
+        print("ℹ️ 수동으로 /api/sync/* 엔드포인트를 호출하여 동기화할 수 있습니다.")
     
     print("🎉 모든 컴포넌트 초기화 완료!")
     
@@ -548,45 +592,46 @@ async def update_search_config(config: Dict[str, Any]):
 async def sync_notion():
     """Notion 문서 동기화"""
     try:
-        client = NotionClient()
-        docs = await client.load_all_pages()
-        chroma_manager.sync_source("notion", docs)
+        collection_name = "unified_knowledge_db"  # 지식베이스용 컬렉션
+        added = build_run_notion(collection_name=collection_name)
         return {
             "status": "success",
-            "documents_synced": len(docs),
-            "message": f"{len(docs)}개의 Notion 문서가 동기화되었습니다."
+            "documents_synced": added,
+            "message": f"Notion 문서 청크 {added}개 추가. (collection={collection_name})"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/sync/github")
-async def sync_github():
+async def sync_github(org: str = None):
     """GitHub 리포지토리 동기화"""
     try:
-        client = GitHubClient()
-        docs = client.load_all_repos()
-        chroma_manager.sync_source("github", docs)
+        org_name = org or os.getenv("ORG_NAME", "YBIGTA")
+        collection_name = "unified_knowledge_db"  # 지식베이스용 컬렉션
+        added = build_run_github(org_name, collection_name=collection_name)
         return {
             "status": "success",
-            "documents_synced": len(docs),
-            "message": f"{len(docs)}개의 GitHub 문서가 동기화되었습니다."
+            "documents_synced": added,
+            "message": f"GitHub README 청크 {added}개 추가. (org={org_name}, collection={collection_name})"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/sync/drive")
-async def sync_drive():
+async def sync_drive(folder_id: str = None):
     """Google Drive 문서 동기화"""
     try:
-        client = GoogleDriveClient()
-        docs = client.load_all_documents()
-        chroma_manager.sync_source("google_drive", docs)
+        fid = folder_id or os.getenv("GDRIVE_FOLDER_ID", "")
+        if not fid:
+            raise HTTPException(status_code=400, detail="GDRIVE_FOLDER_ID가 필요합니다.")
+        collection_name = "unified_knowledge_db"  # 지식베이스용 컬렉션
+        added = build_run_gdrive(fid, collection_name=collection_name)
         return {
             "status": "success",
-            "documents_synced": len(docs),
-            "message": f"{len(docs)}개의 Drive 문서가 동기화되었습니다."
+            "documents_synced": added,
+            "message": f"GDrive 문서 청크 {added}개 추가. (collection={collection_name})"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
