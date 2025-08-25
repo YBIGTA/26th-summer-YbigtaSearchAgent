@@ -13,7 +13,7 @@ import chromadb
 
 # --- 설정 (Configuration) ---
 load_dotenv()
-CHROMA_DB_PATH = "unified_chroma_db"  # 모든 데이터를 저장할 통합 DB 경로
+CHROMA_DB_PATH = "chroma_db_unified"  # 모든 데이터를 저장할 통합 DB 경로
 DEFAULT_COLLECTION_NAME = "unified_knowledge_db" # 모든 데이터를 저장할 단일 컬렉션 이름
 
 # --- 맞춤 임베딩 클래스 (이전과 동일) ---
