@@ -8,6 +8,7 @@ requests
 
 # Vector Store
 faiss-cpu
+chromadb
 
 # Data Sources
 google-api-python-client

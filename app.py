@@ -28,7 +28,7 @@ if user_question := st.chat_input("질문을 입력하세요..."):
         try:
             # --- (API 요청 부분은 기존과 동일) ---
             response = requests.post(
-                "http://backend:8000/conversation",
+                "http://localhost:8000/conversation",
                 headers={"Content-Type": "application/json"},
                 data=json.dumps({
                     "query": user_question,

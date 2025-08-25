@@ -29,32 +29,53 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install "numpy<2.0"                  # NumPy 버전 호환성 문제 해결
-          pip install "unstructured[pdf,pptx]"      # PDF, PPTX 처리 라이브러리 설치
+          pip install "unstructured[pdf,docx,pptx,xlsx,md]"      # PDF, PPTX 처리 라이브러리 설치
           pip install -r requirements.txt         # 나머지 라이브러리 설치
 
       # 4. Google Drive 인증 파일 생성 (Secret 사용)
       - name: Create gdrive-credentials.json
-        run: echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > gdrive-credentials.json
+        run: echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" | base64 -d > gdrive-credentials.json
         shell: bash
 
-      # 5. Vector DB 생성 스크립트 실행 (모든 Secret 전달)
+      # 5. Vector DB 생성 스크립트 실행 & 마이그레이션  
       - name: Create Vector DB
-        run: python create_vector_db.py
+        run: |
+          python create_notion_vector_db.py
+          python create_gdrive_vector_db.py
+          python create_github_vector_db.py
+          python migrate_faiss_to_chroma_multi.py \
+            --faiss_dirs gdrive_faiss_index notion_faiss_index github_faiss_index \
+            --labels gdrive notion github \
+            --chroma_dir ./chroma_all \
+            --collection all \
+            --space cosine \
+            --normalize \
+            --batch 1024
         env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          UPSTAGE_API_KEY: ${{ secrets.UPSTAGE_API_KEY }}
+          UPSTAGE_API_KEY1: ${{ secrets.UPSTAGE_API_KEY1 }}
+          UPSTAGE_API_KEY2: ${{ secrets.UPSTAGE_API_KEY2 }}
+          UPSTAGE_API_KEY3: ${{ secrets.UPSTAGE_API_KEY3 }}
+          UPSTAGE_API_KEY4: ${{ secrets.UPSTAGE_API_KEY4 }}
+          UPSTAGE_API_KEY5: ${{ secrets.UPSTAGE_API_KEY5 }}
+          UPSTAGE_API_KEY6: ${{ secrets.UPSTAGE_API_KEY6 }}
+          UPSTAGE_API_KEY7: ${{ secrets.UPSTAGE_API_KEY7 }}
+          UPSTAGE_API_KEY8: ${{ secrets.UPSTAGE_API_KEY8 }}
+          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_PAGE_ID_1: ${{ secrets.NOTION_PAGE_ID_1 }}
           NOTION_PAGE_ID_2: ${{ secrets.NOTION_PAGE_ID_2 }}
           NOTION_PAGE_ID_3: ${{ secrets.NOTION_PAGE_ID_3 }}
           NOTION_PAGE_ID_4: ${{ secrets.NOTION_PAGE_ID_4 }}
           NOTION_PAGE_ID_5: ${{ secrets.NOTION_PAGE_ID_5 }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_GITHUB_ACCESS_TOKEN }}
 
       # 6. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
       - name: Commit and push if it changed
         run: |
           git config user.name "GitHub Actions Bot"
           git config user.email "actions@github.com"
-          git add faiss_index/
+          git add chroma_*/
           git diff --staged --quiet || (git commit -m "Update Vector DB" && git push)
