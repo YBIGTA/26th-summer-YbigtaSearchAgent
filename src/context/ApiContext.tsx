@@ -413,18 +413,36 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
   // 검색 기능
   const hybridSearch = async (query: string, options: SearchOptions = {}): Promise<any> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/search/hybrid`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, ...options }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      // 백엔드의 hybrid_search가 작동하지 않으므로 knowledge/projects API 사용
+      const projectsResponse = await fetch(`${API_BASE_URL}/knowledge/projects`);
+      
+      if (!projectsResponse.ok) {
+        throw new Error('프로젝트 데이터를 가져올 수 없습니다.');
       }
 
-      return await response.json();
+      const projectsData = await projectsResponse.json();
+      const searchTerm = query.trim().toLowerCase();
+      
+      // 모든 프로젝트 소스에서 검색
+      const allProjects = [
+        ...(projectsData.projects?.github || []),
+        ...(projectsData.projects?.notion || []),
+        ...(projectsData.projects?.gdrive || [])
+      ];
+      
+      const matchedProjects = allProjects.filter((project: any) => 
+        project.title.toLowerCase().includes(searchTerm) ||
+        project.description.toLowerCase().includes(searchTerm) ||
+        project.type.toLowerCase().includes(searchTerm)
+      );
+      
+      // 검색 결과 반환
+      return {
+        results: matchedProjects,
+        query: query,
+        total_count: matchedProjects.length,
+        sources: matchedProjects.map((p: any) => p.title)
+      };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : '하이브리드 검색에 실패했습니다.');
     }
@@ -566,7 +584,8 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch(`${API_BASE_URL}/pipeline/start`, {
+      // 백엔드의 실제 API 엔드포인트 사용
+      const response = await fetch(`${API_BASE_URL}/meetings/analyze-upload`, {
         method: 'POST',
         body: formData,
       });
@@ -589,7 +608,8 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
 
   const getMeetings = async (): Promise<Meeting[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/meetings`);
+      // 백엔드의 실제 API 엔드포인트 사용
+      const response = await fetch(`${API_BASE_URL}/pipeline/jobs`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -597,7 +617,24 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
       }
 
       const data = await response.json();
-      return data.meetings || [];
+      
+      // 백엔드 데이터를 프론트엔드 Meeting 타입에 맞게 변환
+      const meetings: Meeting[] = data.jobs?.map((job: any) => ({
+        id: job.job_id || job.id,
+        job_id: job.job_id || job.id,
+        title: job.file_name || job.title || `회의 ${job.job_id}`,
+        status: job.status || 'processing',
+        progress: job.progress || 0,
+        current_stage: job.current_stage || '업로드 완료',
+        summary: job.summary || '분석 진행 중...',
+        created_at: job.created_at || new Date().toISOString(),
+        file_path: job.file_path || '',
+        file_size: job.file_size || 0,
+        pipeline_results: job.results || null,
+        error_message: job.error_message || null
+      })) || [];
+
+      return meetings;
     } catch (err) {
       console.error('회의 목록 조회 오류:', err);
       return [];
@@ -607,18 +644,37 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
   // 검색 및 채팅
   const searchDocuments = async (query: string, options?: SearchOptions): Promise<any> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/search/hybrid`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, ...options }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+      // 백엔드의 hybrid_search가 작동하지 않으므로 knowledge/projects API 사용
+      const projectsResponse = await fetch(`${API_BASE_URL}/knowledge/projects`);
+      
+      if (!projectsResponse.ok) {
+        throw new Error('프로젝트 데이터를 가져올 수 없습니다.');
       }
 
-      return await response.json();
+      const projectsData = await projectsResponse.json();
+      const searchTerm = query.trim().toLowerCase();
+      const sources: string[] = [];
+      
+      // 모든 프로젝트 소스에서 검색
+      const allProjects = [
+        ...(projectsData.projects?.github || []),
+        ...(projectsData.projects?.notion || []),
+        ...(projectsData.projects?.gdrive || [])
+      ];
+      
+      const matchedProjects = allProjects.filter((project: any) => 
+        project.title.toLowerCase().includes(searchTerm) ||
+        project.description.toLowerCase().includes(searchTerm) ||
+        project.type.toLowerCase().includes(searchTerm)
+      );
+      
+      // 검색 결과 반환
+      return {
+        results: matchedProjects,
+        query: query,
+        total_count: matchedProjects.length,
+        sources: matchedProjects.map((p: any) => p.title)
+      };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : '문서 검색에 실패했습니다.');
     }

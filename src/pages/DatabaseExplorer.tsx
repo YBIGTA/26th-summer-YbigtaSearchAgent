@@ -1,35 +1,28 @@
 import React, { useState, useEffect } from 'react';
 
 interface Project {
-  id: string;
   title: string;
-  source: string;
-  last_updated: string;
-  content_hash: string;
-  type: string;
   description: string;
+  type: string;
+  url?: string;
+  last_updated: string;
+  source?: string;  // 검색 결과에서 추가되는 속성
+  id?: string;      // 고유 식별자
+  content_hash?: string;  // 콘텐츠 해시
 }
 
 interface ProjectsData {
   projects: {
     github: Project[];
+    notion: Project[];
     gdrive: Project[];
-    meeting: Project[];
   };
-  stats: {
-    total_projects: number;
-    github_count: number;
-    gdrive_count: number;
-    meeting_count: number;
-    last_sync: string;
-  };
-  total_found: number;
 }
 
 const DatabaseExplorer: React.FC = () => {
   const [projectsData, setProjectsData] = useState<ProjectsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedSource, setSelectedSource] = useState<'all' | 'github' | 'gdrive' | 'meeting'>('all');
+  const [selectedSource, setSelectedSource] = useState<'all' | 'github' | 'gdrive' | 'notion'>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -164,15 +157,31 @@ const DatabaseExplorer: React.FC = () => {
     const fetchProjects = async () => {
       setIsLoading(true);
       try {
+        // 먼저 실제 ChromaDB 데이터 시도
+        const realResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/knowledge/projects/real`);
+        if (realResponse.ok) {
+          const realData = await realResponse.json();
+          // 실제 데이터가 있으면 사용
+          if (realData.projects.github.length > 0 || realData.projects.notion.length > 0 || realData.projects.gdrive.length > 0) {
+            console.log('✅ ChromaDB에서 실제 데이터 로드 성공');
+            setProjectsData(realData);
+            return;
+          }
+        }
+        
+        // 실제 데이터가 없으면 기존 API 시도
+        console.log('⚠️ 실제 데이터 없음, 기존 API 시도');
         const response = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/knowledge/projects`);
         if (response.ok) {
           const data = await response.json();
           setProjectsData(data);
         } else {
           console.error('프로젝트 데이터 로드 실패');
+          setProjectsData(null);
         }
       } catch (error) {
         console.error('프로젝트 데이터 로드 오류:', error);
+        setProjectsData(null);
       } finally {
         setIsLoading(false);
       }
@@ -180,6 +189,8 @@ const DatabaseExplorer: React.FC = () => {
 
     fetchProjects();
   }, []);
+
+
 
   // 소스별 아이콘과 색상
   const getSourceInfo = (source: string) => {
@@ -223,7 +234,7 @@ const DatabaseExplorer: React.FC = () => {
       allProjects = [
         ...projectsData.projects.github,
         ...projectsData.projects.gdrive,
-        ...projectsData.projects.meeting
+        ...projectsData.projects.notion
       ];
     } else {
       allProjects = projectsData.projects[selectedSource] || [];
@@ -252,7 +263,7 @@ const DatabaseExplorer: React.FC = () => {
     const allProjects = [
       ...projectsData.projects.github,
       ...projectsData.projects.gdrive,
-      ...projectsData.projects.meeting
+      ...projectsData.projects.notion
     ];
     
     const uniqueTypes = new Set(allProjects.map(project => project.type));
@@ -335,7 +346,7 @@ const DatabaseExplorer: React.FC = () => {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#495057' }}>
-              {projectsData.stats.total_projects}
+              {(projectsData.projects.github?.length || 0) + (projectsData.projects.gdrive?.length || 0) + (projectsData.projects.notion?.length || 0)}
             </div>
             <div style={{ fontSize: '14px', color: '#6c757d' }}>총 프로젝트</div>
           </div>
@@ -348,7 +359,7 @@ const DatabaseExplorer: React.FC = () => {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>
-              {projectsData.stats.github_count}
+              {projectsData.projects.github?.length || 0}
             </div>
             <div style={{ fontSize: '14px', color: '#6c757d' }}>GitHub 저장소</div>
           </div>
@@ -361,7 +372,7 @@ const DatabaseExplorer: React.FC = () => {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#4285f4' }}>
-              {projectsData.stats.gdrive_count}
+              {projectsData.projects.gdrive?.length || 0}
             </div>
             <div style={{ fontSize: '14px', color: '#6c757d' }}>Google Drive</div>
           </div>
@@ -374,9 +385,9 @@ const DatabaseExplorer: React.FC = () => {
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#e91e63' }}>
-              {projectsData.stats.meeting_count}
+              {projectsData.projects.notion?.length || 0}
             </div>
-            <div style={{ fontSize: '14px', color: '#6c757d' }}>회의록</div>
+            <div style={{ fontSize: '14px', color: '#6c757d' }}>Notion</div>
           </div>
         </div>
       )}
@@ -421,7 +432,7 @@ const DatabaseExplorer: React.FC = () => {
               <option value="all">전체 소스</option>
               <option value="github">GitHub</option>
               <option value="gdrive">Google Drive</option>
-              <option value="meeting">회의록</option>
+              <option value="notion">Notion</option>
             </select>
           </div>
 
@@ -639,13 +650,13 @@ const DatabaseExplorer: React.FC = () => {
           gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
           gap: '20px'
         }}>
-        {filteredProjects.map((project) => {
-          const sourceInfo = getSourceInfo(project.source);
+                {filteredProjects.map((project) => {
+          const sourceInfo = getSourceInfo(project.source || 'unknown');
           const typeColor = getTypeColor(project.type);
-          
+
           return (
             <div
-              key={project.id}
+              key={project.id || project.title}
               onClick={() => handleProjectClick(project)}
               style={{
                 backgroundColor: 'white',
@@ -737,14 +748,19 @@ const DatabaseExplorer: React.FC = () => {
                   <strong>마지막 업데이트:</strong> {' '}
                   {new Date(project.last_updated).toLocaleDateString('ko-KR')}
                 </div>
-                <div style={{
-                  fontSize: '10px',
-                  color: '#bbb',
-                  fontFamily: 'monospace',
-                  wordBreak: 'break-all'
-                }}>
-                  해시: {project.content_hash.substring(0, 12)}...
-                </div>
+                {project.url && (
+                  <div style={{ marginBottom: '4px' }}>
+                    <strong>링크:</strong> {' '}
+                    <a 
+                      href={project.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      style={{ color: '#007bff', textDecoration: 'none' }}
+                    >
+                      {project.url}
+                    </a>
+                  </div>
+                )}
               </div>
             </div>
           );

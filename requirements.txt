@@ -12,7 +12,7 @@ nest-asyncio==1.6.0
 # Vector Store & Search
 chromadb==0.4.22
 faiss-cpu==1.11.0.post1
-numpy==1.26.4
+numpy>=1.26.4
 
 # Data Sources
 google-api-python-client==2.178.0
