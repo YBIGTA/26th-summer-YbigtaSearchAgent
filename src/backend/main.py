@@ -171,35 +171,39 @@ async def lifespan(app: FastAPI):
     # 초기 동기화 실행 (백그라운드에서)
     print("🔄 초기 지식베이스 동기화 시작...")
     try:
-        # Notion 동기화
+        # 프리플라이트 체크
+        print("🔎 GDrive 설정 확인...")
+        if not os.getenv('GDRIVE_FOLDER_ID'):
+            print("⏭️ GDrive 건너뜀: GDRIVE_FOLDER_ID 미설정")
+        elif not os.path.exists("gdrive-credentials.json"):
+            print("⏭️ GDrive 건너뜀: gdrive-credentials.json 파일 미존재")
+        else:
+            print("☁️ Google Drive 데이터 동기화 중...")
+            folder_id = os.getenv("GDRIVE_FOLDER_ID")
+            added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
+            print(f"✅ Google Drive 동기화 완료: {added}개 청크 추가")
+
+        print("🔎 GitHub 설정 확인...")
+        if not os.getenv('ORG_NAME'):
+            print("ℹ️ ORG_NAME 미설정: 기본값 'YBIGTA' 사용")
+        if not os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
+            print("⚠️ GitHub 토큰 미설정: 비인증 요청으로 진행(레이트리밋 가능)")
+        print("🐙 GitHub 데이터 동기화 중...")
+        org_name = os.getenv("ORG_NAME", "YBIGTA")
         try:
-            if os.getenv('NOTION_API_KEY'):
-                print("📄 Notion 데이터 동기화 중...")
-                added = await asyncio.to_thread(build_run_notion, collection_name="unified_knowledge_db")
-                print(f"✅ Notion 동기화 완료: {added}개 청크 추가")
-        except Exception as e:
-            print(f"⚠️ Notion 동기화 실패: {e}")
-        
-        # GitHub 동기화
-        try:
-            if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
-                print("🐙 GitHub 데이터 동기화 중...")
-                org_name = os.getenv("ORG_NAME", "YBIGTA")
-                added = await asyncio.to_thread(build_run_github, org_name, collection_name="unified_knowledge_db")
-                print(f"✅ GitHub 동기화 완료: {added}개 청크 추가")
+            added = await asyncio.to_thread(build_run_github, org_name, collection_name="unified_knowledge_db")
+            print(f"✅ GitHub 동기화 완료: {added}개 청크 추가")
         except Exception as e:
             print(f"⚠️ GitHub 동기화 실패: {e}")
-        
-        # Google Drive 동기화
-        try:
-            if os.getenv('GDRIVE_FOLDER_ID'):
-                print("☁️ Google Drive 데이터 동기화 중...")
-                folder_id = os.getenv("GDRIVE_FOLDER_ID")
-                added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
-                print(f"✅ Google Drive 동기화 완료: {added}개 청크 추가")
-        except Exception as e:
-            print(f"⚠️ Google Drive 동기화 실패: {e}")
-        
+
+        print("🔎 Notion 설정 확인...")
+        if not os.getenv('NOTION_API_KEY'):
+            print("⏭️ Notion 건너뜀: NOTION_API_KEY 미설정")
+        else:
+            print("📄 Notion 데이터 동기화 중...")
+            added = await asyncio.to_thread(build_run_notion, collection_name="unified_knowledge_db")
+            print(f"✅ Notion 동기화 완료: {added}개 청크 추가")
+
         print("🎉 초기 지식베이스 동기화 완료!")
         
     except Exception as e:
