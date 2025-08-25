@@ -144,7 +144,18 @@ def run_gdrive(folder_id: str, collection_name: str) -> int:
                 if file_id in parsed_cache:
                     print(f"  - ⚡️ 캐시 히트! '{name}'는 이미 처리된 문서입니다.")
                     page_content = parsed_cache[file_id]
-                    doc = Document(page_content=page_content, metadata={"source": name, "gdrive_file_id": file_id})
+                    doc = Document(
+                        page_content=page_content, 
+                        metadata={
+                            "source": name, 
+                            "gdrive_file_id": file_id,
+                            "source_type": "gdrive",
+                            "title": name,
+                            "content": page_content,
+                            "file_type": mime_type,
+                            "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
+                        }
+                    )
                     batch_docs.append(doc)
                 else:
                     # content 변수 초기화
@@ -235,7 +246,19 @@ def run_gdrive(folder_id: str, collection_name: str) -> int:
                     if content:
                         print(f"  - 💾 캐시에 '{name}'의 파싱 결과를 저장합니다.")
                         parsed_cache[file_id] = content
-                        doc = Document(page_content=content, metadata={"source": name, "gdrive_file_id": file_id})
+                        doc = Document(
+                            page_content=content, 
+                            metadata={
+                                "source": name, 
+                                "gdrive_file_id": file_id,
+                                "source_type": "gdrive",
+                                "title": name,
+                                "content": content,
+                                "file_type": mime_type,
+                                "file_extension": ext,
+                                "last_updated": time.strftime("%Y-%m-%d %H:%M:%S")
+                            }
+                        )
                         batch_docs.append(doc)
 
                 # 배치 크기에 도달하면 즉시 처리

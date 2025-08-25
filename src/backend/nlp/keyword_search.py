@@ -7,6 +7,8 @@
 import logging
 import re
 from typing import Dict, List, Any, Optional
+import asyncio
+import os
 from collections import defaultdict
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -17,13 +19,14 @@ logger = logging.getLogger(__name__)
 class KeywordSearchEngine:
     """키워드 기반 검색 엔진"""
     
-    def __init__(self, db_session_factory=None, index_manager=None, chroma_manager=None):
+    def __init__(self, db_session_factory=None, index_manager=None, chroma_manager=None, llm_client=None):
         self.db_session_factory = db_session_factory
         self.index_manager = index_manager
         self.chroma_manager = chroma_manager
+        self.llm_client = llm_client  # Upstage API 클라이언트
+        
+        # 기본 불용어 목록
         self.stopwords = set([
-            "은", "는", "이", "가", "을", "를", "에", "의", "와", "과", 
-            "도", "만", "에서", "로", "으로", "부터", "까지", "에게",
             "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for", "of", "with"
         ])
     
@@ -54,7 +57,7 @@ class KeywordSearchEngine:
                 return {"documents": [], "scores": [], "metadata": []}
             
             # 키워드 추출
-            keywords = self._extract_keywords(processed_query)
+            keywords = await self._extract_keywords_with_llm(processed_query)
             logger.info(f"📝 추출된 키워드: {keywords}")
             
             # 검색 실행
@@ -80,18 +83,116 @@ class KeywordSearchEngine:
         
         return query.lower()
     
+    async def _extract_keywords_with_llm(self, query: str) -> List[str]:
+        """LLM을 사용하여 쿼리에서 핵심 키워드 추출"""
+        try:
+            if not self.llm_client:
+                logger.warning("LLM 클라이언트가 없어 간단한 키워드 추출 사용")
+                return await self._simple_keyword_extraction(query)
+            
+            # LLM 프롬프트 구성
+            prompt = f"""다음 질문이나 쿼리에서 검색에 필요한 핵심 키워드만 추출해주세요.
+불용어, 조사, 질문어는 제외하고 실제 검색 대상이 되는 명사, 고유명사만 추출하세요.
+
+질문/쿼리: "{query}"
+
+핵심 키워드만 쉼표로 구분해서 답변하세요. 예시:
+- "윤희찬이 누구야?" → "윤희찬"
+- "김정인은 어떤 사람인가요?" → "김정인"
+- "YBIGTA 회장은 누구인가요?" → "YBIGTA, 회장"
+- "네트워크 강의 자료 어디에 있어?" → "네트워크, 강의, 자료"
+
+답변:"""
+
+            # LLM 호출
+            messages = [{"role": "user", "content": prompt}]
+            response = await self.llm_client.invoke_async(messages)
+            
+            # 응답 처리 (문자열 또는 딕셔너리 모두 처리)
+            if response:
+                if isinstance(response, str):
+                    keywords_text = response.strip()
+                elif isinstance(response, dict) and response.get("content"):
+                    keywords_text = response["content"].strip()
+                else:
+                    logger.warning("LLM 응답 형식이 예상과 다름")
+                    return await self._simple_keyword_extraction(query)
+                
+                # 응답에서 키워드 추출
+                keywords = [kw.strip() for kw in keywords_text.split(",") if kw.strip()]
+                
+                logger.info(f"🔍 LLM 키워드 추출 결과: {keywords}")
+                return keywords
+            else:
+                logger.warning("LLM 응답이 비어있어 간단한 키워드 추출 사용")
+                return await self._simple_keyword_extraction(query)
+            
+        except Exception as e:
+            logger.error(f"LLM 키워드 추출 실패: {e}")
+            # 폴백: 간단한 키워드 추출 사용
+            return await self._simple_keyword_extraction(query)
+    
+    async def _simple_keyword_extraction(self, query: str) -> List[str]:
+        """간단한 키워드 추출 (LLM 대신 사용)"""
+        # 질문 형태 처리
+        question_words = ["누구", "무엇", "어떤", "어디", "언제", "왜", "어떻게", "얼마나"]
+        question_endings = ["야?", "인가요?", "입니까?", "세요?", "세요", "까?"]
+        
+        # 질문 형태인지 확인
+        is_question = any(word in query for word in question_words) or any(query.endswith(ending) for ending in question_endings)
+        
+        if is_question:
+            # 질문에서 핵심 키워드만 추출
+            # "윤희찬이 누구야?" -> "윤희찬"
+            # "김정인은 어떤 사람인가요?" -> "김정인"
+            words = query.split()
+            keywords = []
+            
+            for word in words:
+                # 질문 단어나 조사 제거
+                if word in question_words or word in ["이", "은", "는", "가", "을", "를", "의", "에", "에서", "로", "으로", "와", "과", "하고", "며", "면서"]:
+                    continue
+                # 질문 어미 제거
+                if any(word.endswith(ending.replace("?", "")) for ending in question_endings):
+                    continue
+                # 불용어 제거
+                if word.lower() in self.stopwords:
+                    continue
+                # 빈 문자열이나 너무 짧은 단어 제거
+                if len(word.strip()) < 2:
+                    continue
+                    
+                keywords.append(word.strip())
+            
+            logger.info(f"🔍 간단한 키워드 추출 결과: {keywords}")
+            return keywords
+        else:
+            # 일반 쿼리의 경우 기존 로직 사용
+            words = query.split()
+            keywords = []
+            
+            for word in words:
+                if word.lower() in self.stopwords:
+                    continue
+                if len(word.strip()) < 2:
+                    continue
+                keywords.append(word.strip())
+            
+            logger.info(f"🔍 일반 키워드 추출 결과: {keywords}")
+            return keywords
+    
+    def _extract_keywords_fallback(self, query: str) -> List[str]:
+        """폴백 키워드 추출 로직"""
+        return self._extract_keywords(query)
+    
     def _extract_keywords(self, query: str) -> List[str]:
-        """키워드 추출"""
+        """기존 키워드 추출 로직 (하위 호환성)"""
         
-        words = query.split()
+        # 기본 정제
+        query = re.sub(r'[^\w\s가-힣]', ' ', query)  # 특수문자 제거
+        query = re.sub(r'\s+', ' ', query).strip()   # 공백 정리
         
-        # 불용어 제거
-        keywords = [word for word in words if word not in self.stopwords and len(word) > 1]
-        
-        # 중요도 순 정렬 (길이 기반 간단 구현)
-        keywords.sort(key=len, reverse=True)
-        
-        return keywords[:10]  # 최대 10개 키워드
+        return query.lower().split()
     
     async def _search_in_index(self, 
                               keywords: List[str], 

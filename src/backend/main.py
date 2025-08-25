@@ -198,11 +198,15 @@ async def lifespan(app: FastAPI):
     chroma_manager.initialize(embeddings)
     print("✅ 하이브리드 ChromaDB 시스템 초기화 완료")
     
+    # LLM 클라이언트 초기화
+    llm_client = create_upstage_client()
+    
     # 하이브리드 검색 시스템 초기화
     hybrid_retriever = HybridRetriever(
         chroma_manager=chroma_manager,
         embedding_client=embeddings,
         db_session_factory=lambda: get_session(db_engine),
+        llm_client=llm_client,  # LLM 클라이언트 전달
         enable_semantic=True,
         enable_keyword=True  # 키워드 검색 활성화
     )
@@ -211,9 +215,6 @@ async def lifespan(app: FastAPI):
     # 화자 분리 시스템 초기화
     speaker_diarizer = SpeakerDiarizationEngine()
     print("✅ 화자 분리 시스템 초기화 완료")
-    
-    # LLM 클라이언트 초기화
-    llm_client = create_upstage_client()
     if llm_client:
         print("✅ Upstage LLM 클라이언트 초기화 완료")
     else:
@@ -256,29 +257,9 @@ async def lifespan(app: FastAPI):
     print("🔄 초기 지식베이스 동기화 시작...")
     sync_logger.info("=== 초기 지식베이스 동기화 시작 ===")
     try:
-        # Google Drive 동기화 비활성화 (로딩 시간 단축)
+        # Google Drive 동기화 비활성화
         print("⏭️ Google Drive 동기화 비활성화됨 (로딩 시간 단축)")
         sync_logger.info("Google Drive 동기화 비활성화됨")
-        
-        # 프리플라이트 체크
-        # print("🔎 GDrive 설정 확인...")
-        # sync_logger.info("GDrive 설정 확인 시작")
-        # if not os.getenv('GDRIVE_FOLDER_ID'):
-        #     msg = "GDrive 건너뜀: GDRIVE_FOLDER_ID 미설정"
-        #     print(f"⏭️ {msg}")
-        #     sync_logger.info(msg)
-        # elif not os.path.exists("gdrive-credentials.json"):
-        #     msg = "GDrive 건너뜀: gdrive-credentials.json 파일 미존재"
-        #     print(f"⏭️ {msg}")
-        #     sync_logger.info(msg)
-        # else:
-        #     print("☁️ Google Drive 데이터 동기화 중...")
-        #     sync_logger.info("Google Drive 데이터 동기화 시작")
-        #     folder_id = os.getenv("GDRIVE_FOLDER_ID")
-        #     added = await asyncio.to_thread(build_run_gdrive, folder_id, collection_name="unified_knowledge_db")
-        #     msg = f"Google Drive 동기화 완료: {added}개 청크 추가"
-        #     print(f"✅ {msg}")
-        #     sync_logger.info(msg)
 
         print("🔎 GitHub 설정 확인...")
         print("🔍 GitHub 부분 진입 확인")

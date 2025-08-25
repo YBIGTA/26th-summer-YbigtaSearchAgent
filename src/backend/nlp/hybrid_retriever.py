@@ -23,6 +23,7 @@ class HybridRetriever:
                  chroma_manager=None,
                  embedding_client=None,
                  db_session_factory=None,
+                 llm_client=None,
                  enable_semantic=True,
                  enable_keyword=True):
         """
@@ -30,16 +31,22 @@ class HybridRetriever:
             chroma_manager: ChromaDB 매니저
             embedding_client: 임베딩 클라이언트
             db_session_factory: 데이터베이스 세션 팩토리
+            llm_client: LLM 클라이언트 (키워드 추출용)
             enable_semantic: 의미적 검색 활성화
             enable_keyword: 키워드 검색 활성화
         """
         self.chroma_manager = chroma_manager
         self.embedding_client = embedding_client
         self.db_session_factory = db_session_factory
+        self.llm_client = llm_client
         
         # 검색 엔진 초기화
         self.semantic_engine = SemanticSearchEngine(chroma_manager, embedding_client) if enable_semantic else None
-        self.keyword_engine = KeywordSearchEngine(db_session_factory=db_session_factory, chroma_manager=chroma_manager) if enable_keyword else None
+        self.keyword_engine = KeywordSearchEngine(
+            db_session_factory=db_session_factory, 
+            chroma_manager=chroma_manager,
+            llm_client=llm_client
+        ) if enable_keyword else None
         
         # RRF 설정
         self.rrf_k = 60  # RRF 상수 (일반적으로 60 사용)
