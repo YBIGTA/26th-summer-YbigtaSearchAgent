@@ -438,20 +438,20 @@
     "title": "26th-DS-summer"
   },
   "github:github_26th-summer-ResearchAgent": {
-    "content_hash": "272957ac1243ac8e5c0115fda4952712b49e6a6d1a4bd9e91ef483eccdfaa6f3",
-    "last_updated": "2025-08-23T18:31:35.300737",
+    "content_hash": "2aa74a7ad6a1b29471fad989b08c87d76bfd57de88d54c5c8ab064c2ab21b43a",
+    "last_updated": "2025-08-25T09:09:30.898814",
     "source": "github",
     "title": "26th-summer-ResearchAgent"
   },
   "github:github_26th-summer-NotebookLocal": {
-    "content_hash": "261b58183e2b603b3a43c84d5fb3147b94eaef71f39cab64be4c8eb25c8a54c5",
-    "last_updated": "2025-08-24T01:58:11.400705",
+    "content_hash": "cbe4989edb85dc6109c95ece608f64b51f4ded6930e5b16e193931c8aa6c32f2",
+    "last_updated": "2025-08-25T09:05:51.036354",
     "source": "github",
     "title": "26th-summer-NotebookLocal"
   },
   "github:github_26th-summer-YbigtaSearchAgent": {
-    "content_hash": "8277ede77d20cd77cef0b8776386600e0b998d6a4fde5acb3681e6aa24c585dc",
-    "last_updated": "2025-08-23T18:31:35.300886",
+    "content_hash": "07a753f9820d8e636d3debac19d0f502e3962720857a9889608e481788b8c836",
+    "last_updated": "2025-08-25T09:05:51.036408",
     "source": "github",
     "title": "26th-summer-YbigtaSearchAgent"
   },
@@ -468,20 +468,20 @@
     "title": "26th-summer-MedicationAgent"
   },
   "github:github_27th-project-speech2sql": {
-    "content_hash": "d12a54900775f598a645e87332ea2fec7e36216c5494bb6355f229428552bef0",
-    "last_updated": "2025-08-23T18:31:35.300994",
+    "content_hash": "cfec5d6ffc4fe0f174c27c1a4f466a61e33e70bf8d01878e7e234db7514ae846",
+    "last_updated": "2025-08-25T03:35:27.252241",
     "source": "github",
     "title": "27th-project-speech2sql"
   },
   "github:github_27th-project-feedback": {
-    "content_hash": "5bc10e59ee8c6cffa46e378b1030561f92cc8d9b0d47ba97c3ea6dfb9ffa3d53",
-    "last_updated": "2025-08-23T18:31:35.301034",
+    "content_hash": "ccaa0eb3efec4275ca63e9a98d093ced8b58bcde5107d7754fea59f9b361ae78",
+    "last_updated": "2025-08-25T09:25:54.464538",
     "source": "github",
     "title": "27th-project-feedback"
   },
   "github:github_27th-project-baekjoon": {
-    "content_hash": "cd950c014e3ee639fed8c69c3cd8e9e831787fee9d87d953c7e3746e869a290d",
-    "last_updated": "2025-08-23T18:31:35.301055",
+    "content_hash": "304b370d333bbcbcd5a6786780ee72987eacfffa0e001d99714124c8aa432c8b",
+    "last_updated": "2025-08-25T09:22:03.581062",
     "source": "github",
     "title": "27th-project-baekjoon"
   },
@@ -492,14 +492,14 @@
     "title": "27th-project-multimodal"
   },
   "github:github_27th-project-game": {
-    "content_hash": "1ba02aeda615de80384b22cd34d0a35da5e1802fe394f8e026ba04ae6612991b",
-    "last_updated": "2025-08-23T18:31:35.301110",
+    "content_hash": "c654fa94dc476042dfeab170d0aa95cd6b48138ea60360f0f648ab1e78c783a5",
+    "last_updated": "2025-08-25T09:05:51.036627",
     "source": "github",
     "title": "27th-project-game"
   },
   "github:github_27th-project-kakao": {
-    "content_hash": "c97599962b41f965a6cde65887b4486a160329df1cfdc662a1f61cf4be04bf81",
-    "last_updated": "2025-08-23T18:31:35.301163",
+    "content_hash": "62b57aa5ed3cad79bd36d921da92698760f7453fdae92e065d9129f00e958b2b",
+    "last_updated": "2025-08-25T03:35:27.252427",
     "source": "github",
     "title": "27th-project-kakao"
   },

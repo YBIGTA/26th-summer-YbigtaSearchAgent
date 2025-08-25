@@ -10,6 +10,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./.env:/app/.env
+      - ./gdrive-credentials.json:/app/gdrive-credentials.json
     env_file:
       - .env
     environment:

@@ -1,0 +1,32 @@
+{
+  "notion:94961447e70841a9b5d5851155fc84d6": {
+    "content_hash": "b2b5d70f5c7b1f72273e1e3b2d7f279bce254e71ea07a427d1bf69d06afdda3d",
+    "last_updated": "2025-08-25T10:04:17.078727",
+    "source": "notion",
+    "title": "YBIGTA"
+  },
+  "notion:eb317c1ba96640a4bf591274c61c1181": {
+    "content_hash": "aac5cbbb8563263b4bab8bc99598d1e4d10c51b8c0a1d1a7ffb4dbd59f7d5957",
+    "last_updated": "2025-08-25T10:04:17.078743",
+    "source": "notion",
+    "title": "CONFERENCE : 컨퍼런스"
+  },
+  "notion:533f81f19ffb478391605339af4394e0": {
+    "content_hash": "e80a69799f1cc490f6ffae53d4d1aad6f14a22027c19c73377aa266b8eae09f1",
+    "last_updated": "2025-08-25T10:04:17.078751",
+    "source": "notion",
+    "title": "Data Engineering"
+  },
+  "notion:1ad8360423c980ed9938e8e43f932393": {
+    "content_hash": "27b7e6ebddc8c18dfcf8bf903000b4b440ef6bc233e81d40879e67308efc7bdd",
+    "last_updated": "2025-08-25T10:04:17.078756",
+    "source": "notion",
+    "title": "Data Science"
+  },
+  "notion:1ad8360423c980d0b1bcfdab20fb0d61": {
+    "content_hash": "e80a69799f1cc490f6ffae53d4d1aad6f14a22027c19c73377aa266b8eae09f1",
+    "last_updated": "2025-08-25T10:04:17.078760",
+    "source": "notion",
+    "title": "Data Analytics"
+  }
+}
