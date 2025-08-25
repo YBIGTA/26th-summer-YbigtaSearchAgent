@@ -198,3 +198,8 @@ myenv/
 data/indexes/
 data/unified_chroma_db/
 
+src/backend/data/indexes/chroma_db/
+src/backend/data/indexes/hybrid_document_metadata.json
+src/backend/data/indexes/incremental_chroma_db/
+src/backend/data/unified_chroma_db/
+src/backend/processed_repos_cache.json
