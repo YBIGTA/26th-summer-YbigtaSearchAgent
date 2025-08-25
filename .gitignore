@@ -1,0 +1,221 @@
+# 환경 변수 및 설정 파일
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Google Drive 인증 파일
+gdrive-credentials.json
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.venv.bak/
+venv.bak/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Docker
+.dockerignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Data files (선택적 - 필요에 따라 주석 해제)
+# data/
+# *.csv
+# *.json
+# *.xlsx
+# *.xls
+
+# Model files (선택적 - 필요에 따라 주석 해제)
+# models/
+# *.pth
+# *.pt
+# *.h5
+# *.pb
+
+myenv/
+node_modules
+unified_chroma_db/
+data/indexes/chroma_db/
+deprecated/
+
+# === 추가된 큰 파일 및 캐시 파일들 ===
+# 캐시 파일들
+processed_repos_cache.json
+parsed_cache.json
+*.cache
+*.cache.json
+cache/
+caches/
+
+# 벡터 데이터베이스 파일들
+*.faiss
+faiss_index/
+faiss_index_*/
+*.pkl
+*.pickle
+*.bin
+*.vec
+
+# 임베딩 모델 파일들
+*.model
+*.emb
+embeddings/
+embedding_models/
+
+# 대용량 데이터 파일들
+*.h5
+*.hdf5
+*.parquet
+*.feather
+*.arrow
+*.avro
+*.orc
+
+# 압축 파일들
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 백업 파일들
+*.bak
+*.backup
+*.old
+*.orig
+
+# 크롬 브라우저 캐시 (혹시 모를 경우)
+.chrome/
+.chromium/

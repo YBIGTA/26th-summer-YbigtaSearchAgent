@@ -1,0 +1,25 @@
+# Core Libraries
+langchain
+langchain-core
+langchain-community
+langchain-openai
+python-dotenv
+requests
+
+# Vector Store
+faiss-cpu
+
+# Data Sources
+google-api-python-client
+google-auth-oauthlib
+unstructured
+readmeai
+tiktoken<0.5.0
+"unstructured[md]"
+
+# Backend API
+fastapi
+uvicorn
+
+# Frontend UI
+streamlit
