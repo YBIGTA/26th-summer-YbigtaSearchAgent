@@ -61,7 +61,7 @@ jobs:
           UPSTAGE_API_KEY6: ${{ secrets.UPSTAGE_API_KEY6 }}
           UPSTAGE_API_KEY7: ${{ secrets.UPSTAGE_API_KEY7 }}
           UPSTAGE_API_KEY8: ${{ secrets.UPSTAGE_API_KEY8 }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # 생략 가능
+          # OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_PAGE_ID_1: ${{ secrets.NOTION_PAGE_ID_1 }}
