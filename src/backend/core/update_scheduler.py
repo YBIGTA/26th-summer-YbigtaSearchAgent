@@ -81,11 +81,11 @@ class UpdateScheduler:
         print("🔄 초기 동기화 시작...")
         
         tasks = []
-        if os.getenv('NOTION_API_KEY'):
+        if os.getenv('NOTION_API_KEY') and (os.getenv('NOTION_PAGE_ID_1') or os.getenv('NOTION_DATABASE_ID')):
             tasks.append(self.sync_notion())
         if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
             tasks.append(self.sync_github())
-        if os.getenv('GDRIVE_FOLDER_ID'):
+        if os.getenv('GDRIVE_FOLDER_ID') and os.path.exists('gdrive-credentials.json'):
             tasks.append(self.sync_google_drive())
         
         if tasks:

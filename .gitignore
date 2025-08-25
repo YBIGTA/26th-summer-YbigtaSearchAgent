@@ -191,3 +191,6 @@ requirements-*.txt
 !requirements.txt
 
 myenv/
+
+# ChromaDB
+data/indexes/chroma_db/

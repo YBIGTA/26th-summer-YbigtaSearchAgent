@@ -438,20 +438,20 @@
     "title": "26th-DS-summer"
   },
   "github:github_26th-summer-ResearchAgent": {
-    "content_hash": "b4db968794018ffabeb2ca1ccd629e8c21d743287aefb6726325d45cf57ae828",
-    "last_updated": "2025-08-25T02:57:52.261332",
+    "content_hash": "ce455c5664c13df4d320a2ce16aaebce0dc77e4539035e9c062374d987493f63",
+    "last_updated": "2025-08-25T19:54:05.983941",
     "source": "github",
     "title": "26th-summer-ResearchAgent"
   },
   "github:github_26th-summer-NotebookLocal": {
-    "content_hash": "c24de32929ae8c8f05ea9eab1977ec8688a1aec2f4fd030f41ac1a426e2f3765",
-    "last_updated": "2025-08-25T02:57:52.262334",
+    "content_hash": "cbe4989edb85dc6109c95ece608f64b51f4ded6930e5b16e193931c8aa6c32f2",
+    "last_updated": "2025-08-25T18:28:14.400086",
     "source": "github",
     "title": "26th-summer-NotebookLocal"
   },
   "github:github_26th-summer-YbigtaSearchAgent": {
-    "content_hash": "8277ede77d20cd77cef0b8776386600e0b998d6a4fde5acb3681e6aa24c585dc",
-    "last_updated": "2025-08-25T02:57:52.263333",
+    "content_hash": "494c5f814253c689c0816ae17624cf532f94dc35f9510c70c3a2a5b7e980420f",
+    "last_updated": "2025-08-25T19:54:05.983941",
     "source": "github",
     "title": "26th-summer-YbigtaSearchAgent"
   },
@@ -474,14 +474,14 @@
     "title": "27th-project-speech2sql"
   },
   "github:github_27th-project-feedback": {
-    "content_hash": "7d4b9a802fce12759d1f5b9bee76451ba824028f2d49f1315bc04100c23e2010",
-    "last_updated": "2025-08-25T02:57:52.264543",
+    "content_hash": "ccaa0eb3efec4275ca63e9a98d093ced8b58bcde5107d7754fea59f9b361ae78",
+    "last_updated": "2025-08-25T18:28:14.401098",
     "source": "github",
     "title": "27th-project-feedback"
   },
   "github:github_27th-project-baekjoon": {
-    "content_hash": "ad7b863f298c972f2fe7e093aff5f0906def02c963c1e3672029e1c1dd4e7bf4",
-    "last_updated": "2025-08-25T02:57:52.265792",
+    "content_hash": "304b370d333bbcbcd5a6786780ee72987eacfffa0e001d99714124c8aa432c8b",
+    "last_updated": "2025-08-25T18:28:14.402091",
     "source": "github",
     "title": "27th-project-baekjoon"
   },
@@ -492,8 +492,8 @@
     "title": "27th-project-multimodal"
   },
   "github:github_27th-project-game": {
-    "content_hash": "eec20e8c65522510103e54bbced6ad188e553e498c42bb325488656e68fd0c23",
-    "last_updated": "2025-08-25T02:57:52.288776",
+    "content_hash": "c654fa94dc476042dfeab170d0aa95cd6b48138ea60360f0f648ab1e78c783a5",
+    "last_updated": "2025-08-25T18:28:14.402091",
     "source": "github",
     "title": "27th-project-game"
   },
