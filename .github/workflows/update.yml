@@ -34,7 +34,7 @@ jobs:
 
       # 4. Google Drive 인증 파일 생성 (Secret 사용)
       - name: Create gdrive-credentials.json
-        run: echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" > gdrive-credentials.json
+        run: echo "${{ secrets.GDRIVE_CREDENTIALS_JSON }}" | base64 -d > gdrive-credentials.json
         shell: bash
 
       # 5. Vector DB 생성 스크립트 실행 & 마이그레이션  
@@ -70,7 +70,7 @@ jobs:
           NOTION_PAGE_ID_4: ${{ secrets.NOTION_PAGE_ID_4 }}
           NOTION_PAGE_ID_5: ${{ secrets.NOTION_PAGE_ID_5 }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
+          GITHUB_PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_GITHUB_ACCESS_TOKEN }}
 
       # 6. 변경된 DB 파일을 GitHub 저장소에 다시 저장(Commit & Push)
       - name: Commit and push if it changed
