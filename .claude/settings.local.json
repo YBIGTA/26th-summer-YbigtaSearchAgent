@@ -31,7 +31,9 @@
       "Bash(sqlite3:*)",
       "Bash(http://localhost:8000/api/meetings/analyze-upload)",
       "Bash(echo \"  .then(r => r.json())\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(ffprobe:*)",
+      "Bash(file:*)"
     ],
     "deny": [],
     "additionalDirectories": [

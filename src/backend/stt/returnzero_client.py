@@ -207,12 +207,15 @@ class ReturnZeroSTTClient:
     
     def _parse_response(self, response: Dict[str, Any]) -> Dict[str, Any]:
         """ReturnZero API 응답을 파싱합니다."""
-        print(f"🔍 ReturnZero API 응답: {response}")
+        print(f"🔍 ReturnZero API 응답 전체: {response}")
         if "results" not in response:
             raise Exception(f"잘못된 응답 형식입니다. 응답 구조: {list(response.keys())}")
         
         results = response["results"]
+        print(f"🔍 results 내용: {results}")
+        print(f"🔍 results 타입: {type(results)}")
         if not results:
+            print("⚠️ results가 비어있습니다!")
             return {
                 "text": "",
                 "language": "ko",
@@ -228,50 +231,93 @@ class ReturnZeroSTTClient:
         speakers = set()
         speaker_stats = {}  # 화자별 통계
         
-        for utterance in results.get("utterances", []):
-            text = utterance.get("msg", "").strip()
-            start_time_ms = utterance.get("start_at", 0)
-            duration_ms = utterance.get("duration", 0)
-            speaker_id = utterance.get("spk", 0)
-            language = utterance.get("lang", "ko")
+        utterances = results.get("utterances", [])
+        print(f"🚨 CRITICAL DEBUG - utterances 개수: {len(utterances)}")
+        print(f"🚨 CRITICAL DEBUG - utterances 전체 내용: {utterances}")
+        
+        # 🔥 CRITICAL FIX: utterances가 비어있는 경우 다른 필드 확인
+        if not utterances:
+            print("⚠️ utterances가 비어있습니다. 다른 필드 확인...")
+            print(f"results 전체 키: {list(results.keys())}")
+            
+            # 다른 가능한 필드명들 확인
+            possible_fields = ['text', 'segments', 'transcripts', 'messages', 'sentences']
+            for field in possible_fields:
+                if field in results and results[field]:
+                    print(f"🔍 대안 필드 발견: {field} = {results[field]}")
+        
+        # 🔥 CRITICAL: 모든 utterance를 강제로 처리
+        processed_count = 0
+        for i, utterance in enumerate(utterances):
+            print(f"🚨 PROCESSING utterance {i}/{len(utterances)}: {utterance}")
+            
+            # 🔥 다양한 텍스트 필드명 시도
+            text = ""
+            text_fields = ["msg", "text", "content", "transcript", "message"]
+            for field in text_fields:
+                if field in utterance and utterance[field]:
+                    text = str(utterance[field]).strip()
+                    print(f"✅ 텍스트 추출 성공 ({field}): '{text}'")
+                    break
+            
+            if not text:
+                print(f"❌ utterance {i}에서 텍스트를 찾을 수 없음: {list(utterance.keys())}")
+                continue
+            
+            # 시간 정보 추출 (다양한 필드명 지원)
+            start_time_ms = utterance.get("start_at", utterance.get("start", 0))
+            duration_ms = utterance.get("duration", utterance.get("dur", 0))
+            speaker_id = utterance.get("spk", utterance.get("speaker", utterance.get("speaker_id", 0)))
+            language = utterance.get("lang", utterance.get("language", "ko"))
+            
+            print(f"🔍 utterance {i} 정보: text='{text}', speaker={speaker_id}, start={start_time_ms}")
             
             # 시간 변환 (ms -> seconds)
-            start_time = start_time_ms / 1000.0
-            end_time = (start_time_ms + duration_ms) / 1000.0
-            duration_seconds = duration_ms / 1000.0
+            start_time = start_time_ms / 1000.0 if isinstance(start_time_ms, (int, float)) else 0.0
+            end_time = (start_time_ms + duration_ms) / 1000.0 if isinstance(duration_ms, (int, float)) else start_time
+            duration_seconds = duration_ms / 1000.0 if isinstance(duration_ms, (int, float)) else 0.0
             
             # 화자 레이블 생성
             speaker_label = f"Speaker {speaker_id}"
             
-            if text:
-                full_text += text + " "
-                
-                # 세그먼트 정보 (다양한 필드명 지원)
-                segment = {
-                    "start": start_time,
-                    "end": end_time,
-                    "text": text,
-                    "msg": text,  # ReturnZero 원본 필드명도 유지
-                    "speaker": speaker_label,
-                    "spk": speaker_id,  # 원본 화자 ID도 유지
-                    "duration": duration_seconds,
-                    "language": language,
-                    "confidence": 1.0  # ReturnZero는 confidence를 제공하지 않으므로 기본값
+            # 🔥 CRITICAL: 텍스트 누적 (반드시 실행)
+            full_text += text + " "
+            processed_count += 1
+            print(f"🔥 ACCUMULATED TEXT [{processed_count}]: '{full_text}' (총 길이: {len(full_text)})")
+            
+            # 세그먼트 정보 생성
+            segment = {
+                "start": start_time,
+                "end": end_time,
+                "text": text,
+                "msg": text,  # ReturnZero 원본 필드명도 유지
+                "speaker": speaker_label,
+                "spk": speaker_id,  # 원본 화자 ID도 유지
+                "duration": duration_seconds,
+                "language": language,
+                "confidence": 1.0
+            }
+            segments.append(segment)
+            speakers.add(speaker_label)
+            
+            # 화자별 통계 수집
+            if speaker_label not in speaker_stats:
+                speaker_stats[speaker_label] = {
+                    "utterance_count": 0,
+                    "total_duration": 0.0,
+                    "total_words": 0
                 }
-                segments.append(segment)
-                speakers.add(speaker_label)
-                
-                # 화자별 통계 수집
-                if speaker_label not in speaker_stats:
-                    speaker_stats[speaker_label] = {
-                        "utterance_count": 0,
-                        "total_duration": 0.0,
-                        "total_words": 0
-                    }
-                
-                speaker_stats[speaker_label]["utterance_count"] += 1
-                speaker_stats[speaker_label]["total_duration"] += duration_seconds
-                speaker_stats[speaker_label]["total_words"] += len(text.split())
+            
+            speaker_stats[speaker_label]["utterance_count"] += 1
+            speaker_stats[speaker_label]["total_duration"] += duration_seconds
+            speaker_stats[speaker_label]["total_words"] += len(text.split())
+        
+        print(f"🚨 FINAL PROCESSING SUMMARY:")
+        print(f"  - 총 utterances: {len(utterances)}")
+        print(f"  - 처리된 utterances: {processed_count}")
+        print(f"  - 생성된 segments: {len(segments)}")
+        print(f"  - 최종 full_text 길이: {len(full_text)}")
+        print(f"  - 최종 full_text 내용: '{full_text.strip()}')")
         
         # 전체 발화 신뢰도 계산 (단순 평균)
         overall_confidence = 1.0 if segments else 0.0
@@ -279,8 +325,17 @@ class ReturnZeroSTTClient:
         print(f"✅ 파싱 완료: {len(segments)}개 세그먼트, {len(speakers)}명 화자")
         print(f"📊 화자별 통계: {speaker_stats}")
         
-        return {
-            "text": full_text.strip(),
+        final_full_text = full_text.strip()
+        print(f"🔍 DEBUG - 최종 full_text: '{final_full_text}' (길이: {len(final_full_text)})")
+        
+        # 안전장치: full_text가 비어있으면 segments에서 재생성
+        if not final_full_text and segments:
+            segment_texts = [seg.get("text", seg.get("msg", "")).strip() for seg in segments if seg.get("text", seg.get("msg", "")).strip()]
+            final_full_text = " ".join(segment_texts)
+            print(f"🔧 segments에서 재생성된 텍스트: '{final_full_text}' (길이: {len(final_full_text)})")
+        
+        result = {
+            "text": final_full_text,
             "language": "ko",
             "segments": segments,
             "speakers": sorted(list(speakers)),
@@ -290,6 +345,9 @@ class ReturnZeroSTTClient:
             "total_segments": len(segments),
             "total_speakers": len(speakers)
         }
+        
+        print(f"🔍 DEBUG - 반환되는 결과의 text 길이: {len(result['text'])}")
+        return result
     
     def get_supported_languages(self) -> List[str]:
         """지원하는 언어 목록을 반환합니다."""

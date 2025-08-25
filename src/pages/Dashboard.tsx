@@ -170,6 +170,28 @@ const Dashboard: React.FC = () => {
     } catch (err) {
       console.error('파이프라인 상태 폴링 오류:', err);
       
+      // 404 오류인 경우 (작업이 존재하지 않음) 폴링 중단
+      if ((err as any).isNotFound) {
+        console.log(`🔄 작업을 찾을 수 없어 폴링을 중단합니다: ${jobId}`);
+        setActivePolling(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(jobId);
+          return newSet;
+        });
+        
+        // 해당 미팅의 상태도 오류로 업데이트
+        setMeetings(prev => prev.map(meeting => 
+          meeting.id === meetingId 
+            ? {
+                ...meeting,
+                status: 'error' as const,
+                summary: '작업을 찾을 수 없습니다',
+                error_message: '파이프라인 작업이 존재하지 않습니다'
+              }
+            : meeting
+        ));
+      }
+      
       // 네트워크 오류 등의 경우에는 계속 재시도
       // 너무 많은 실패가 발생하면 폴링 중단을 고려할 수 있음
     }
@@ -178,13 +200,15 @@ const Dashboard: React.FC = () => {
   // 단계별 메시지 생성
   const getStageMessage = (stage: string, progress: number) => {
     const stageMessages: Record<string, string> = {
-      'validation': '파일 검증 중...',
+      'file_validation': '파일 검증 중...',
       'stt_processing': 'STT 음성 인식 중... (시간이 오래 걸릴 수 있습니다)',
       'diarization': '화자 분리 중...',
       'transcript_processing': '전사록 처리 중...',
-      'agent_analysis': 'AI 에이전트 분석 중... (5개 에이전트 동시 실행)',
+      'simple_analysis': '🔍 단순 AI 분석 중... (2단계: 요약 + RAG 분석)',
+      'unified_analysis': '🔍 통합 AI 분석 중... (2단계: 내용분석 + 관련자료 검색)', // 하위 호환성
+      'agent_analysis': 'AI 에이전트 분석 중... (5개 에이전트 동시 실행)', // 하위 호환성
       'report_generation': '최종 보고서 생성 중...',
-      'storage': '결과 저장 중...',
+      'result_storage': '결과 저장 중...',
       'completed': '분석 완료!',
       'uploading': '파일 업로드 중...',
       'restarting': '분석을 다시 시작하는 중...'
@@ -535,51 +559,169 @@ const Dashboard: React.FC = () => {
       '=== 주요 아젠다 ===',
     ];
 
-    // 아젠다 추가
-    const agendas = results.results?.agent_analysis?.agendas?.agendas || [];
-    if (agendas.length > 0) {
-      agendas.forEach((agenda: any, index: number) => {
-        sections.push(`${index + 1}. ${agenda.title || '제목 없음'}`);
-        if (agenda.description) {
+    // 통합 분석 결과에서 아젠다 추출 (새로운 구조 우선)
+    const unifiedAgendas = results.results?.agent_analysis?.executive_summary?.agenda_items || 
+                          results.results?.agent_analysis?.primary_analysis?.main_topics ||
+                          [];
+    const legacyAgendas = results.results?.agent_analysis?.detailed_results?.agenda_analysis?.agendas || 
+                         results.results?.agent_analysis?.agendas?.agendas || 
+                         [];
+    
+    const allAgendas = unifiedAgendas.length > 0 ? unifiedAgendas : legacyAgendas;
+    
+    if (allAgendas.length > 0) {
+      allAgendas.forEach((agenda: any, index: number) => {
+        const title = typeof agenda === 'string' ? agenda : 
+                     agenda.title || agenda.name || agenda.topic || '제목 없음';
+        sections.push(`${index + 1}. ${title}`);
+        
+        if (typeof agenda === 'object' && agenda.description) {
           sections.push(`   ${agenda.description}`);
+        }
+        if (typeof agenda === 'object' && agenda.summary) {
+          sections.push(`   ${agenda.summary}`);
         }
         sections.push('');
       });
     } else {
       sections.push('아젠다 정보가 없습니다.');
-      sections.push('(LLM 분석이 제대로 수행되지 않았을 수 있습니다.)');
+      sections.push('(통합 분석에서 주요 논의사항을 식별하지 못했습니다.)');
     }
     
     sections.push('');
-    sections.push('=== 주요 주장 ===');
-    const claims = results.results?.agent_analysis?.claims?.claims || [];
-    if (claims.length > 0) {
-      claims.forEach((claim: any, index: number) => {
-        sections.push(`${index + 1}. ${claim.claim || '내용 없음'}`);
-        if (claim.speaker) {
-          sections.push(`   발화자: ${claim.speaker}`);
+    sections.push('=== 액션 아이템 ===');
+    const actionItems = results.results?.agent_analysis?.executive_summary?.action_items || 
+                       results.results?.agent_analysis?.primary_analysis?.action_items ||
+                       results.results?.agent_analysis?.detailed_analysis?.next_steps ||
+                       [];
+    if (actionItems.length > 0) {
+      actionItems.forEach((item: any, index: number) => {
+        const actionText = typeof item === 'string' ? item : 
+                          item.action || item.task || item.description || '내용 없음';
+        sections.push(`${index + 1}. ${actionText}`);
+        
+        if (typeof item === 'object') {
+          if (item.assignee || item.responsible) {
+            sections.push(`   담당: ${item.assignee || item.responsible}`);
+          }
+          if (item.deadline || item.due_date) {
+            sections.push(`   기한: ${item.deadline || item.due_date}`);
+          }
         }
         sections.push('');
       });
     } else {
-      sections.push('주장 분석 결과가 없습니다.');
+      sections.push('확인된 액션 아이템이 없습니다.');
+    }
+    
+    sections.push('');
+    sections.push('=== 결정 사항 ===');
+    const decisions = results.results?.agent_analysis?.primary_analysis?.decisions ||
+                     results.results?.agent_analysis?.detailed_analysis?.decisions ||
+                     [];
+    if (decisions.length > 0) {
+      decisions.forEach((decision: any, index: number) => {
+        const decisionText = typeof decision === 'string' ? decision :
+                           decision.decision || decision.content || '내용 없음';
+        sections.push(`${index + 1}. ${decisionText}`);
+        sections.push('');
+      });
+    } else {
+      sections.push('확인된 결정 사항이 없습니다.');
     }
     
     sections.push('');
     sections.push('=== 분석 요약 ===');
-    const summary = results.results?.agent_analysis?.summary || {};
-    if (summary.executive_summary) {
-      sections.push(JSON.stringify(summary.executive_summary, null, 2));
+    
+    // 새로운 구조의 요약 정보 찾기
+    const executiveSummary = results.results?.agent_analysis?.executive_summary ||
+                            results.results?.agent_analysis?.summary?.executive_summary ||
+                            results.results?.final_report?.executive_summary ||
+                            {};
+    
+    if (executiveSummary.overview || executiveSummary.key_points) {
+      sections.push('개요:');
+      sections.push(executiveSummary.overview || '개요 없음');
+      sections.push('');
+      
+      if (executiveSummary.key_points && Array.isArray(executiveSummary.key_points)) {
+        sections.push('주요 포인트:');
+        executiveSummary.key_points.forEach((point: string, index: number) => {
+          sections.push(`${index + 1}. ${point}`);
+        });
+      }
+    } else if (Object.keys(executiveSummary).length > 0) {
+      sections.push(JSON.stringify(executiveSummary, null, 2));
     } else {
       sections.push('분석 요약이 없습니다.');
+    }
+    
+    // 인사이트 섹션 추가
+    sections.push('');
+    sections.push('=== 분석 인사이트 ===');
+    const insights = results.results?.agent_analysis?.executive_summary?.insights ||
+                    results.results?.agent_analysis?.contextual_insights?.insights ||
+                    [];
+    if (insights.length > 0) {
+      insights.forEach((insight: any, index: number) => {
+        const insightText = typeof insight === 'string' ? insight :
+                          insight.content || insight.description || '내용 없음';
+        sections.push(`${index + 1}. ${insightText}`);
+      });
+    } else {
+      sections.push('추가 인사이트가 없습니다.');
+    }
+    
+    // 관련 자료 섹션 추가
+    const relatedDocs = results.results?.agent_analysis?.related_context ||
+                       results.results?.agent_analysis?.contextual_insights?.related_documents ||
+                       [];
+    if (relatedDocs.length > 0) {
+      sections.push('');
+      sections.push('=== 관련 자료 ===');
+      relatedDocs.forEach((doc: any, index: number) => {
+        const docTitle = doc.title || doc.source || `문서 ${index + 1}`;
+        sections.push(`${index + 1}. ${docTitle}`);
+        if (doc.content && doc.content.length > 0) {
+          const preview = doc.content.substring(0, 100) + (doc.content.length > 100 ? '...' : '');
+          sections.push(`   ${preview}`);
+        }
+        sections.push('');
+      });
+    }
+    
+    // 권장사항 섹션 추가
+    const recommendations = results.results?.agent_analysis?.recommendations ||
+                           results.results?.agent_analysis?.contextual_insights?.recommendations ||
+                           [];
+    if (recommendations.length > 0) {
+      sections.push('');
+      sections.push('=== 권장사항 ===');
+      recommendations.forEach((rec: any, index: number) => {
+        const recText = typeof rec === 'string' ? rec :
+                       rec.recommendation || rec.description || rec.content || '내용 없음';
+        sections.push(`${index + 1}. ${recText}`);
+      });
     }
 
     sections.push('');
     sections.push('=== 처리 정보 ===');
-    sections.push(`STT 엔진: ${results.results?.stt?.engine_used || 'Unknown'}`);
-    sections.push(`처리 시간: ${new Date().toISOString()}`);
-    if (results.results?.agent_analysis?.agendas?.processing_note) {
-      sections.push(`처리 노트: ${results.results.agent_analysis.agendas.processing_note}`);
+    sections.push(`STT 엔진: ${results.results?.stt?.engine_used || 'returnzero'}`);
+    sections.push(`분석 방법: ${results.results?.agent_analysis?.processing_method || '통합 2단계 분석'}`);
+    sections.push(`분석 신뢰도: ${results.results?.agent_analysis?.confidence ? (results.results.agent_analysis.confidence * 100).toFixed(1) + '%' : '알 수 없음'}`);
+    sections.push(`처리 시간: ${results.results?.agent_analysis?.timestamp || new Date().toISOString()}`);
+    
+    // 통계 정보
+    const stats = results.results?.agent_analysis?.primary_analysis?.statistics;
+    if (stats) {
+      sections.push(`전사 통계: ${stats.word_count || 0}단어, ${stats.sentence_count || 0}문장`);
+    }
+    
+    if (results.results?.agent_analysis?.processing_note || 
+        results.results?.agent_analysis?.agendas?.processing_note) {
+      const note = results.results.agent_analysis.processing_note || 
+                  results.results.agent_analysis.agendas.processing_note;
+      sections.push(`처리 노트: ${note}`);
     }
     
     sections.push('');
@@ -738,9 +880,8 @@ const Dashboard: React.FC = () => {
             <ol style={{ fontSize: '14px', color: 'var(--text-secondary)', paddingLeft: '20px' }}>
               <li>📄 파일 검증</li>
               <li>🎵 음성 인식 (ReturnZero VITO API)</li>
-              <li>👥 화자 분리</li>
               <li>📝 전사록 생성</li>
-              <li>🤖 AI 에이전트 분석 (5개 에이전트)</li>
+              <li>🔍 통합 AI 분석 (내용분석 + 관련자료 검색)</li>
               <li>📊 최종 보고서 생성</li>
             </ol>
             <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>

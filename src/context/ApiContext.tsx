@@ -298,17 +298,9 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
         console.log(`MIME 타입 보정: ${file.type || 'empty'} → ${mimeType}`);
       }
       
-      // 파일 재생성 (MIME 타입 명시)
+      // 파일 재생성 (MIME 타입 명시) - 임시로 비활성화하여 원본 파일 사용
       let fileToUpload = file;
-      if (mimeType !== file.type) {
-        const fileBuffer = await file.arrayBuffer();
-        const correctedBlob = new Blob([fileBuffer], { type: mimeType });
-        fileToUpload = new File([correctedBlob], file.name, {
-          type: mimeType,
-          lastModified: file.lastModified
-        });
-        console.log('파일 MIME 타입 보정 완료');
-      }
+      console.log('MIME 타입 보정 스킵 - 원본 파일 사용:', file.type);
       
       const formData = new FormData();
       formData.append('file', fileToUpload);
@@ -319,6 +311,24 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
       console.log('  보정 MIME:', mimeType);
       console.log('  파일명:', file.name);
       console.log('  크기:', (file.size / 1024 / 1024).toFixed(2), 'MB');
+      
+      // FormData 디버깅
+      console.log('FormData 디버깅:');
+      console.log('  fileToUpload 객체:', fileToUpload);
+      console.log('  fileToUpload.name:', fileToUpload.name);
+      console.log('  fileToUpload.size:', fileToUpload.size);
+      console.log('  fileToUpload.type:', fileToUpload.type);
+      console.log('  FormData has file:', formData.has('file'));
+      
+      // FormData entries를 Array.from으로 변환
+      const entries = Array.from(formData.entries());
+      console.log('  FormData entries count:', entries.length);
+      entries.forEach(([key, value]) => {
+        console.log(`    ${key}:`, value);
+        if (value instanceof File) {
+          console.log(`      File name: ${value.name}, size: ${value.size}, type: ${value.type}`);
+        }
+      });
 
       console.log('API 요청 시작:', `${API_BASE_URL}/meetings/analyze-upload`);
 
@@ -339,7 +349,7 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
       }, dynamicTimeout);
 
       try {
-        const response = await fetch(`${API_BASE_URL}/meetings/analyze-upload`, {
+        const response = await fetch(`http://localhost:8000/api/meetings/analyze-upload`, {
           method: 'POST',
           body: formData,
           signal: controller.signal,
@@ -394,22 +404,34 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
 
   const getPipelineStatus = async (jobId: string): Promise<PipelineStatus> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pipeline/status/${jobId}`);
+      const response = await fetch(`http://localhost:8000/api/meetings/${jobId}/status`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // 404 오류의 경우 특별한 오류 타입으로 구분
+        if (response.status === 404) {
+          const error = new Error(errorData.detail || '작업을 찾을 수 없습니다.') as any;
+          error.isNotFound = true;
+          throw error;
+        }
+        
         throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
       }
 
       return await response.json();
     } catch (err) {
+      // 404 오류는 그대로 전파
+      if ((err as any).isNotFound) {
+        throw err;
+      }
       throw new Error(err instanceof Error ? err.message : '상태 조회에 실패했습니다.');
     }
   };
 
   const getPipelineResults = async (jobId: string): Promise<PipelineResults> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/pipeline/results/${jobId}`);
+      const response = await fetch(`http://localhost:8000/api/meetings/${jobId}/report`);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));

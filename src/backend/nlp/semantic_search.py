@@ -62,11 +62,12 @@ class SemanticSearchEngine:
             return None
         
         try:
-            # TODO: 실제 임베딩 클라이언트 연동
-            # embedding = await self.embedding_client.embed_query(query)
+            # Upstage 임베딩 클라이언트 사용 (4096차원)
+            if hasattr(self.embedding_client, 'embed_query'):
+                embedding = self.embedding_client.embed_query(query)
+            else:
+                embedding = await self.embedding_client.aembed_query(query)
             
-            # 임시 더미 임베딩 (실제로는 Upstage/OpenAI 임베딩 사용)
-            embedding = [0.1] * 384  # 임시 384차원 벡터
             return embedding
             
         except Exception as e:
@@ -82,25 +83,33 @@ class SemanticSearchEngine:
         """ChromaDB에서 검색"""
         
         try:
-            # ChromaDB 쿼리 실행
-            # 실제 구현에서는 self.chroma_manager.search() 사용
-            
-            # 임시 더미 결과
-            dummy_results = {
-                "documents": [
-                    f"의미적 검색 결과 1: '{query}'와 관련된 내용",
-                    f"의미적 검색 결과 2: '{query}' 관련 문서",
-                    f"의미적 검색 결과 3: '{query}' 유사 내용"
-                ][:top_k],
-                "scores": [0.9, 0.8, 0.7][:top_k],
-                "metadata": [
-                    {"source": "semantic", "type": "document", "relevance": "high"},
-                    {"source": "semantic", "type": "document", "relevance": "medium"},
-                    {"source": "semantic", "type": "document", "relevance": "medium"}
-                ][:top_k]
-            }
-            
-            return dummy_results
+            # HybridChromaManager를 통한 검색 (Upstage 4096차원 임베딩 사용)
+            if hasattr(self.chroma_manager, 'vector_search'):
+                search_results = self.chroma_manager.vector_search(
+                    query=query,
+                    query_embedding=query_embedding,
+                    top_k=top_k,
+                    filter=filters
+                )
+                
+                # 결과를 표준 형식으로 변환
+                documents = []
+                scores = []
+                metadata = []
+                
+                for result in search_results:
+                    documents.append(result.get('content', ''))
+                    scores.append(result.get('score', 0.0))
+                    metadata.append(result.get('metadata', {}))
+                
+                return {
+                    "documents": documents,
+                    "scores": scores,
+                    "metadata": metadata
+                }
+            else:
+                logger.warning("ChromaDB 매니저에 vector_search 메소드가 없습니다.")
+                return {"documents": [], "scores": [], "metadata": []}
             
         except Exception as e:
             logger.error(f"ChromaDB 검색 오류: {str(e)}")

@@ -169,6 +169,24 @@ class STTManager:
             domain=domain
         )
         
+        # 🔥 CRITICAL: 결과 검증 및 강화
+        print(f"🚨 STT_MANAGER - ReturnZero 결과 검증:")
+        print(f"  - text 길이: {len(result.get('text', ''))}")
+        print(f"  - text 내용: '{result.get('text', '')}'")
+        print(f"  - segments 수: {len(result.get('segments', []))}")
+        
+        # segments가 있는데 text가 비어있다면 segments에서 재구성
+        if result.get('segments') and not result.get('text', '').strip():
+            print("⚠️ text가 비어있지만 segments가 존재 - 재구성 시도")
+            segment_texts = []
+            for seg in result.get('segments', []):
+                text = seg.get('text', seg.get('msg', '')).strip()
+                if text:
+                    segment_texts.append(text)
+            reconstructed_text = ' '.join(segment_texts)
+            result['text'] = reconstructed_text
+            print(f"✅ segments에서 텍스트 재구성: '{reconstructed_text}'")
+        
         # 결과에 엔진 정보 추가
         result["engine"] = "returnzero"
         if domain:

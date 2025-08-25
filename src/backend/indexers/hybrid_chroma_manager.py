@@ -201,19 +201,19 @@ class HybridChromaManager:
                 except Exception as e:
                     print(f"❌ 문서 삭제 실패 {doc_id}: {e}")
     
-    def vector_search(self, query: str, top_k: int = 5, filter: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+    def vector_search(self, query: str, query_embedding: List[float], top_k: int = 5, filter: Dict[str, Any] = None) -> List[Dict[str, Any]]:
         """하이브리드 벡터 검색 (unified + incremental)"""
         all_results = []
         
-        # Unified DB 검색
+        # Unified DB 검색 (Upstage 4096차원 임베딩 사용)
         if self.unified_adapter.available:
             try:
-                unified_results = self.unified_adapter.search_documents(query, top_k)
+                unified_results = self.unified_adapter.search_documents(query, query_embedding, top_k)
                 all_results.extend(unified_results)
             except Exception as e:
-                print(f"⚠️ Unified DB 검색 오류: {e}")
+                print(f"❌ Unified DB 검색 실패: {e}")
         
-        # Incremental DB 검색
+        # Incremental DB 검색 (임베딩 없이 기존 방식 사용)
         if self.incremental_manager.available:
             try:
                 incremental_results = self.incremental_manager.vector_search(query, top_k, filter)

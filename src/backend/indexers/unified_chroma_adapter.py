@@ -197,14 +197,15 @@ class UnifiedChromaAdapter:
         
         return stats
     
-    def search_documents(self, query: str, top_k: int = 10) -> List[Dict[str, Any]]:
+    def search_documents(self, query: str, query_embedding: List[float], top_k: int = 10) -> List[Dict[str, Any]]:
         """unified_db에서 문서 검색 (ChromaDB 검색 래핑)"""
         if not self.collection:
             return []
         
         try:
+            # 임베딩 벡터를 사용한 검색 (4096차원 Upstage 임베딩)
             results = self.collection.query(
-                query_texts=[query],
+                query_embeddings=[query_embedding],
                 n_results=top_k,
                 include=['documents', 'metadatas', 'distances']
             )

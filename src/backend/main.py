@@ -27,7 +27,7 @@ from stt.stt_manager import stt_manager
 from stt.speaker_diarization import SpeakerDiarizationEngine
 from core.update_scheduler import UpdateScheduler
 from core.meeting_pipeline import MeetingAnalysisPipeline
-from agents.multi_agent_orchestrator import MultiAgentOrchestrator
+# from agents.multi_agent_orchestrator import MultiAgentOrchestrator  # 더 이상 사용하지 않음
 from llm import create_upstage_client
 from nlp.hybrid_retriever import HybridRetriever
 
@@ -36,7 +36,7 @@ db_engine = None
 chroma_manager = None
 embeddings = None
 update_scheduler = None
-agent_orchestrator = None
+# agent_orchestrator = None  # 더 이상 사용하지 않음
 hybrid_retriever = None
 speaker_diarizer = None
 meeting_pipeline = None
@@ -68,7 +68,7 @@ class PipelineRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
-    global db_engine, chroma_manager, embeddings, update_scheduler, agent_orchestrator, hybrid_retriever, speaker_diarizer, meeting_pipeline
+    global db_engine, chroma_manager, embeddings, update_scheduler, hybrid_retriever, speaker_diarizer, meeting_pipeline
     
     # 시작 시 초기화
     print("🚀 백엔드 서버 초기화 중...")
@@ -100,32 +100,87 @@ async def lifespan(app: FastAPI):
     speaker_diarizer = SpeakerDiarizationEngine()
     print("✅ 화자 분리 시스템 초기화 완료")
     
-    # LLM 클라이언트 초기화
-    llm_client = create_upstage_client()
-    if llm_client:
-        print("✅ Upstage LLM 클라이언트 초기화 완료")
-    else:
-        print("⚠️ Upstage LLM 클라이언트 초기화 실패 - 에이전트가 제한된 기능으로 동작합니다")
+    # 환경변수 검증 상세 로깅
+    print("="*60)
+    print("UPSTAGE API KEY 환경변수 검증")
+    print("="*60)
     
-    # 멀티에이전트 오케스트레이터 초기화
-    if llm_client:
-        agent_orchestrator = MultiAgentOrchestrator(
-            retriever=hybrid_retriever,
-            llm_client=llm_client
-        )
-        print("✅ 멀티에이전트 오케스트레이터 초기화 완료")
-    else:
-        agent_orchestrator = None
-        print("⚠️ LLM 클라이언트가 없어 에이전트 오케스트레이터를 초기화하지 않습니다.")
+    import os
+    upstage_keys = []
+    for i in [''] + [str(j) for j in range(1, 9)]:
+        key_name = f'UPSTAGE_API_KEY{i}'
+        key_val = os.environ.get(key_name)
+        if key_val:
+            # 키 마스킹 (마지막 4자리만 표시)
+            masked_key = key_val[:8] + "*" * (len(key_val) - 12) + key_val[-4:] if len(key_val) > 12 else "*" * len(key_val)
+            print(f"✅ {key_name}: {masked_key}")
+            upstage_keys.append((key_name, key_val))
+        else:
+            print(f"❌ {key_name}: NOT_SET")
     
-    # 회의 분석 파이프라인 초기화
+    print(f"탐지된 유효한 키 개수: {len(upstage_keys)}")
+    print("="*60)
+    
+    # LLM 클라이언트 초기화 상세 로깅
+    print("LLM 클라이언트 초기화 시작...")
+    try:
+        llm_client = create_upstage_client()
+        if llm_client:
+            print("✅ Upstage LLM 클라이언트 생성 성공")
+            
+            # API 연결 테스트
+            try:
+                connection_test = llm_client.validate_connection()
+                if connection_test:
+                    print("✅ LLM API 연결 테스트 성공")
+                else:
+                    print("❌ LLM API 연결 테스트 실패")
+            except Exception as test_e:
+                print(f"❌ LLM API 연결 테스트 오류: {test_e}")
+        else:
+            print("❌ Upstage LLM 클라이언트 생성 실패")
+    except Exception as e:
+        print(f"❌ LLM 클라이언트 초기화 오류: {e}")
+        llm_client = None
+    
+    if not llm_client:
+        print("⚠️ LLM 클라이언트가 없어 에이전트가 제한된 기능으로 동작합니다")
+    print("="*60)
+    
+    # 멀티에이전트 시스템 제거됨 - 단순 분석기로 대체됨
+    print("✅ 복잡한 멀티에이전트 시스템 대신 단순 2단계 분석기 사용")
+    
+    # 회의 분석 파이프라인 초기화 (LLM 클라이언트 및 ChromaDB 매니저 직접 전달)
     meeting_pipeline = MeetingAnalysisPipeline(
         stt_manager=stt_manager,
         speaker_diarizer=speaker_diarizer,
-        agent_orchestrator=agent_orchestrator,
+        llm_client=llm_client,
+        chroma_manager=chroma_manager,  # ChromaDB 매니저도 직접 전달
+        embedding_client=embeddings,
         db_engine=db_engine
     )
     print("✅ 회의 분석 파이프라인 초기화 완료")
+    
+    # 파이프라인 작업 정리 자동 스케줄링 (6시간마다)
+    import asyncio
+    async def periodic_cleanup():
+        while True:
+            try:
+                # 24시간 이상 된 완료된 작업 정리
+                if meeting_pipeline:
+                    cleaned_count = meeting_pipeline.cleanup_completed_jobs(max_age_hours=24)
+                    if cleaned_count > 0:
+                        print(f"🧹 자동 정리: {cleaned_count}개의 완료된 파이프라인 작업을 정리했습니다")
+                
+                # 6시간마다 실행
+                await asyncio.sleep(6 * 3600)  # 6시간 = 21,600초
+            except Exception as e:
+                print(f"❌ 자동 정리 작업 중 오류: {e}")
+                await asyncio.sleep(3600)  # 오류 시 1시간 후 재시도
+    
+    # 백그라운드 작업으로 정리 스케줄 시작
+    asyncio.create_task(periodic_cleanup())
+    print("✅ 파이프라인 작업 자동 정리 스케줄러 시작 (6시간 주기)")
     
     # 업데이트 스케줄러 초기화
     update_scheduler = UpdateScheduler(chroma_manager)
@@ -140,8 +195,7 @@ async def lifespan(app: FastAPI):
     print("👋 백엔드 서버 종료 중...")
     if update_scheduler:
         update_scheduler.stop()
-    if agent_orchestrator and hasattr(agent_orchestrator, 'cleanup'):
-        await agent_orchestrator.cleanup()
+    # agent_orchestrator cleanup 제거됨 (더 이상 사용하지 않음)
 
 
 # FastAPI 앱 생성
@@ -383,9 +437,18 @@ async def vector_search(query: str, top_k: int = 5):
     """벡터 검색만"""
     try:
         if not hybrid_retriever:
-            # 폴백: 기존 ChromaDB 사용
-            results = chroma_manager.vector_search(query, top_k)
-            return {"results": results}
+            # 폴백: 기존 ChromaDB 사용 (임베딩 생성 후 호출)
+            if not embeddings:
+                raise HTTPException(status_code=503, detail="임베딩 모델이 초기화되지 않았습니다.")
+            
+            # 쿼리 임베딩 생성
+            try:
+                query_embedding = embeddings.embed_query(query)
+                results = chroma_manager.vector_search(query, query_embedding, top_k)
+                return {"results": results}
+            except Exception as embed_error:
+                print(f"❌ 임베딩 생성 실패: {embed_error}")
+                raise HTTPException(status_code=500, detail=f"임베딩 생성 실패: {str(embed_error)}")
         
         results = await hybrid_retriever.semantic_engine.search(
             query=query,
@@ -1040,15 +1103,18 @@ async def analyze_uploaded_meeting(file: UploadFile = File(...)):
 
 
 @app.get("/api/meetings/{job_id}/status")
-async def get_pipeline_status(job_id: str):
-    """파이프라인 작업 상태 조회"""
+async def get_meeting_status(job_id: str):
+    """회의 분석 작업 상태 조회"""
     if not meeting_pipeline:
         raise HTTPException(status_code=503, detail="회의 분석 파이프라인이 초기화되지 않았습니다.")
     
     status = meeting_pipeline.get_job_status(job_id)
     
     if not status:
-        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+        # 디버깅을 위한 로깅
+        available_jobs = list(meeting_pipeline.pipeline_jobs.keys()) if meeting_pipeline.pipeline_jobs else []
+        print(f"❌ Job {job_id} not found. Available jobs: {available_jobs}")
+        raise HTTPException(status_code=404, detail=f"작업 {job_id}를 찾을 수 없습니다. 사용 가능한 작업: {available_jobs}")
     
     return {
         "job_id": job_id,
