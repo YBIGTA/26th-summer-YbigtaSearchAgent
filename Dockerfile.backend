@@ -1,5 +1,5 @@
 # Multi-stage build for backend optimization
-FROM python:3.11-slim as base
+FROM python:3.9-slim as base
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -21,10 +21,10 @@ FROM base as dependencies
 WORKDIR /app
 
 # Copy only dependency files first (for better caching)
-COPY requirements-minimal.txt pyproject.toml ./
+COPY requirements.txt pyproject.toml ./
 
 # Install dependencies (this layer will be cached if requirements don't change)
-RUN uv pip install --system -r requirements-minimal.txt
+RUN uv pip install --system -r requirements.txt
 
 # Application stage
 FROM dependencies as app

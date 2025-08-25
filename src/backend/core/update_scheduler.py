@@ -117,7 +117,7 @@ class UpdateScheduler:
         print("🚀 문서 업데이트 스케줄러 시작")
         
         # 각 소스별 동기화 작업 등록
-        if os.getenv('NOTION_API_KEY'):
+        if os.getenv('NOTION_API_KEY') and os.getenv('NOTION_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             self.scheduler.add_job(
                 self.sync_notion,
                 IntervalTrigger(seconds=self.sync_intervals['notion']),
@@ -127,7 +127,7 @@ class UpdateScheduler:
             )
             print(f"📅 Notion 동기화 스케줄 등록 (매 {self.sync_intervals['notion']}초)")
         
-        if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
+        if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN') and os.getenv('GITHUB_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             self.scheduler.add_job(
                 self.sync_github,
                 IntervalTrigger(seconds=self.sync_intervals['github']),
@@ -137,7 +137,7 @@ class UpdateScheduler:
             )
             print(f"📅 GitHub 동기화 스케줄 등록 (매 {self.sync_intervals['github']}초)")
         
-        if os.getenv('GDRIVE_FOLDER_ID'):
+        if os.getenv('GDRIVE_FOLDER_ID') and os.getenv('GDRIVE_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             self.scheduler.add_job(
                 self.sync_google_drive,
                 IntervalTrigger(seconds=self.sync_intervals['google_drive']),
@@ -163,11 +163,11 @@ class UpdateScheduler:
         print("🔄 초기 동기화 시작...")
         
         tasks = []
-        if os.getenv('NOTION_API_KEY'):
+        if os.getenv('NOTION_API_KEY') and os.getenv('NOTION_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             tasks.append(self.sync_notion())
-        if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN'):
+        if os.getenv('GITHUB_PERSONAL_ACCESS_TOKEN') and os.getenv('GITHUB_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             tasks.append(self.sync_github())
-        if os.getenv('GDRIVE_FOLDER_ID'):
+        if os.getenv('GDRIVE_FOLDER_ID') and os.getenv('GDRIVE_SYNC_ENABLED', '1') not in ('0', 'false', 'False'):
             tasks.append(self.sync_google_drive())
         
         if tasks:
@@ -198,7 +198,7 @@ class UpdateScheduler:
             
             if documents:
                 # ChromaDB에 동기화 (증분 업데이트)
-                self.chroma_manager.sync_source(source, documents)
+                self.chroma_manager.sync_source(source, documents, full_scan=False)
                 
                 # 통계 업데이트
                 self._set_last_sync_time(source)
@@ -207,7 +207,7 @@ class UpdateScheduler:
                 duration = (datetime.now() - start_time).seconds
                 print(f"✅ Notion 동기화 완료: {len(documents)}개 문서, {duration}초 소요")
             else:
-                print("⚠️ Notion에서 문서를 찾을 수 없습니다.")
+                print("ℹ️ Notion 업데이트 없음")
                 self.sync_status[source] = 'no_documents'
                 
         except Exception as e:
@@ -233,20 +233,25 @@ class UpdateScheduler:
             
             # 모든 리포지토리 로드 (마지막 동기화 시간 이후 변경사항만 가져오기)
             since_str = last_sync_time.isoformat() if last_sync_time else None
-            documents = await asyncio.get_event_loop().run_in_executor(None, client.load_all_repos, since_str)
+            repos = await asyncio.get_event_loop().run_in_executor(None, client.get_all_repos, since_str)
+            if not repos:
+                print("ℹ️ GitHub 업데이트 없음")
+                self.sync_status[source] = 'no_documents'
+                return
+            documents = []
+            for repo in repos:
+                doc_list = await asyncio.get_event_loop().run_in_executor(None, client.load_all_repos, since_str)
+                documents.extend(doc_list)
+                break  # since 기반으로 이미 필터된 경우 충분
             
             if documents:
-                # ChromaDB에 동기화 (증분 업데이트)
-                self.chroma_manager.sync_source(source, documents)
-                
-                # 통계 업데이트
+                self.chroma_manager.sync_source(source, documents, full_scan=False)
                 self._set_last_sync_time(source)
                 self.sync_status[source] = 'completed'
-                
                 duration = (datetime.now() - start_time).seconds
                 print(f"✅ GitHub 동기화 완료: {len(documents)}개 리포지토리, {duration}초 소요")
             else:
-                print("⚠️ GitHub에서 리포지토리를 찾을 수 없습니다.")
+                print("ℹ️ GitHub 업데이트 없음")
                 self.sync_status[source] = 'no_documents'
                 
         except Exception as e:
@@ -259,6 +264,12 @@ class UpdateScheduler:
         print(f"\n🔄 {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} - Google Drive 동기화 시작")
         
         try:
+            # 전역 비활성화 가드
+            if os.getenv('GDRIVE_SYNC_ENABLED', '1') in ('0', 'false', 'False'):
+                print("⏭️ Google Drive 동기화 비활성화됨 (GDRIVE_SYNC_ENABLED)")
+                self.sync_status[source] = 'disabled'
+                return
+            
             self.sync_status[source] = 'syncing'
             start_time = datetime.now()
             
@@ -272,11 +283,13 @@ class UpdateScheduler:
             
             # 모든 문서 로드 (마지막 동기화 시간 이후 변경사항만 가져오기)
             since_str = last_sync_time.isoformat() if last_sync_time else None
-            documents = await asyncio.get_event_loop().run_in_executor(None, client.load_all_documents, since_str)
+            # 기존 메타데이터 전달해 변경 없는 파일은 스킵
+            existing_meta = self.chroma_manager.document_metadata if hasattr(self.chroma_manager, 'document_metadata') else None
+            documents = await asyncio.get_event_loop().run_in_executor(None, client.load_all_documents, since_str, existing_meta)
             
             if documents:
                 # ChromaDB에 동기화 (증분 업데이트)
-                self.chroma_manager.sync_source(source, documents)
+                self.chroma_manager.sync_source(source, documents, full_scan=False)
                 
                 # 통계 업데이트
                 self._set_last_sync_time(source)
@@ -285,7 +298,7 @@ class UpdateScheduler:
                 duration = (datetime.now() - start_time).seconds
                 print(f"✅ Google Drive 동기화 완료: {len(documents)}개 문서, {duration}초 소요")
             else:
-                print("⚠️ Google Drive에서 문서를 찾을 수 없습니다.")
+                print("ℹ️ Google Drive 업데이트 없음")
                 self.sync_status[source] = 'no_documents'
                 
         except Exception as e:

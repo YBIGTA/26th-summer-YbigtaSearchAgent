@@ -112,6 +112,19 @@ async def lifespan(app: FastAPI):
     # ChromaDB 인덱스 초기화
     chroma_manager = ChromaIndexManager()
     chroma_manager.initialize(embeddings)
+
+    # ChromaDB 통계 출력
+    if chroma_manager:
+        stats = chroma_manager.get_statistics()
+        print(f"📊 ChromaDB 통계: {stats.get('total_documents', 0)}개 문서, {stats.get('total_chunks', 0)}개 청크")
+        
+        # 소스별 통계 출력
+        source_dist = stats.get('source_distribution', {})
+        if source_dist:
+            print("📈 소스별 문서 분포:")
+            for source, count in source_dist.items():
+                print(f"  - {source}: {count}개")
+
     print("✅ ChromaDB 인덱스 초기화 완료")
     
     # 하이브리드 검색 시스템 초기화

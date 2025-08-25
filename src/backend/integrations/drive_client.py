@@ -157,11 +157,12 @@ class GoogleDriveClient:
         
         return None
     
-    def load_all_documents(self, since: Optional[str] = None) -> List[Document]:
+    def load_all_documents(self, since: Optional[str] = None, existing_metadata: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Document]:
         """Google Drive의 모든 문서를 로드합니다.
         
         Args:
             since: ISO 8601 형식의 날짜 문자열. 이 시간 이후에 수정된 파일만 가져옵니다.
+            existing_metadata: 기존 ChromaDB 메타데이터 딕셔너리. 변경 없으면 다운로드를 스킵합니다.
         """
         if not self.folder_id:
             print("⚠️ GDRIVE_FOLDER_ID가 설정되지 않았습니다.")
@@ -174,9 +175,48 @@ class GoogleDriveClient:
             print(f"📅 {since} 이후에 수정된 파일이 없습니다.")
             return []
         
+        # 기존 메타를 file_id 기준으로 빠르게 조회할 수 있게 맵 구축
+        file_id_to_meta = {}
+        if existing_metadata:
+            for _doc_id, _meta in existing_metadata.items():
+                fid = _meta.get('file_id')
+                if fid and fid not in file_id_to_meta:
+                    file_id_to_meta[fid] = _meta
+        
         documents = []
         for i, file_info in enumerate(files, 1):
             print(f"\n📄 파일 {i}/{len(files)}: {file_info['name']}")
+            
+            # 기존 메타데이터 기반 사전 스킵 로직
+            if existing_metadata is not None:
+                file_id = file_info.get('id')
+                prev_last_modified = None
+                # 1) doc_id 정합 시도
+                doc_id = f"google_drive:gdrive_{file_id}"
+                meta = existing_metadata.get(doc_id) or file_id_to_meta.get(file_id)
+                if meta:
+                    prev_last_modified = meta.get('last_modified') or meta.get('last_updated')
+                curr_last_modified = file_info.get('modifiedTime')
+                # 1-a) modifiedTime이 동일하면 즉시 스킵
+                if prev_last_modified and curr_last_modified and prev_last_modified == curr_last_modified:
+                    print(f"⏭️ 변경 없음으로 스킵: {file_info['name']} ({file_id})")
+                    continue
+                # 1-b) modifiedTime이 제공되지 않은 경우: 동일 file_id 존재 시 보수적으로 스킵
+                if meta and not curr_last_modified:
+                    print(f"⏭️ 동일 file_id 기존 존재로 스킵(타임스탬프 없음): {file_info['name']} ({file_id})")
+                    continue
+                # 1-c) 서버 메타로 한 번 더 확인
+                try:
+                    fresh = self.service.files().get(
+                        fileId=file_id,
+                        fields="id, modifiedTime"
+                    ).execute()
+                    fresh_mod = fresh.get('modifiedTime')
+                    if prev_last_modified and fresh_mod and prev_last_modified == fresh_mod:
+                        print(f"⏭️ 서버 메타 기준 변경 없음으로 스킵: {file_info['name']} ({file_id})")
+                        continue
+                except Exception:
+                    pass
             
             doc = self.process_file(file_info)
             if doc:

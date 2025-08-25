@@ -26,13 +26,19 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 class ChromaIndexManager:
     def __init__(self, persist_directory: str = "data/indexes/chroma_db"):
+        # 환경변수로 경로 오버라이드 허용
+        env_dir = os.getenv("CHROMA_PERSIST_DIR")
+        if env_dir and os.path.isdir(env_dir):
+            persist_directory = env_dir
+
         self.persist_directory = persist_directory
         self.available = CHROMADB_AVAILABLE
         
         if not self.available:
             print("⚠️ ChromaDB 기능이 비활성화되었습니다.")
             return
-        self.collection_name = "ybigta_meeting_knowledge"
+        # 환경변수로 컬렉션 이름 오버라이드 허용
+        self.collection_name = os.getenv("CHROMA_COLLECTION_NAME", "ybigta_meeting_knowledge")
         self.client = None
         self.vectorstore = None
         self.embeddings = None
@@ -70,18 +76,33 @@ class ChromaIndexManager:
             )
         )
         
-        # 컬렉션 가져오기 또는 생성
+        # 1) 기존 컬렉션 자동 탐지
         try:
-            self.collection = self.client.get_collection(
-                name=self.collection_name
-            )
+            existing = self.client.list_collections()
+        except Exception as e:
+            existing = []
+            print(f"⚠️ 기존 컬렉션 조회 실패: {e}")
+
+        existing_names = [c.name for c in existing] if existing else []
+
+        # 2) 환경변수/기본 이름이 존재하면 그 컬렉션 사용
+        if self.collection_name in existing_names:
+            self.collection = self.client.get_collection(name=self.collection_name)
             print(f"✅ 기존 ChromaDB 컬렉션 로드: {self.collection_name}")
-        except Exception:
-            self.collection = self.client.create_collection(
-                name=self.collection_name,
-                metadata={"description": "YBIGTA 회의 지식베이스"}
-            )
-            print(f"📁 새로운 ChromaDB 컬렉션 생성: {self.collection_name}")
+        else:
+            # 3) 이름이 다르더라도 하나라도 존재하면 '첫 컬렉션'을 채택
+            if existing_names:
+                picked = existing_names[0]
+                self.collection_name = picked
+                self.collection = self.client.get_collection(name=picked)
+                print(f"✅ 기존 컬렉션 자동 감지 및 사용: {picked}")
+            else:
+                # 4) 정말 아무 컬렉션도 없을 때만 새로 생성
+                self.collection = self.client.create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "YBIGTA 회의 지식베이스"}
+                )
+                print(f"📁 새로운 ChromaDB 컬렉션 생성: {self.collection_name}")
         
         # LangChain VectorStore 래퍼 초기화
         self.vectorstore = Chroma(
@@ -90,6 +111,78 @@ class ChromaIndexManager:
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory
         )
+        
+        # 기존 DB 기반으로 메타데이터 재구성
+        self._rebuild_metadata_from_chromadb()
+    def _rebuild_metadata_from_chromadb(self):
+        """ChromaDB에서 실제 데이터를 읽어서 메타데이터를 재구성합니다."""
+        if not self.collection:
+            print("⚠️ ChromaDB 컬렉션이 초기화되지 않았습니다.")
+            return
+        
+        try:
+            # ChromaDB에서 모든 데이터 조회
+            results = self.collection.get(
+                include=['metadatas', 'documents', 'embeddings']
+            )
+            
+            if not results['ids']:
+                print("📭 ChromaDB에 데이터가 없습니다.")
+                return
+            
+            print(f"🔄 ChromaDB에서 {len(results['ids'])}개 문서 발견, 메타데이터 재구성 중...")
+            
+            # 새로운 메타데이터 딕셔너리 생성
+            new_metadata = {}
+            
+            for i, doc_id in enumerate(results['ids']):
+                metadata = results['metadatas'][i] if results['metadatas'] else {}
+                document = results['documents'][i] if results['documents'] else ""
+                
+                # 문서 해시 계산
+                content_hash = self._compute_document_hash(document, metadata)
+                
+                # 메타데이터 구성 (Drive 식별키 보존)
+                new_entry = {
+                    'content_hash': content_hash,
+                    'last_updated': metadata.get('last_updated', datetime.now().isoformat()),
+                    'source': metadata.get('source', 'unknown'),
+                    'title': metadata.get('title', metadata.get('source', 'Unknown')),
+                    'page_id': metadata.get('page_id'),
+                    'indexed_at': metadata.get('indexed_at', datetime.now().isoformat())
+                }
+                # Google Drive 특화 메타 보존
+                if metadata.get('source') == 'google_drive':
+                    if 'file_id' in metadata:
+                        new_entry['file_id'] = metadata.get('file_id')
+                    if 'last_modified' in metadata:
+                        new_entry['last_modified'] = metadata.get('last_modified')
+                    if 'created_time' in metadata:
+                        new_entry['created_time'] = metadata.get('created_time')
+                
+                new_metadata[doc_id] = new_entry
+            
+            # 기존 메타데이터와 병합 (기존 데이터 우선)
+            merged_metadata = {**new_metadata, **self.document_metadata}
+            
+            # 메타데이터 업데이트
+            self.document_metadata = merged_metadata
+            self._save_metadata()
+            
+            print(f"✅ 메타데이터 재구성 완료: {len(merged_metadata)}개 문서")
+            
+            # 소스별 통계 출력
+            source_stats = {}
+            for doc_id, meta in merged_metadata.items():
+                source = meta.get('source', 'unknown')
+                source_stats[source] = source_stats.get(source, 0) + 1
+            
+            print("📊 소스별 문서 통계:")
+            for source, count in source_stats.items():
+                print(f"  - {source}: {count}개")
+            
+        except Exception as e:
+            print(f"❌ ChromaDB 메타데이터 재구성 중 오류: {e}")
     
     def _compute_document_hash(self, content: str, metadata: Dict[str, Any]) -> str:
         """문서의 해시값을 계산합니다."""
@@ -138,32 +231,37 @@ class ChromaIndexManager:
                     self.document_metadata[doc_id] = {
                         'content_hash': doc_hash,
                         'last_updated': datetime.now().isoformat(),
-                        'source': doc.metadata.get('source'),
-                        'title': doc.metadata.get('title', 'Unknown')
+                        'source': doc.metadata.get('source', 'unknown'),
+                        'title': doc.metadata.get('title', doc.metadata.get('source', 'Unknown')),
+                        'page_id': doc.metadata.get('page_id'),
+                        'indexed_at': doc.metadata.get('indexed_at')
                     }
             else:
-                print(f"➕ 새 문서 감지: {doc_id}")
+                print(f"🆕 새 문서 감지: {doc_id}")
                 new_or_updated_docs.append(doc)
                 self.document_metadata[doc_id] = {
                     'content_hash': doc_hash,
                     'last_updated': datetime.now().isoformat(),
-                    'source': doc.metadata.get('source'),
-                    'title': doc.metadata.get('title', 'Unknown')
+                    'source': doc.metadata.get('source', 'unknown'),
+                    'title': doc.metadata.get('title', doc.metadata.get('source', 'Unknown')),
+                    'page_id': doc.metadata.get('page_id'),
+                    'indexed_at': doc.metadata.get('indexed_at')
                 }
         
-        # 삭제된 문서 찾기 (현재 소스에서)
-        source = documents[0].metadata.get('source') if documents else None
-        deleted_doc_ids = []
-        if source:
-            for doc_id in list(self.document_metadata.keys()):
-                if (self.document_metadata[doc_id].get('source') == source and 
-                    doc_id not in current_doc_ids):
-                    print(f"➖ 삭제 감지: {doc_id}")
-                    deleted_doc_ids.append(doc_id)
-                    del self.document_metadata[doc_id]
+        # 삭제된 문서 확인 (현재 문서 목록에 없는 기존 문서들)
+        # 하단의 '삭제된 문서 확인' 부분을 소스 범위로 한정
+        # 그리고 여기서는 '가능성 후보'만 반환하고 실제 삭제 여부는 sync_source에서 full_scan 여부로 결정
+        existing_doc_ids = set(self.document_metadata.keys())
+        current_doc_ids = set(current_doc_ids)  # 위에서 수집됨
+        # 같은 source만 비교
+        existing_same_source = {doc_id for doc_id, meta in self.document_metadata.items()
+                                if meta.get('source') == (documents[0].metadata.get('source') if documents else None)}
+        deleted_doc_ids = list(existing_same_source - current_doc_ids)
         
-        # 메타데이터 저장
-        self._save_metadata()
+        if deleted_doc_ids:
+            print(f"🗑️ 삭제된 문서 감지: {len(deleted_doc_ids)}개")
+            for doc_id in deleted_doc_ids:
+                print(f"  - {doc_id}")
         
         return new_or_updated_docs, deleted_doc_ids
     
@@ -225,17 +323,37 @@ class ChromaIndexManager:
                 self.vectorstore.add_documents(chunks)
                 print(f"✅ {doc_id}: {len(chunks)}개 청크 추가됨")
     
-    def sync_source(self, source: str, documents: List[Document], chunk_size: int = 1000, chunk_overlap: int = 200):
-        """특정 소스의 모든 문서를 동기화합니다."""
-        print(f"🔄 {source} 소스 동기화 시작...")
-        
-        # 소스별로 문서 메타데이터 업데이트
-        for doc in documents:
-            doc.metadata['source'] = source
-            doc.metadata['sync_timestamp'] = datetime.now().isoformat()
-        
-        # 문서 추가/업데이트
-        self.add_documents(documents, chunk_size, chunk_overlap)
+    def sync_source(self, source: str, documents: List[Document], full_scan: bool = False):
+        """
+        source에서 수집한 documents를 동기화.
+        - full_scan=True: 이번 배치가 소스의 '전체 스냅샷'일 때만 기존-현재 차집합을 삭제로 간주
+        - full_scan=False: 증분 수집. 삭제는 수행하지 않음.
+        """
+        if not documents:
+            return
+
+        # 기존 코드: 업데이트/신규 판단
+        new_or_updated_docs, deleted_doc_ids = self.check_document_updates(documents)
+
+        # 수정: 증분 모드에서는 삭제 금지
+        if not full_scan:
+            deleted_doc_ids = []
+
+        # 삭제 수행
+        if deleted_doc_ids:
+            try:
+                self.collection.delete(ids=deleted_doc_ids)
+                # 메타데이터 삭제 반영
+                for did in deleted_doc_ids:
+                    self.document_metadata.pop(did, None)
+                print(f"🗑️ {len(deleted_doc_ids)}개 문서 삭제 완료")
+            except Exception as e:
+                print(f"❌ 삭제 중 오류: {e}")
+
+        # 신규/업데이트 문서 upsert
+        # (기존 add_documents 등 사용)
+        self.add_documents(new_or_updated_docs)
+        self._save_metadata()
         
         print(f"✅ {source} 소스 동기화 완료")
     
