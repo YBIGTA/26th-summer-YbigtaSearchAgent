@@ -169,3 +169,5 @@ tmp/
 
 myenv/
 node_modules
+unified_chroma_db
+data/indexes/chroma_db
