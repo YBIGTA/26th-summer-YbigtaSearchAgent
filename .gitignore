@@ -189,7 +189,5 @@ quick-*.ps1
 setup.ps1
 start-backend-only.ps1
 alternative-package.json
-requirements-*.txt
-!requirements.txt
 
 myenv/

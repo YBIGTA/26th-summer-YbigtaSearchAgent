@@ -439,7 +439,11 @@ class MeetingAnalysisPipeline:
     
     async def _store_results(self, job_id: str, results: Dict[str, Any]) -> Dict[str, Any]:
         """결과 저장 - 직접 데이터베이스에 저장"""
+        print(f"🔄 _store_results 호출됨: job_id={job_id}")
+        logger.info(f"🔄 _store_results 호출됨: job_id={job_id}")
+        
         if not self.db_engine:
+            print("❌ 데이터베이스 엔진이 없습니다")
             logger.warning("데이터베이스 엔진이 설정되지 않아 저장을 건너뜁니다.")
             return {"saved": False, "error": "데이터베이스 엔진이 없음"}
             
