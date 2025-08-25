@@ -153,21 +153,46 @@ logs/
 temp/
 tmp/
 
-# Data files (선택적 - 필요에 따라 주석 해제)
-# data/
-# *.csv
-# *.json
-# *.xlsx
-# *.xls
+# Data files and databases
+# data/db/
+# data/cache/
+# data/indexes/
+# *.db
+# *.sqlite
 
-# Model files (선택적 - 필요에 따라 주석 해제)
-# models/
-# *.pth
-# *.pt
-# *.h5
-# *.pb
+# Audio files (large)
+data/audio/*.wav
+data/audio/*.mp3
+data/audio/*.m4a
+data/audio/*.mp4
+
+# Node.js
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# React build
+build/
+
+# Electron build
+dist/
+
+# Cleanup and fix scripts
+cleanup*.ps1
+fix-*.ps1
+diagnose-*.ps1
+quick-*.ps1
+setup.ps1
+start-backend-only.ps1
+alternative-package.json
+requirements-*.txt
+!requirements.txt
 
 myenv/
 
-# 모든 chroma_* 디렉터리 무시
-chroma_*/
+# ChromaDB
+data/indexes/
+data/unified_chroma_db/
+
