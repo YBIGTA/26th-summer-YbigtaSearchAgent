@@ -1123,6 +1123,18 @@ async def get_meeting_report(job_id: str, format: str = "json"):
     }
 
 
+@app.get("/api/meetings")
+async def list_meetings():
+    """진행 중/완료된 회의 분석 작업 ID 목록 반환"""
+    if not meeting_pipeline:
+        raise HTTPException(status_code=503, detail="회의 분석 파이프라인이 초기화되지 않았습니다.")
+    try:
+        jobs = meeting_pipeline.list_jobs() if hasattr(meeting_pipeline, "list_jobs") else []
+        return {"jobs": jobs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
