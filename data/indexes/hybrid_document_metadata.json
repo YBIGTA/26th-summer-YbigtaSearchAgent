@@ -1,0 +1,1732 @@
+{
+  "notion:1ad8360423c980ed9938e8e43f932393": {
+    "content_hash": "3d2763fb08b8cc61ac3ff9cd9616a56d537e36186ba388cca535de770ffb99b7",
+    "last_updated": "2025-08-25 06:29:34",
+    "source": "notion",
+    "title": "Data Science",
+    "chunk_count": 1,
+    "original_source": "notion_page_1ad8360423c980ed9938e8e43f932393",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287121"
+  },
+  "notion:533f81f19ffb478391605339af4394e0": {
+    "content_hash": "53fe1d907162f1be4c5b34cecf51d32eac6bd6c6f6f367b4d2074de5abb5c96f",
+    "last_updated": "2025-08-25 06:29:33",
+    "source": "notion",
+    "title": "Data Engineering",
+    "chunk_count": 388,
+    "original_source": "notion_page_533f81f19ffb478391605339af4394e0",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287129"
+  },
+  "notion:94961447e70841a9b5d5851155fc84d6": {
+    "content_hash": "8ab20c288ed89f275d826f6fab62654248fc56d90d36269092862ac17086debe",
+    "last_updated": "2025-08-25 06:29:33",
+    "source": "notion",
+    "title": "YBIGTA",
+    "chunk_count": 6,
+    "original_source": "notion_page_94961447e70841a9b5d5851155fc84d6",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287130"
+  },
+  "notion:eb317c1ba96640a4bf591274c61c1181": {
+    "content_hash": "e38fb740d5beac5afc4cdbf12bda52729a15daf962720522165af50fc87c06b0",
+    "last_updated": "2025-08-25 06:29:33",
+    "source": "notion",
+    "title": "CONFERENCE : 컨퍼런스",
+    "chunk_count": 1,
+    "original_source": "notion_page_eb317c1ba96640a4bf591274c61c1181",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287132"
+  },
+  "1회차) Github 사전 과제.pdf": {
+    "content_hash": "8fb5fa6e45e45c10bf77ffb15ad75e6eb8871062a0d7e5b2e775435d45af618d",
+    "last_updated": "2025-08-25 06:29:20",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "1회차) Github 사전 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287133"
+  },
+  "25-2 교육세션 OT.pdf": {
+    "content_hash": "c3f5e44097e18d11c972c2bd7f532622fe9c09344efc84793a4baf74d786caa6",
+    "last_updated": "2025-08-25 06:29:20",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "25-2 교육세션 OT.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287134"
+  },
+  "25-2 안다르커피 제휴안내서 발제.pdf": {
+    "content_hash": "79b96926927e4aa2af60fb107fd583ab821cac0236d8ec7267291b91fd750789",
+    "last_updated": "2025-08-25 06:29:20",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "25-2 안다르커피 제휴안내서 발제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287135"
+  },
+  "unified:637acc4f": {
+    "content_hash": "59ecb8abed8a67c96e475cb90bc0ae532c0020845ae9871a3a9ae6b6b3742c8b",
+    "last_updated": "2025-08-25 06:29:20",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 46,
+    "original_source": "250704 OT.pptx.pptx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287137"
+  },
+  "0708-2 CS기초.pdf": {
+    "content_hash": "83cc2d3668b166074123ec5353d706af2f4a05c84206f687d1951abe4b8186b5",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 34,
+    "original_source": "0708-2 CS기초.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287139"
+  },
+  "0708-3 Git.pdf": {
+    "content_hash": "1f0c09ff69543c9771f9ddf9ce7b205d63709abd4231d30166499b2fc98962ba",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 26,
+    "original_source": "0708-3 Git.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287140"
+  },
+  "0711-1 네트워크.pdf": {
+    "content_hash": "9e3befd1263ef5c48fc318504c65cf4ab3c717975f5749f625b2e61ad8f7bf38",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 21,
+    "original_source": "0711-1 네트워크.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287141"
+  },
+  "0711-2 WEB.pdf": {
+    "content_hash": "670d57e8f06c7964b1f73779f88ac8841f477b9905f831f7d37c94ebabeed72b",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 13,
+    "original_source": "0711-2 WEB.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287142"
+  },
+  "0715-2 크롤링.pdf": {
+    "content_hash": "ef77996a55f61f4e1a7af4d9c9d9a7992d9922b108bb5694c375a4e88766a89a",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 29,
+    "original_source": "0715-2 크롤링.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287143"
+  },
+  "0718-1 EDA&FE.pdf": {
+    "content_hash": "041c6879e0b1a24d289119467743b549e7090266443e70529e96ce2ff2854981",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 28,
+    "original_source": "0718-1 EDA&FE.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287144"
+  },
+  "0718-2 시각화.pdf": {
+    "content_hash": "15c8bbc5c4f534438e85dd39809e8a52ad49c17b16c6ae0141f345a394930489",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 46,
+    "original_source": "0718-2 시각화.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287145"
+  },
+  "0722-1 DMP.pdf": {
+    "content_hash": "4fa208918436eb3a2a43844833ddc5385a67f073dee35510456f9613a07e6b42",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 19,
+    "original_source": "0722-1 DMP.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287146"
+  },
+  "0722-2 DL.pdf": {
+    "content_hash": "3e7ee651299d1e794dfcde5569d36ed47ce53ec25aa5102bdb909adc7d41a44e",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 33,
+    "original_source": "0722-2 DL.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287147"
+  },
+  "[1회차] CS 기초 과제.pdf": {
+    "content_hash": "14b828dd4f11a2539c1baff5679278fba3858e64ac947619973a0bf3587076c8",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "[1회차] CS 기초 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287148"
+  },
+  "[1회차] CS기초 사전 과제.pdf": {
+    "content_hash": "e0511b0631cb8ddbf80a39688a22d7d097118de7f6230c011218d0072e546f1b",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "[1회차] CS기초 사전 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287149"
+  },
+  "[2회차] WEB 과제.pdf": {
+    "content_hash": "988f80c75887e57daa51879b53e812b8b86d4a7e988c7239ef1663b07ca20f48",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[2회차] WEB 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287150"
+  },
+  "[2회차] 네트워크 과제.pdf": {
+    "content_hash": "e14026a034c2a4fcbd52522bd1a27dbfe24db1ba883925c213da4d7471fe546b",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "[2회차] 네트워크 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287151"
+  },
+  "[3회차] 크롤링 과제.pdf": {
+    "content_hash": "61d9acc7d040ebbb0777f889ea9398913513ef18d10a72c26690629398d40145",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "[3회차] 크롤링 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287152"
+  },
+  "[4회차] EDA&FE, 시각화 과제.pdf": {
+    "content_hash": "95912c12d3ea2a38e67ef3970df78cb843b6ead0154ad54e80410d23dd7e5363",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "[4회차] EDA&FE, 시각화 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287153"
+  },
+  "[4회차] Git 과제.pdf": {
+    "content_hash": "474e1a14e0ac2033fa74d29a9dd0a485f530c1648236cd464fe00d7f0f3d3255",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "[4회차] Git 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287154"
+  },
+  "[5회차] DL 과제.pdf": {
+    "content_hash": "eb5e09e67c730f428540b24ee4b22cc4e39160b3b693659ef5a9717942f7057c",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "[5회차] DL 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287165"
+  },
+  "[참고자료] 협업팁.pdf": {
+    "content_hash": "008c257f43ec954e0563a28383f9d23232fd996b88b5e3647705b4a5c6e78f01",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[참고자료] 협업팁.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287166"
+  },
+  "unified:48176e9a": {
+    "content_hash": "cb05aa8f90d092c0027a0a7435d42543f94451e79df8b042b2057faa6152a5dc",
+    "last_updated": "2025-08-25 06:29:19",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "links.txt",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287167"
+  },
+  "0725-1 NLP.pdf": {
+    "content_hash": "f57f1c63ff5261b586cfb6dc079a7bd2adb866d20812776194ad934beb307740",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 54,
+    "original_source": "0725-1 NLP.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287168"
+  },
+  "0725-2 CV.pdf": {
+    "content_hash": "3fd13dcd4d7e98944b53a2b9422d675438fd3afa331557b30a875541b867f70c",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 51,
+    "original_source": "0725-2 CV.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287169"
+  },
+  "0729-1 LLM.pdf": {
+    "content_hash": "7e5d525061ba23562d9b27ec1b0a8e9e8666ae3f0b458aebd874b5c2fd8c2741",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 38,
+    "original_source": "0729-1 LLM.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287170"
+  },
+  "0729-2 Docker.pdf": {
+    "content_hash": "58aeb9c53e91c0922ce1c3baaede333bcbf35e18d2a7ee6ad675af3425292e4f",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 71,
+    "original_source": "0729-2 Docker.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287171"
+  },
+  "0801-2 AWS.pdf": {
+    "content_hash": "5a90d9d0eec80b4ce295bfdc36bc15cb46ab0b45b16898da7571e90a438b9df4",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 21,
+    "original_source": "0801-2 AWS.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287172"
+  },
+  "[6회차] CV 과제.pdf": {
+    "content_hash": "f45f2fb83621563ed2f4ceec8b1ba9e804626987cd5db6c559513285e69d4152",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "[6회차] CV 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287173"
+  },
+  "[6회차]_NLP_과제.pdf": {
+    "content_hash": "239a88aa850f9da423ce106ad99f0b42c8e8bce122e53e6552c396254470f1a6",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "[6회차]_NLP_과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287174"
+  },
+  "[7회차] LLM 과제.pdf": {
+    "content_hash": "40933eb4eb48e310cffd0f970fac65e5fc9ceda6877f56ca7e38e70ad49e4f32",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[7회차] LLM 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287175"
+  },
+  "[8회차] AWS DB Docker 과제.pdf": {
+    "content_hash": "c2f64959bf991694fd790abfa4461a6400029bb64374f49278b37ee120318142",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 12,
+    "original_source": "[8회차] AWS DB Docker 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287176"
+  },
+  "[8회차] DB 실습.pdf": {
+    "content_hash": "742ac77574f22861f1a2f64a2fe0cd3ccefdb5062f423e759967cd9394c10672",
+    "last_updated": "2025-08-25 06:29:18",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[8회차] DB 실습.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287177"
+  },
+  "(YBIGTA) 제작 마스터시트 명세서 .xlsx": {
+    "content_hash": "2cef588bcd1549c720a20669e891029dab8f7f459c8864aba4f74fc36a86649f",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "(YBIGTA) 제작 마스터시트 명세서 .xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287177"
+  },
+  "0801-1 DB.pdf": {
+    "content_hash": "b56b7e085627254be2da6979496652b8e6f44f6e49916fa28745fe39a9acfac4",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 50,
+    "original_source": "0801-1 DB.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287178"
+  },
+  "0805-1 RAG.pdf": {
+    "content_hash": "2b98350189520da0cace735cf06d891164af580c226e5afb9e3ae14633fb9455",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 32,
+    "original_source": "0805-1 RAG.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287179"
+  },
+  "0805-2 AI Agent.pdf": {
+    "content_hash": "216b9b3d0068e68135b1ff99f8c7da646f3ff4232d2836de7f050077e01a602d",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 42,
+    "original_source": "0805-2 AI Agent.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287180"
+  },
+  "27기 신입 기수 프로젝트_백준 헬퍼-1.pdf": {
+    "content_hash": "f19667344fff9b76d7b5a887cdfdc5c88638c1054e8db0adfebfb2fe2527307d",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "27기 신입 기수 프로젝트_백준 헬퍼-1.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287181"
+  },
+  "DA 팀세션.pdf": {
+    "content_hash": "0799b8d44cda7fbfa197ae5de30da9d4929e2c5a9901c8efe62a574df89cc84b",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 16,
+    "original_source": "DA 팀세션.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287182"
+  },
+  "DE OpenSession.pdf": {
+    "content_hash": "e0490b961b878c087e4e67113fc5b37f4dd7b7f1c3be7073a3d47489c7bf86bb",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 12,
+    "original_source": "DE OpenSession.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287185"
+  },
+  "DS Open Session.pdf": {
+    "content_hash": "4c3f6983255c6ebe5e763cd3dba4efc7b37a9505cbec1267e7ec28fac645dc46",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 20,
+    "original_source": "DS Open Session.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287186"
+  },
+  "Speech2SQL_presentation.pdf": {
+    "content_hash": "6c640c33cc1922dd26898e978db6df6eba965c9f3d19275bdd7d8b6e90d077c2",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "Speech2SQL_presentation.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287186"
+  },
+  "YBIGTA_신기플_게임추천_중간발표.pdf": {
+    "content_hash": "e139fae1281920e649ba0f7d64e56c51f0092fc09cb7c4c3086257651d65d11b",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 25,
+    "original_source": "YBIGTA_신기플_게임추천_중간발표.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287187"
+  },
+  "Ybigta Kakao.pdf": {
+    "content_hash": "0e73ffd4b6b63b254bb690ed8f61576038a6b4356cb7c3d0b292ca641a9c468c",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 32,
+    "original_source": "Ybigta Kakao.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287188"
+  },
+  "[3회차] 기초통계_ML 과제.pdf": {
+    "content_hash": "f008f279eab7ae8d4347eb3f87d6bb9b4d459de79b0857604346349d589bfd9f",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 10,
+    "original_source": "[3회차] 기초통계_ML 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287189"
+  },
+  "[9회차] RAG AGENT 과제 명세서.xlsx": {
+    "content_hash": "996924fa60085f12880eedbc0f8f43572a20f3cf0676d0786bc009119f1bce00",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "[9회차] RAG AGENT 과제 명세서.xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287190"
+  },
+  "[9회차] RAG_Agent_과제.pdf": {
+    "content_hash": "347f06a561376adb203cbd403d2f8a3bccf10e4c60501c49fa7b5b3127f4dff9",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "[9회차] RAG_Agent_과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287191"
+  },
+  "[YBIGTA] 백준 헬퍼 신입기수 프로젝트 명세서.xlsx": {
+    "content_hash": "42b476050dddfa87442c9d904401130f90c6f19e7c83273b7d14382fdd43b146",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[YBIGTA] 백준 헬퍼 신입기수 프로젝트 명세서.xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287192"
+  },
+  "[YBIGTA] 신기플_게임추천_명세서.xlsx": {
+    "content_hash": "e109a2b5413ccf0e910864d3e33f2a0c6ec929daba54212ee3ed71268615747e",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "[YBIGTA] 신기플_게임추천_명세서.xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287193"
+  },
+  "[YBIGTA] 제작 마스터시트 명세서  (2).xlsx": {
+    "content_hash": "1c1ac15f805089d01a132353c15e9d21bb88846e16ea955ba255864e1a8a9d1f",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "[YBIGTA] 제작 마스터시트 명세서  (2).xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287194"
+  },
+  "[YBIGTA] 제작 마스터시트 명세서  (3).xlsx": {
+    "content_hash": "7d24bfa16550881c19adfc4380cd06f22844c7f8112ee12887870f572d83e15f",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "[YBIGTA] 제작 마스터시트 명세서  (3).xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287194"
+  },
+  "[신기플]카카오톡-PPT.pdf": {
+    "content_hash": "1119de71c059917c35bc96f3d325e646578fdebe28a6d5d5c03ba00ec01a8dc2",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 10,
+    "original_source": "[신기플]카카오톡-PPT.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287195"
+  },
+  "[신기플]카카오톡-명세서.xlsx": {
+    "content_hash": "128a3ef26e8606cfdfe47355759eeed8ea4c252ac4a5e94db7215d940dc9ac5c",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "[신기플]카카오톡-명세서.xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287196"
+  },
+  "unified:fd5425cc": {
+    "content_hash": "854296a35edfb7bd76c3668ba52067b19dca24b069119fd645bee29ffb847f55",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "repo.txt",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287197"
+  },
+  "ybigta 중간발표_AI 기반 과외 피드백 자동 생성 시스템.pdf": {
+    "content_hash": "5bee4c453104f482eb3757863286a70b892074b166d73f7ee414ca3a37936c50",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "ybigta 중간발표_AI 기반 과외 피드백 자동 생성 시스템.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287198"
+  },
+  "와빅 신기플 중간발표.pdf": {
+    "content_hash": "117d010523eaa92ef745682c65bd82ce2a297ca56e678cf9405f5c4154633ee6",
+    "last_updated": "2025-08-25 06:29:17",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "와빅 신기플 중간발표.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287199"
+  },
+  "0708-1  Python&개발환경.pdf": {
+    "content_hash": "933510e0d9769f3567ac4f592e1bdc709d4b54108dd3f0ac1f8b9affce013386",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 94,
+    "original_source": "0708-1  Python&개발환경.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287200"
+  },
+  "0715-1 기초통계_ML.pdf": {
+    "content_hash": "bc108f312e8296ce0184443141918b57b9a8d31248dcfa1a63215280a38cae73",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 53,
+    "original_source": "0715-1 기초통계_ML.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287201"
+  },
+  "Agent, RAG.pdf": {
+    "content_hash": "4ed0afc6c521813891c432e62e77e0e4b33a888b1ebc5f8d6f77e0c2d6cd8846",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 14,
+    "original_source": "Agent, RAG.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287202"
+  },
+  "DA 팀 내규 개정안 ver1.0.docx": {
+    "content_hash": "e76cd782e49a6d647f0a424559184c4efc055e8afbd96ed5548776eea72dd787",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "DA 팀 내규 개정안 ver1.0.docx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287203"
+  },
+  "DE팀 내규 개정안 ver1.0.docx": {
+    "content_hash": "10f5d4c58e43a63a6cbe49bc6495f71a822bfa809875f2062a2634269b71d6ef",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "DE팀 내규 개정안 ver1.0.docx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287204"
+  },
+  "DS팀 내규 개정안 ver1.0.docx": {
+    "content_hash": "e726a4e96b4460892c123fa69770a593e4a308431def77f57017c9a94608dccc",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "DS팀 내규 개정안 ver1.0.docx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287205"
+  },
+  "Dataiku.pdf": {
+    "content_hash": "df0cfa54d3a5e9c00c253bae56e9b73cabb03e90413cfa7482c44b95247cdcde",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 47,
+    "original_source": "Dataiku.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287206"
+  },
+  "MLOps.pdf": {
+    "content_hash": "c4235bc1e3f3ad7b327b175b421c1163287169114ff63eef5b29a16b9844e748",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 31,
+    "original_source": "MLOps.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287207"
+  },
+  "MLflow_실습.pdf": {
+    "content_hash": "bb878bb04c0feec34291a5a7065fb16bc4bc8e01242cd7acab678bd7fceadb8f",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 12,
+    "original_source": "MLflow_실습.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287208"
+  },
+  "YBIGTA 회칙 (10차 개정, 2025.03) (1).docx": {
+    "content_hash": "87d911bb2d7159014a1f4a4f48633c9853373d026c0e652dc63a13595deaf908",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 18,
+    "original_source": "YBIGTA 회칙 (10차 개정, 2025.03) (1).docx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287209"
+  },
+  "[1회차] Python 과제.pdf": {
+    "content_hash": "5fc9f5ac7cb9f1bdbe711cad1b851bed7f7c0f6266af36273f333de8f9c89401",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "[1회차] Python 과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287210"
+  },
+  "[1회차] Python&개발환경 사전과제.pdf": {
+    "content_hash": "b4a5210402d1fd86fb04092793efcd3a4791860921947c0bec44f0175113c241",
+    "last_updated": "2025-08-25 06:29:16",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "[1회차] Python&개발환경 사전과제.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287211"
+  },
+  "LANGGRAPH.pdf": {
+    "content_hash": "4020312c7ec3c85faaa20028ef823f7791013086b3a69f25cfb03a45d44d9870",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 12,
+    "original_source": "LANGGRAPH.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287211"
+  },
+  "Langchain(RAG 구현).pdf": {
+    "content_hash": "62e2e8dc9da0e5d77aee6df81f64d07a32e3b7fe8084b4d58e940505fe2b27e5",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 18,
+    "original_source": "Langchain(RAG 구현).pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287212"
+  },
+  "Multiagent System.pdf": {
+    "content_hash": "3fac9d92e06395cd1657d0fd10d9addf1e9e6184fe91353ccb1b1ef3f0235b02",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 18,
+    "original_source": "Multiagent System.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287213"
+  },
+  "RL 기초.pdf": {
+    "content_hash": "43f5ce248c9bf6e4a8b61d88f04eec998bfd215113e2e36842ca76aec76bc3cf",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 42,
+    "original_source": "RL 기초.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287214"
+  },
+  "[YBIGTA] 와빅 DB 유사 프로젝트 검색 에이전트.xlsx": {
+    "content_hash": "10c15a70fa06d575bb138d31e3a787eae7dd5b99220227d74b4cb306aa8f0f52",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "[YBIGTA] 와빅 DB 유사 프로젝트 검색 에이전트.xlsx",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287215"
+  },
+  "unified:cc6a9026": {
+    "content_hash": "3f138d2109b33482bd3e0b4d184def32289648ec689abdee23a1df31aeb0dc9d",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 17,
+    "original_source": "examplemcp.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287216"
+  },
+  "unified:9db04367": {
+    "content_hash": "08d40d9e813ae4056c72e3e506e6bc549f98aa5c2c4b5062493b98a0a4546ae4",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "langgraph1.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287217"
+  },
+  "unified:97d545a6": {
+    "content_hash": "f66e3b9e95b3d80e93837639e15c767b1e2f04c2ed9b059743b9e2a7d6b6cd62",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "langgraph2.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287218"
+  },
+  "unified:0b081c4c": {
+    "content_hash": "e63663ca31e26094ffbc3610dda869c5fe5e7e7c78d3e5f3d6df2f76b0b0789e",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "langgraph3.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287219"
+  },
+  "unified:be5b50fb": {
+    "content_hash": "caeee270e8e88fad7fd8e425618d24ddd0d1585d311e73dde596d99299b8b10f",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "langgraph4.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287220"
+  },
+  "n8n.pdf": {
+    "content_hash": "82d9f1c04bff7fb337ac7f7d5c8dfa66a8fc11a32163cfb11ba3dbf255765419",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "n8n.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287221"
+  },
+  "여름방학 프로젝트 발제 - 강정묵.pdf": {
+    "content_hash": "cccbf95dc444c4167f8466feb6c0be219789047f5e9669138935bd532ee742fa",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 13,
+    "original_source": "여름방학 프로젝트 발제 - 강정묵.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287222"
+  },
+  "여름방학 프로젝트 발제 - 김정인.pdf": {
+    "content_hash": "cd9592bddc28eaf31f479d17c2ed98369fdee0254db302c06f571befa99b5f9e",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 16,
+    "original_source": "여름방학 프로젝트 발제 - 김정인.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287223"
+  },
+  "공통세션 2차시  강화학습 -심화.pdf": {
+    "content_hash": "fb7fd4a1b7e44774c394f4524ab0d557d5b343f94769eec074b5fe3472e362ce",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 17,
+    "original_source": "공통세션 2차시  강화학습 -심화.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287223"
+  },
+  "unified:ce0d4b87": {
+    "content_hash": "b7e6f1c03f447f066e11cf0712cd6036aca153bab59de70bd1e9c9d329023851",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "랭그래프 실습.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287225"
+  },
+  "unified:5a05221b": {
+    "content_hash": "41b65028d3f38641464e85dc61270a89156591396d902069b7969c5b4a5577ef",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "unknown",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "랭그래프 정답.py",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287226"
+  },
+  "여름방학 프로젝트 발제 - 김형진.pdf": {
+    "content_hash": "5f298029e926df02a46c955fd061d305cbd0fd17a03393d9317fa810fc0e6b75",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "여름방학 프로젝트 발제 - 김형진.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287227"
+  },
+  "여름방학 프로젝트 발제 - 엄윤희.pdf": {
+    "content_hash": "f0c0de7464f1b018104aff165a1c2edb9af0b7d66c45242997926fe733882321",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "여름방학 프로젝트 발제 - 엄윤희.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287228"
+  },
+  "여름방학 프로젝트 발제 - 이재영.pdf": {
+    "content_hash": "1f1b3915a336eed708a374f42d354ace9ae1e4f06f12984b973ebbad4e341d18",
+    "last_updated": "2025-08-25 06:29:15",
+    "source": "file",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "여름방학 프로젝트 발제 - 이재영.pdf",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287229"
+  },
+  "github:github_.github": {
+    "content_hash": "dd6cce77ff725887db839c6b8516b907a69f70461dc7cc33b24bebad868beda5",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/.github",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287230"
+  },
+  "github:github_24th-conference-gustomate": {
+    "content_hash": "b884e688de752e8d093a3bf8d98415451ba211ffe5ed4d3a14384230c91aad2f",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "https://github.com/YBIGTA/24th-conference-gustomate",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287231"
+  },
+  "github:github_24th-conference-text2storyboard": {
+    "content_hash": "aa19839e6049aa97c9fa0fce4eb759a9c9656d0a30b5bc9dd048bb6812a1d50a",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/24th-conference-text2storyboard",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287232"
+  },
+  "github:github_24th-conference-tripbeats": {
+    "content_hash": "f85fb45ec7e605314f85319a94908023e9b49b8b8d677e0f9a7e52604f46a453",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "https://github.com/YBIGTA/24th-conference-tripbeats",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287233"
+  },
+  "github:github_24th-conference-us": {
+    "content_hash": "320d5e2fe3152d1f784c3fee51e8aa26963295018a5d050d261af6da9e636de5",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/24th-conference-us",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287234"
+  },
+  "github:github_24th-conference-yoso": {
+    "content_hash": "f82d9eb44dddc43e0815960882349b6d9c8e2cccff92a66aa8d4f8c8706d13d6",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/24th-conference-yoso",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287235"
+  },
+  "github:github_24th-da-projects": {
+    "content_hash": "3f9675df1173b6a1a2c5a0645bd5d57996a6a550c032b0b85d30ac8c1b0e8c8b",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/24th-da-projects",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287236"
+  },
+  "github:github_24th-de-highlighter": {
+    "content_hash": "8d0807a0cff2077b087bc5e082871e9fc82fb085891bb87f23812f76f47e7348",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/24th-de-highlighter",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287237"
+  },
+  "github:github_24th-de-juga": {
+    "content_hash": "c1c70115bd7cf74f2ff065c2599e64f601c571b0459aaf7ce80295219f9b238d",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/24th-de-juga",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287238"
+  },
+  "github:github_24th-project-demystifying-wall-street": {
+    "content_hash": "97bbce093008bb22bf07b77bcd694e93ee33d97fc29982e3f1b5294d897461d4",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/24th-project-demystifying-wall-street",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287238"
+  },
+  "github:github_24th-project-jeju-energy-prediction": {
+    "content_hash": "838b0a3942a034a6b74a062445241742dec4b499c35dab824c1af40057fba412",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/24th-project-jeju-energy-prediction",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287239"
+  },
+  "github:github_24th-project-mbti-prediction": {
+    "content_hash": "7d047d5fef8691ad1d5b89d95bdce41d10483d53563a4f3a49eeeb63156f36c9",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/24th-project-mbti-prediction",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287240"
+  },
+  "github:github_24th-project-what-the-food": {
+    "content_hash": "7e4c6d03f175b79667a8a6ca52469a78424da229584bc9a73caf791bcecd0fb4",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/24th-project-what-the-food",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287241"
+  },
+  "github:github_25th-conference-EvenT": {
+    "content_hash": "3b708314a78a447e620d2010b83617d19f670f6fb957e78e7fc7fedcab7bc652",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/25th-conference-EvenT",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287242"
+  },
+  "github:github_25th-conference-NoticeHub": {
+    "content_hash": "81857b384d5246dac37e2ce99b2dbec5cf78104f81faec98e1e880fe7c12c3b9",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/25th-conference-NoticeHub",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287243"
+  },
+  "github:github_25th-conference-PosePal": {
+    "content_hash": "68854e6654061a8ca185d7cb36eb070763dcdb93b16832fbb54c62f6d7592929",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/25th-conference-PosePal",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287244"
+  },
+  "github:github_25th-conference-SantaTellMe": {
+    "content_hash": "0cf04914efce62d6143eb722d67d90815e70b360e775ee254688de9b43a59a57",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 10,
+    "original_source": "https://github.com/YBIGTA/25th-conference-SantaTellMe",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287245"
+  },
+  "github:github_25th-conference-crowdworks": {
+    "content_hash": "a6a3b31c8d3091b3c9e07dbe84f7b385fca982efb066e80cd15dea114f3ae19d",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/25th-conference-crowdworks",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287246"
+  },
+  "github:github_25th-conference-fakebusters": {
+    "content_hash": "23e12d9de57fc22ffd7c833ef0614ef32662714bb07c14349d235b45453423d1",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/25th-conference-fakebusters",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287247"
+  },
+  "github:github_25th-conference-ori-gogi": {
+    "content_hash": "19b2141f82c5ea58f0b481f8fbbb65c030a28f98fd8d1d85e62e0e6a184e672b",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/25th-conference-ori-gogi",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287248"
+  },
+  "github:github_25th-da-outlier-detection": {
+    "content_hash": "60852d40400a05de0917e283aefaabc599594c293757338d79486b483582f3ef",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/25th-da-outlier-detection",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287249"
+  },
+  "github:github_25th-project-BitcoinPredictor": {
+    "content_hash": "1e5de465c6c17fec1c4bcf1f72bf602bbf2786317c42247a417ac7f19419f4a5",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/25th-project-BitcoinPredictor",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287250"
+  },
+  "github:github_25th-project-BubbleFreeNewsletter": {
+    "content_hash": "c41502bc8f06632cddbc8e30222c67f9a95f63dd843604d8411599fa6321e883",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/25th-project-BubbleFreeNewsletter",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287250"
+  },
+  "github:github_25th-project-EverytimeAnalyzer": {
+    "content_hash": "e79aa7414617a241919a60ca2e72ccdaad36bb7c81d2eaf1827354407254ff3d",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/25th-project-EverytimeAnalyzer",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287251"
+  },
+  "github:github_25th-project-InsideOutDJ": {
+    "content_hash": "43cc9a27d963200278f24b1b502bcdaf8d5c2d4588c7fa2f46f2d55f8383212b",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/25th-project-InsideOutDJ",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287252"
+  },
+  "github:github_25th-project-OutfitToCafe": {
+    "content_hash": "d15ab6e00433ec1f90402023e463d1605fb31391263e3d32d62c2635646ccacb",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/25th-project-OutfitToCafe",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287253"
+  },
+  "github:github_26th-DS-summer": {
+    "content_hash": "e0c80799fe565852359f4f6fb8993b1a5d40be082c7729d0061c5fcc6c47dd4d",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-DS-summer",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287254"
+  },
+  "github:github_26th-conference-Legent": {
+    "content_hash": "85a7cdd9572eccb198ee34684f146bfd2a9aef5796455b5179a9b6131345e452",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 63,
+    "original_source": "https://github.com/YBIGTA/26th-conference-Legent",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287255"
+  },
+  "github:github_26th-conference-MusicContextProtocol": {
+    "content_hash": "d366aa11655e11dc6c0081a4e835a038c9e1384b873d3ce6811c86723ec0ed62",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-conference-MusicContextProtocol",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287256"
+  },
+  "github:github_26th-conference-OneMaSol": {
+    "content_hash": "df07257a77f282a967423fbc13ca476aae16b6d9f886f888cf1ede2de3a6cb47",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/26th-conference-OneMaSol",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287257"
+  },
+  "github:github_26th-conference-Plantmate": {
+    "content_hash": "1607e9e37d98a28af6a0173d3442678e23edb1f867949d3a84a9fa1cac2e7b0f",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "https://github.com/YBIGTA/26th-conference-Plantmate",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287258"
+  },
+  "github:github_26th-conference-VisionCourt": {
+    "content_hash": "1dcd4b7f1ead8f7126e77d9c8065601d567065efa3d0e35a78267bb737c2d734",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/26th-conference-VisionCourt",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287259"
+  },
+  "github:github_26th-project-BookProfile": {
+    "content_hash": "fdaef80c406703069faa04129d449d62e834787af8902a861018f9a93e43ae5e",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-project-BookProfile",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287260"
+  },
+  "github:github_26th-project-IPO-ValueX": {
+    "content_hash": "ea02eb88f52f35ca7818a15e503ef115cb4bc0bfac20e51110fe9372901776d6",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/26th-project-IPO-ValueX",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287260"
+  },
+  "github:github_26th-project-JeMeChu": {
+    "content_hash": "6dd68734d99e210fa0db69f7ab27891c835fe48853bbc61927fc0b69be9f208e",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 9,
+    "original_source": "https://github.com/YBIGTA/26th-project-JeMeChu",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287261"
+  },
+  "github:github_26th-project-MindLog": {
+    "content_hash": "863c137a5c8e2e89d8c2378e20c4b1dcc8d711c08ac8486dacdce49674975fe4",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/26th-project-MindLog",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287262"
+  },
+  "github:github_26th-project-UniRent": {
+    "content_hash": "062dca25ce001746ae9b5ff5c569d52fa58a7e8f0541abe848b62ecd808c82c0",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-project-UniRent",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287263"
+  },
+  "github:github_26th-summer-MedicationAgent": {
+    "content_hash": "5d05b37fd4c345ab0ed580c5d6046f38ebacf90a04703daf82d000fdbb5407f7",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-summer-MedicationAgent",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287264"
+  },
+  "github:github_26th-summer-MindLog2": {
+    "content_hash": "39072557702e0522a7109250d9a719bd60c65e533dd07d61c355c0cd6a60ef54",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/26th-summer-MindLog2",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287265"
+  },
+  "github:github_26th-summer-NotebookLocal": {
+    "content_hash": "a4abfd40d3627194540adf7df1e53886dbc5c51a0992edbcf25455347000d070",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 16,
+    "original_source": "https://github.com/YBIGTA/26th-summer-NotebookLocal",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287266"
+  },
+  "github:github_26th-summer-ResearchAgent": {
+    "content_hash": "ddeec706bfa99ffddb80b03073ab847ab341cb90735de705a010e1c6437882d7",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/26th-summer-ResearchAgent",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287267"
+  },
+  "github:github_26th-summer-YbigtaSearchAgent": {
+    "content_hash": "bad425069f8d3d158681088ef95950cf0e3abf8e4c024f6bd617dc5bdc2dd6bc",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/26th-summer-YbigtaSearchAgent",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287268"
+  },
+  "github:github_27th-project-baekjoon": {
+    "content_hash": "823dc760db0aa765d2a85ec642d84cad62041819c0c97eb61be523b6baaec738",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 1,
+    "original_source": "https://github.com/YBIGTA/27th-project-baekjoon",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287269"
+  },
+  "github:github_27th-project-feedback": {
+    "content_hash": "f8f901376019d6fe8287ad2f9b265285a55b5244c68c9992a3970cbfa73a9e10",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/27th-project-feedback",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287270"
+  },
+  "github:github_27th-project-game": {
+    "content_hash": "0919bce6c6689baa0321de78409eefe4d558e525ac28770fa6f6105d5e4293f8",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "https://github.com/YBIGTA/27th-project-game",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287270"
+  },
+  "github:github_27th-project-kakao": {
+    "content_hash": "5597d0657500891f75c6a30df61453cb6f417c712eded0eed812f989cf5fe110",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/27th-project-kakao",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287271"
+  },
+  "github:github_27th-project-multimodal": {
+    "content_hash": "0469538558ef0b5ed2c59c496629b68c1ab9ba482959da8a05b66b70f2f4be64",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 2,
+    "original_source": "https://github.com/YBIGTA/27th-project-multimodal",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287272"
+  },
+  "github:github_27th-project-speech2sql": {
+    "content_hash": "411e7da8c7f0865925041fdebd5110de48977548303e23e0bacf747838ae1040",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/27th-project-speech2sql",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287273"
+  },
+  "github:github_YourTube_Service": {
+    "content_hash": "e85f953b837f4abc4f44080528af393a41bd7e3888ec41268eb15a40c7a5d92d",
+    "last_updated": "2025-08-25 06:28:54",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/YourTube_Service",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287274"
+  },
+  "github:github_Alin-Coinboard": {
+    "content_hash": "2078143a51dcbd6f1bb894c272ea9f6ecc7f16dd7942b19a3bc24c3f10e50351",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/Alin-Coinboard",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287275"
+  },
+  "github:github_AlphaChu": {
+    "content_hash": "518229e3d9a35a99bf50695b546f123759517cdfadb494435b88bc82f7700ceb",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/AlphaChu",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287276"
+  },
+  "github:github_Archive": {
+    "content_hash": "35cb2634aa413739f1a4eac800c8207009b66690bf59fd652916422c5f3c99cb",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/Archive",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287277"
+  },
+  "github:github_BARD": {
+    "content_hash": "3482d83d692089065a652f0e1b8db5249a0c0c34c9b4d57aee2a196def276793",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/BARD",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287278"
+  },
+  "github:github_CatchTone": {
+    "content_hash": "b9b53fce87f1dcfc21e4d757ffd8d12263f910b557f108a7eb11021d0b01915e",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/CatchTone",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287279"
+  },
+  "github:github_DLB": {
+    "content_hash": "7256e521a68e12c4796dbee53fdaf76f33ee883f3a9fd8055086d11d91cfa85e",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 11,
+    "original_source": "https://github.com/YBIGTA/DLB",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287280"
+  },
+  "github:github_DL_Models": {
+    "content_hash": "bae49ef2668301478d0e7f49dd1c9cabdd8f3a2ff6e7d0c8cc97b68c331ee95c",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 3,
+    "original_source": "https://github.com/YBIGTA/DL_Models",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287281"
+  },
+  "github:github_Data-Science": {
+    "content_hash": "6be74770a23577271671a98f3db2b5f985ccb1dfd9906511fe5c78393ef601d7",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/Data-Science",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287282"
+  },
+  "github:github_DataAnalyticsWiki": {
+    "content_hash": "3c3d76451c2b8b4ff45d3c961b22f7b687077f1b0f65b82ff0572fd7ac1c1eb4",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/DataAnalyticsWiki",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287283"
+  },
+  "github:github_DataEngineeringWiki": {
+    "content_hash": "62ebc51b00e394af67ea46b2805e942c7238c080f5de73610d4e05f68827b9a7",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/DataEngineeringWiki",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287284"
+  },
+  "github:github_DataScienceWiki": {
+    "content_hash": "6b1baa4f5edbd25e8704d7d5bef62ea810f2f669f725e34124ebd98acdac5ac8",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/DataScienceWiki",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287285"
+  },
+  "github:github_DeepNLP-Study": {
+    "content_hash": "d624ff3b9719d24f6f2140e5f94c7fd52d252ab94792e522c63c311422cce571",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/DeepNLP-Study",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287285"
+  },
+  "github:github_Deep_learning": {
+    "content_hash": "c1b41857d5a7b83745be8b49917c4e7506ba897924ca731ecda3efaf6983162c",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "https://github.com/YBIGTA/Deep_learning",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287286"
+  },
+  "github:github_Design_web_study": {
+    "content_hash": "5111d9318c2613083d3e0d95257042cfaaff369d509b187655e1058c909ab4d5",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/Design_web_study",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287287"
+  },
+  "github:github_EC2-Dashboard": {
+    "content_hash": "c30cd293d52869718e4cb7794b1f1d0a109a168dd71b9371d499b8c8adff8625",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/EC2-Dashboard",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287288"
+  },
+  "github:github_EngineeringTeam": {
+    "content_hash": "13ca549252b10fb9924fa66082767744381c6694ed1cf6dc9d34a15fed03ecd9",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/EngineeringTeam",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287289"
+  },
+  "github:github_HadoopStudy": {
+    "content_hash": "fb0742f0aeb3b010ab0a6f66756b5b00b0a72d1a9d547a89829f139de7bf4b8b",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/HadoopStudy",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287290"
+  },
+  "github:github_Nietzsche": {
+    "content_hash": "cde8f62b2ca1410848ef052ce61d31d59848a629c1c2d25add6b5bf65f4e630b",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 36,
+    "original_source": "https://github.com/YBIGTA/Nietzsche",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287291"
+  },
+  "github:github_SparkStudy": {
+    "content_hash": "b8ad93b9a117775cafe39c51eeb309079af05cf5e3311c0e81c7e9555d939a3d",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/SparkStudy",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287292"
+  },
+  "github:github_WeeklyDataScience": {
+    "content_hash": "f92b3f748c34afff020d451ae8e7e51ce9410ee116ab1d5feb25ca0301ae82fc",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/WeeklyDataScience",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287293"
+  },
+  "github:github_YBIGTA.github.io": {
+    "content_hash": "d2be33f43e1ea9bd61dde2cc45bee5d1742049320c5f27de2170dfc735be10da",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 7,
+    "original_source": "https://github.com/YBIGTA/YBIGTA.github.io",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287294"
+  },
+  "github:github_alpacapaca": {
+    "content_hash": "7acdb97e2d35f72cd7b73c543f0e7bff92a360453fd3eeb3281ec809f3b138c4",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/alpacapaca",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287295"
+  },
+  "github:github_alpacapaca-test": {
+    "content_hash": "2880a292a39a9df6ef2ed803a0dba89087970b614aca4f40ac7900205ef508e0",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/alpacapaca-test",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287296"
+  },
+  "github:github_chatot-server": {
+    "content_hash": "2f994034ea9815d81d6dcf7a6eb0801e05a5fde03c7a29c5449ebf6490232901",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/chatot-server",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287296"
+  },
+  "github:github_data-science-2018": {
+    "content_hash": "929f62d3b248fb9f043a4e33723a870625489b7e3e9f6999c6a8c70b014e3e2a",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "https://github.com/YBIGTA/data-science-2018",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287297"
+  },
+  "github:github_facebigta": {
+    "content_hash": "903dd2f3281f513b3fc33d3a6c391f90f842623b73e728a6d0e87a43bb3f831d",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/facebigta",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287298"
+  },
+  "github:github_korea_geo_coder_r": {
+    "content_hash": "85f5bc13c2c0db2e2730019eec07fc6d125a61d070541b69f27a227c9eec6839",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/korea_geo_coder_r",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287299"
+  },
+  "github:github_pytorch-hair-segmentation": {
+    "content_hash": "f100152f4c020ee0a28737154c1c93481619ed98a1f66c7c57767efaaa817e48",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 6,
+    "original_source": "https://github.com/YBIGTA/pytorch-hair-segmentation",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287300"
+  },
+  "github:github_sentimental-analysis": {
+    "content_hash": "841691337d3525b3980b6b6936648c999c205ed1cfb3e7fc91c9a2171ea4641e",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/sentimental-analysis",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287301"
+  },
+  "github:github_tensorflow-study": {
+    "content_hash": "5b321cc5ad68f1626a217904e00d6883e4189432c90fb3308371c03e6087e359",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/tensorflow-study",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287302"
+  },
+  "github:github_topic-modeling": {
+    "content_hash": "a4b2162cb06eecfa2950dbc886667908e1e9bc0e5c80feb359255ae0ac5a644e",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 8,
+    "original_source": "https://github.com/YBIGTA/topic-modeling",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287303"
+  },
+  "github:github_webtoon_stats_api_server": {
+    "content_hash": "7150bcd766c2cd93c773985894a521f10e992ec3dcdf8ac9f2334f30fa5d3401",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 5,
+    "original_source": "https://github.com/YBIGTA/webtoon_stats_api_server",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287306"
+  },
+  "github:github_ybigta.org": {
+    "content_hash": "b1d2e6cb3c5c0d0b6d21b63771a109ba4feb5a3107bfe38217a1f50937b956a5",
+    "last_updated": "2025-08-25 06:28:53",
+    "source": "github",
+    "title": "Unknown",
+    "chunk_count": 4,
+    "original_source": "https://github.com/YBIGTA/ybigta.org",
+    "storage": "unified",
+    "last_synced": "2025-08-25T10:23:00.287307"
+  }
+}

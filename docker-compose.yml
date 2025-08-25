@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env
+      - ./gdrive-credentials.json:/app/gdrive-credentials.json
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src/backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    depends_on:
+      - chromadb 
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./src:/app/src:ro
+      - ./public:/app/public:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - GENERATE_SOURCEMAP=false
+      - REACT_APP_API_BASE_URL=http://localhost:8000/api
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma
+    ports:
+      - "8001:8000" # backend의 8000번 포트와 충돌을 피하기 위해 8001로 설정
+    volumes:
+      - chroma_data:/chroma/chroma # 데이터 영속성을 위해 볼륨 사용
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    restart: unless-stopped
+
+volumes:
+  node_modules:
+  chroma_data: 
