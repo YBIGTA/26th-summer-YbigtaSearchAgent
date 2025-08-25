@@ -68,13 +68,20 @@ class UpdateScheduler:
         # 스케줄러 시작
         self.scheduler.start()
         
-        # 초기 동기화 실행
-        asyncio.create_task(self.initial_sync())
+        # 초기 동기화 비활성화 - 기존 unified_chroma_db 사용
+        print("ℹ️ 초기 동기화 생략 - 기존 unified_chroma_db 데이터 사용")
+        print("ℹ️ 변경사항은 주기적 동기화를 통해 감지됩니다")
     
     def stop(self):
         """스케줄러를 중지합니다."""
         print("🛑 문서 업데이트 스케줄러 중지")
         self.scheduler.shutdown()
+    
+    async def _delayed_initial_sync(self):
+        """지연된 초기 동기화 (서버 시작 블로킹 방지)"""
+        print("⏱️ 초기 동기화를 10초 후에 시작합니다...")
+        await asyncio.sleep(10)
+        await self.initial_sync()
     
     async def initial_sync(self):
         """초기 동기화를 수행합니다."""

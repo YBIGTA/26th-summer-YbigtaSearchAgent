@@ -15,18 +15,56 @@ from langchain_community.document_loaders import UnstructuredFileLoader
 
 
 class GoogleDriveClient:
-    def __init__(self, credentials_path: str = "gdrive-credentials.json"):
+    def __init__(self, credentials_path: str = None):
+        """Google Drive 클라이언트 초기화
+        
+        Args:
+            credentials_path: 인증 파일 경로. None이면 자동 탐색
+        """
+        # 인증 파일 경로 자동 탐색
+        if credentials_path is None:
+            possible_paths = [
+                "/app/gdrive-credentials.json",  # Docker 환경
+                "gdrive-credentials.json",        # 현재 디렉토리
+                "./gdrive-credentials.json",      # 상대 경로
+                os.path.join(os.path.dirname(__file__), "../../../gdrive-credentials.json")  # 프로젝트 루트
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    credentials_path = path
+                    print(f"✅ Google Drive 인증 파일 발견: {path}")
+                    break
+            
+            if credentials_path is None:
+                raise FileNotFoundError(
+                    "Google Drive 인증 파일을 찾을 수 없습니다. "
+                    "gdrive-credentials.json 파일이 프로젝트 루트 또는 /app 디렉토리에 있는지 확인하세요."
+                )
+        
         self.credentials_path = credentials_path
         self.folder_id = os.getenv("GDRIVE_FOLDER_ID")
-        self.service = self._initialize_service()
+        
+        if not self.folder_id:
+            print("⚠️ GDRIVE_FOLDER_ID 환경 변수가 설정되지 않았습니다.")
+        
+        try:
+            self.service = self._initialize_service()
+        except Exception as e:
+            print(f"❌ Google Drive 서비스 초기화 실패: {e}")
+            raise
         
     def _initialize_service(self):
         """Google Drive API 서비스를 초기화합니다."""
-        creds = service_account.Credentials.from_service_account_file(
-            self.credentials_path,
-            scopes=["https://www.googleapis.com/auth/drive.readonly"]
-        )
-        return build("drive", "v3", credentials=creds)
+        try:
+            creds = service_account.Credentials.from_service_account_file(
+                self.credentials_path,
+                scopes=["https://www.googleapis.com/auth/drive.readonly"]
+            )
+            return build("drive", "v3", credentials=creds)
+        except Exception as e:
+            print(f"❌ 인증 파일 로드 실패: {e}")
+            raise
     
     def list_files_in_folder(self, folder_id: str = None, recursive: bool = True) -> List[Dict[str, Any]]:
         """폴더 내의 모든 파일을 나열합니다."""

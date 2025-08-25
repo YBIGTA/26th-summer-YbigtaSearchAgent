@@ -27,7 +27,10 @@
       "Bash(ss:*)",
       "Bash(pkill:*)",
       "Bash(ffmpeg:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(sqlite3:*)",
+      "Bash(http://localhost:8000/api/meetings/analyze-upload)",
+      "Bash(echo \"  .then(r => r.json())\")"
     ],
     "deny": [],
     "additionalDirectories": [

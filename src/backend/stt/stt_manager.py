@@ -15,12 +15,18 @@ try:
 except ImportError:
     ReturnZeroSTTClient = None
 
+try:
+    from ..nlp.transcript_postprocessor import TranscriptPostProcessor
+except ImportError:
+    TranscriptPostProcessor = None
+
 
 
 class STTManager:
     def __init__(self):
         self.engines = ["whisper", "returnzero"]
         self.default_engine = "returnzero"
+        self.postprocessor = TranscriptPostProcessor() if TranscriptPostProcessor else None
         
     def get_available_engines(self) -> Dict[str, Dict[str, Any]]:
         """사용 가능한 STT 엔진 목록을 반환합니다."""
@@ -58,6 +64,7 @@ class STTManager:
                   file_path: str,
                   engine: str = None,
                   language: str = "ko",
+                  apply_postprocessing: bool = True,
                   **kwargs) -> Dict[str, Any]:
         """
         지정된 엔진으로 음성을 텍스트로 변환합니다.
@@ -66,6 +73,7 @@ class STTManager:
             file_path: 오디오 파일 경로
             engine: STT 엔진 ("whisper" or "returnzero")
             language: 언어 코드
+            apply_postprocessing: 후처리 적용 여부
             **kwargs: 엔진별 추가 옵션
         
         Returns:
@@ -83,12 +91,23 @@ class STTManager:
         print(f"🎙️ {engine} 엔진으로 STT 처리 시작: {os.path.basename(file_path)}")
         
         try:
+            # 기본 STT 처리
             if engine == "whisper":
-                return self._transcribe_with_whisper(file_path, language, **kwargs)
+                result = self._transcribe_with_whisper(file_path, language, **kwargs)
             elif engine == "returnzero":
-                return self._transcribe_with_returnzero(file_path, language, **kwargs)
+                result = self._transcribe_with_returnzero(file_path, language, **kwargs)
             else:
                 raise ValueError(f"알 수 없는 엔진: {engine}")
+            
+            # 후처리 적용
+            if apply_postprocessing and self.postprocessor:
+                print("🔧 전사 후처리 적용 중...")
+                result = self.postprocessor.process(result)
+                print("✅ 전사 후처리 완료")
+            else:
+                print("⚠️ 후처리 스킵됨")
+            
+            return result
                 
         except Exception as e:
             print(f"❌ STT 처리 실패: {e}")

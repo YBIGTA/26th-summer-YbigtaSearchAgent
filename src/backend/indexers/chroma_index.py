@@ -25,7 +25,7 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 
 class ChromaIndexManager:
-    def __init__(self, persist_directory: str = "data/indexes/chroma_db"):
+    def __init__(self, persist_directory: str = "data/unified_chroma_db/unified_chroma_db"):
         self.persist_directory = persist_directory
         self.available = CHROMADB_AVAILABLE
         
@@ -70,26 +70,109 @@ class ChromaIndexManager:
             )
         )
         
+        # 기존 컬렉션 찾기 (모든 컬렉션 조회)
+        existing_collections = self.client.list_collections()
+        target_collection = None
+        
+        # 기존 컬렉션 중에서 사용할 컬렉션 찾기
+        for collection in existing_collections:
+            if collection.name == self.collection_name:
+                target_collection = collection
+                break
+        
+        # 컬렉션이 없으면 첫 번째 기존 컬렉션 사용하거나 새로 생성
+        if target_collection is None and existing_collections:
+            target_collection = existing_collections[0]
+            print(f"🔄 기존 컬렉션 발견: {target_collection.name}, 이를 사용합니다")
+            self.collection_name = target_collection.name
+        
         # 컬렉션 가져오기 또는 생성
         try:
-            self.collection = self.client.get_collection(
-                name=self.collection_name
-            )
-            print(f"✅ 기존 ChromaDB 컬렉션 로드: {self.collection_name}")
-        except Exception:
-            self.collection = self.client.create_collection(
-                name=self.collection_name,
-                metadata={"description": "YBIGTA 회의 지식베이스"}
-            )
-            print(f"📁 새로운 ChromaDB 컬렉션 생성: {self.collection_name}")
+            if target_collection:
+                self.collection = self.client.get_collection(name=target_collection.name)
+                print(f"✅ 기존 ChromaDB 컬렉션 로드: {target_collection.name}")
+                
+                # 기존 데이터에서 메타데이터 재구성
+                self._rebuild_metadata_from_existing()
+            else:
+                self.collection = self.client.create_collection(
+                    name=self.collection_name,
+                    metadata={"description": "YBIGTA 회의 지식베이스"}
+                )
+                print(f"📁 새로운 ChromaDB 컬렉션 생성: {self.collection_name}")
+        except Exception as e:
+            print(f"❌ ChromaDB 컬렉션 초기화 실패: {e}")
+            return
         
         # LangChain VectorStore 래퍼 초기화
         self.vectorstore = Chroma(
             client=self.client,
-            collection_name=self.collection_name,
+            collection_name=self.collection.name,
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory
         )
+    
+    def _rebuild_metadata_from_existing(self):
+        """기존 ChromaDB 데이터에서 메타데이터를 재구성합니다."""
+        if not self.collection:
+            return
+        
+        print("🔄 기존 ChromaDB 데이터에서 메타데이터 재구성 중...")
+        
+        try:
+            # 모든 문서 가져오기
+            all_results = self.collection.get(
+                include=['documents', 'metadatas']
+            )
+            
+            if not all_results['documents']:
+                print("ℹ️ ChromaDB에 기존 문서가 없습니다.")
+                return
+            
+            # 문서별로 메타데이터 재구성
+            doc_groups = {}
+            for i, (doc_content, metadata) in enumerate(zip(all_results['documents'], all_results['metadatas'] or [])):
+                if not metadata:
+                    continue
+                
+                doc_id = metadata.get('doc_id')
+                if doc_id:
+                    if doc_id not in doc_groups:
+                        doc_groups[doc_id] = []
+                    doc_groups[doc_id].append({
+                        'content': doc_content,
+                        'metadata': metadata
+                    })
+            
+            # 각 문서의 메타데이터 생성
+            for doc_id, chunks in doc_groups.items():
+                if not chunks:
+                    continue
+                
+                # 첫 번째 청크의 메타데이터 사용
+                first_chunk = chunks[0]
+                metadata = first_chunk['metadata']
+                
+                # 모든 청크의 내용을 결합
+                full_content = '\n'.join([chunk['content'] for chunk in chunks])
+                
+                # 해시 계산
+                content_hash = self._compute_document_hash(full_content, metadata)
+                
+                # 메타데이터 저장
+                self.document_metadata[doc_id] = {
+                    'content_hash': content_hash,
+                    'last_updated': datetime.now().isoformat(),
+                    'source': metadata.get('source', 'unknown'),
+                    'title': metadata.get('title', 'Unknown')
+                }
+            
+            # 메타데이터 파일 저장
+            self._save_metadata()
+            print(f"✅ {len(self.document_metadata)}개 문서의 메타데이터 재구성 완료")
+            
+        except Exception as e:
+            print(f"❌ 메타데이터 재구성 실패: {e}")
     
     def _compute_document_hash(self, content: str, metadata: Dict[str, Any]) -> str:
         """문서의 해시값을 계산합니다."""

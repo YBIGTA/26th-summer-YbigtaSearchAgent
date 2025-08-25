@@ -62,16 +62,42 @@ class EvidenceHunter(BaseAgent):
             # 1. 증거 수집 (RAG)
             evidence_collection = await self._collect_evidence(claims, counter_arguments, sources)
             
-            # 2. 출처 검증
+            # 2. 유사한 회의 사례 검색 (ChromaDB 활용)
+            meeting_content = input_data.get("search_context", {}).get("content", "")
+            meeting_metadata = input_data.get("search_context", {}).get("meeting_metadata", {})
+            similar_meetings = await self.find_similar_meetings(meeting_content, meeting_metadata)
+            
+            # 유사 회의를 증거로 변환하여 추가
+            for meeting in similar_meetings[:5]:  # 최대 5개 유사 회의
+                evidence_collection.append({
+                    "id": len(evidence_collection) + 1,
+                    "related_claim_id": None,  # 전체 회의 관련
+                    "evidence_type": "precedent",
+                    "content": meeting["content"][:500] + "...",  # 요약본만 포함
+                    "source": meeting["source"],
+                    "source_type": "similar_meeting",
+                    "relevance_score": meeting["similarity_score"],
+                    "search_query": "similar_meeting_search",
+                    "supports_claim": True,
+                    "metadata": {
+                        "similar_meeting": True,
+                        "meeting_title": meeting["title"],
+                        "meeting_date": meeting["meeting_date"],
+                        "matched_topic": meeting["matched_topic"],
+                        "doc_id": meeting["doc_id"]
+                    }
+                })
+            
+            # 3. 출처 검증
             source_verification = await self._verify_sources(evidence_collection)
             
-            # 3. 신뢰도 분석
+            # 4. 신뢰도 분석
             credibility_analysis = await self._analyze_credibility(evidence_collection, source_verification)
             
-            # 4. 지식 공백 식별
+            # 5. 지식 공백 식별
             knowledge_gaps = await self._identify_knowledge_gaps(claims, evidence_collection)
             
-            # 5. 신뢰도 계산
+            # 6. 신뢰도 계산
             confidence = self._calculate_confidence(evidence_collection, source_verification)
             
             result = {
@@ -79,12 +105,15 @@ class EvidenceHunter(BaseAgent):
                 "source_verification": source_verification,
                 "credibility_analysis": credibility_analysis,
                 "knowledge_gaps": knowledge_gaps,
+                "similar_meetings": similar_meetings,  # 유사 회의 정보 추가
                 "confidence": confidence,
                 "agent": self.name,
                 "timestamp": input_data.get("timestamp")
             }
             
-            logger.info(f"EvidenceHunter: {len(evidence_collection)}개 증거 수집 완료")
+            similar_count = len(similar_meetings)
+            total_evidence = len(evidence_collection)
+            logger.info(f"EvidenceHunter: {total_evidence}개 증거 수집 완료 (유사 회의 {similar_count}개 포함)")
             return result
             
         except Exception as e:
@@ -99,11 +128,12 @@ class EvidenceHunter(BaseAgent):
             "source_verification": [],
             "credibility_analysis": {},
             "knowledge_gaps": [],
+            "similar_meetings": [],
             "confidence": 0.0
         }
     
     async def _collect_evidence(self, claims: List[Dict], counter_arguments: List[Dict], sources: List[str]) -> List[Dict]:
-        """RAG 기반 증거 수집"""
+        """ChromaDB 기반 증거 수집 - 유사한 회의 사례 검색 포함"""
         
         evidence_collection = []
         
@@ -119,24 +149,31 @@ class EvidenceHunter(BaseAgent):
             search_queries = await self._generate_search_queries(claim)
             
             for query in search_queries[:3]:  # 최대 3개 쿼리
-                # 실제 RAG 검색 (시뮬레이션)
+                # ChromaDB 기반 RAG 검색
                 search_results = await self._perform_rag_search(query, sources)
                 
                 # 검색 결과를 증거로 변환
                 for result in search_results:
+                    # 증거 유형 자동 판단
+                    evidence_type = self._determine_evidence_type(result)
+                    
+                    # 주장 지지도 계산
+                    supports_claim = await self._analyze_claim_support(claim_text, result.get("content", ""))
+                    
                     evidence_collection.append({
                         "id": len(evidence_collection) + 1,
                         "related_claim_id": claim_id,
-                        "evidence_type": "document|data|precedent|expert_opinion",
+                        "evidence_type": evidence_type,
                         "content": result.get("content", ""),
                         "source": result.get("source", ""),
                         "source_type": result.get("source_type", "unknown"),
                         "relevance_score": result.get("relevance_score", 0.0),
                         "search_query": query,
-                        "supports_claim": True,  # 추후 분석으로 결정
+                        "supports_claim": supports_claim,
                         "metadata": result.get("metadata", {})
                     })
         
+        logger.info(f"ChromaDB에서 총 {len(evidence_collection)}개 증거 수집 완료")
         return evidence_collection[:20]  # 최대 20개 증거
     
     async def _generate_search_queries(self, claim: Dict[str, Any]) -> List[str]:
@@ -218,14 +255,79 @@ class EvidenceHunter(BaseAgent):
             return []
     
     async def _search_all_sources(self, query: str) -> List[Dict]:
-        """모든 소스에서 검색"""
-        # TODO: 실제 ChromaDB 검색 구현
-        return []
+        """모든 소스에서 검색 - ChromaDB 하이브리드 검색 사용"""
+        if not self.retriever:
+            return []
+            
+        try:
+            # ChromaDB 하이브리드 검색 수행
+            search_results = self.retriever.hybrid_search(
+                query=query,
+                top_k=10,  # 충분한 결과 가져오기
+                vector_weight=0.7  # 벡터 검색 가중치
+            )
+            
+            formatted_results = []
+            for result in search_results:
+                formatted_results.append({
+                    "content": result.get("content", ""),
+                    "source": result.get("metadata", {}).get("source", "chroma_db"),
+                    "source_type": "document",
+                    "relevance_score": min(1.0, result.get("score", 0.0) * 2),  # 점수 정규화
+                    "metadata": {
+                        "doc_id": result.get("metadata", {}).get("doc_id"),
+                        "title": result.get("metadata", {}).get("title", "Unknown"),
+                        "indexed_at": result.get("metadata", {}).get("indexed_at"),
+                        "chunk_index": result.get("metadata", {}).get("chunk_index", 0)
+                    }
+                })
+            
+            logger.info(f"ChromaDB에서 {len(formatted_results)}개 유사 문서 검색 완료")
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"ChromaDB 검색 오류: {str(e)}")
+            return []
     
     async def _search_specific_source(self, query: str, source: str) -> List[Dict]:
-        """특정 소스에서 검색"""
-        # TODO: 소스별 검색 구현
-        return []
+        """특정 소스에서 검색 - ChromaDB 필터 검색 사용"""
+        if not self.retriever:
+            return []
+            
+        try:
+            # 소스별 필터 설정
+            source_filter = {"source": source} if source != "all" else None
+            
+            # ChromaDB 하이브리드 검색 (필터 적용)
+            search_results = self.retriever.hybrid_search(
+                query=query,
+                top_k=8,
+                filter=source_filter,
+                vector_weight=0.8  # 특정 소스 검색시 벡터 검색 가중치 높임
+            )
+            
+            formatted_results = []
+            for result in search_results:
+                formatted_results.append({
+                    "content": result.get("content", ""),
+                    "source": result.get("metadata", {}).get("source", source),
+                    "source_type": "document",
+                    "relevance_score": min(1.0, result.get("score", 0.0) * 2),  # 점수 정규화
+                    "metadata": {
+                        "doc_id": result.get("metadata", {}).get("doc_id"),
+                        "title": result.get("metadata", {}).get("title", "Unknown"),
+                        "indexed_at": result.get("metadata", {}).get("indexed_at"),
+                        "chunk_index": result.get("metadata", {}).get("chunk_index", 0),
+                        "filtered_source": source
+                    }
+                })
+            
+            logger.info(f"{source} 소스에서 {len(formatted_results)}개 유사 문서 검색 완료")
+            return formatted_results
+            
+        except Exception as e:
+            logger.error(f"{source} 소스 검색 오류: {str(e)}")
+            return []
     
     async def _verify_sources(self, evidence_collection: List[Dict]) -> List[Dict]:
         """출처 검증"""
@@ -285,13 +387,15 @@ class EvidenceHunter(BaseAgent):
             base_score = min(base_score + 0.1, 1.0)  # 내부 문서는 약간 가점
         elif "github" in source.lower():
             base_score = min(base_score + 0.05, 1.0)
+        elif "similar_meeting" in source_type:
+            base_score = min(base_score + 0.15, 1.0)  # 유사 회의는 높은 신뢰도
             
         return base_score
     
     def _assess_authority_level(self, source: str, source_type: str) -> str:
         """권위 수준 평가"""
         
-        if source_type in ["academic", "official"]:
+        if source_type in ["academic", "official", "similar_meeting"]:
             return "high"
         elif source_type in ["news", "document"]:
             return "medium"
@@ -419,6 +523,197 @@ class EvidenceHunter(BaseAgent):
             confidence += 0.1
         
         return min(confidence, 1.0)
+    
+    def _determine_evidence_type(self, result: Dict) -> str:
+        """검색 결과에서 증거 유형을 자동 판단"""
+        content = result.get("content", "").lower()
+        metadata = result.get("metadata", {})
+        source = result.get("source", "").lower()
+        
+        # 소스 기반 판단
+        if "github" in source:
+            return "data"
+        elif "notion" in source:
+            return "document"
+        elif metadata.get("title", "").lower().find("회의") >= 0:
+            return "precedent"
+        
+        # 내용 기반 판단
+        if any(keyword in content for keyword in ["데이터", "수치", "통계", "결과"]):
+            return "data"
+        elif any(keyword in content for keyword in ["전문가", "의견", "견해", "판단"]):
+            return "expert_opinion"  
+        elif any(keyword in content for keyword in ["사례", "경험", "과거", "이전"]):
+            return "precedent"
+        else:
+            return "document"
+    
+    async def _analyze_claim_support(self, claim: str, evidence_content: str) -> bool:
+        """증거가 주장을 지지하는지 분석"""
+        if not evidence_content or len(evidence_content.strip()) < 10:
+            return False
+            
+        try:
+            context = f"""
+주장: {claim}
+증거: {evidence_content[:500]}...
+"""
+            
+            question = """
+이 증거가 주어진 주장을 지지하거나 뒷받침하는지 분석하세요:
+
+{
+    "supports_claim": true/false,
+    "confidence": 0.0-1.0,
+    "reasoning": "분석 근거"
+}
+
+증거와 주장 간의 관련성과 일치도를 고려하여 판단하세요.
+"""
+            
+            response = await self.think(context, question)
+            
+            # JSON 파싱 시도
+            result = self.parse_json_response(response)
+            if result and "supports_claim" in result:
+                return result.get("supports_claim", False)
+                
+        except Exception as e:
+            logger.error(f"주장 지지도 분석 오류: {str(e)}")
+        
+        # 기본값: 검색된 증거는 관련성이 있다고 가정
+        return True
+    
+    async def find_similar_meetings(self, meeting_content: str, meeting_metadata: Dict = None) -> List[Dict]:
+        """
+        유사한 회의 사례 검색 - ChromaDB를 활용한 의미론적 유사도 검색
+        
+        Args:
+            meeting_content: 현재 회의 내용
+            meeting_metadata: 회의 메타데이터 (날짜, 참석자 등)
+            
+        Returns:
+            유사한 회의 목록과 관련도 점수
+        """
+        if not self.retriever:
+            logger.warning("ChromaDB retriever가 없어 유사 회의 검색을 건너뜁니다.")
+            return []
+        
+        try:
+            # 회의 내용에서 핵심 키워드 추출
+            key_topics = await self._extract_meeting_topics(meeting_content)
+            
+            similar_meetings = []
+            
+            # 각 핵심 주제별로 유사 회의 검색
+            for topic in key_topics[:3]:  # 상위 3개 주제만 사용
+                search_results = self.retriever.hybrid_search(
+                    query=topic,
+                    top_k=5,
+                    filter=None,  # 모든 소스에서 검색
+                    vector_weight=0.8  # 의미론적 유사도 중시
+                )
+                
+                for result in search_results:
+                    # 현재 회의와의 중복 방지
+                    doc_metadata = result.get("metadata", {})
+                    if self._is_same_meeting(meeting_metadata, doc_metadata):
+                        continue
+                        
+                    similar_meetings.append({
+                        "content": result.get("content", ""),
+                        "source": result.get("metadata", {}).get("source", "unknown"),
+                        "title": result.get("metadata", {}).get("title", "Unknown Meeting"),
+                        "doc_id": result.get("metadata", {}).get("doc_id"),
+                        "similarity_score": result.get("score", 0.0),
+                        "matched_topic": topic,
+                        "meeting_date": doc_metadata.get("created_at", "unknown"),
+                        "metadata": doc_metadata
+                    })
+            
+            # 중복 제거 및 점수순 정렬
+            unique_meetings = self._deduplicate_meetings(similar_meetings)
+            unique_meetings.sort(key=lambda x: x["similarity_score"], reverse=True)
+            
+            logger.info(f"유사한 회의 {len(unique_meetings)}개 발견")
+            return unique_meetings[:10]  # 상위 10개만 반환
+            
+        except Exception as e:
+            logger.error(f"유사 회의 검색 오류: {str(e)}")
+            return []
+    
+    async def _extract_meeting_topics(self, content: str) -> List[str]:
+        """회의 내용에서 핵심 주제 추출"""
+        try:
+            context = f"회의 내용: {content[:1000]}..."  # 첫 1000자만 사용
+            
+            question = """
+이 회의 내용에서 핵심 주제와 키워드를 추출하세요:
+
+{
+    "key_topics": [
+        "핵심 주제 1",
+        "핵심 주제 2", 
+        "핵심 주제 3",
+        "핵심 주제 4",
+        "핵심 주제 5"
+    ]
+}
+
+회의의 주요 안건, 논의사항, 결정사항 등을 중심으로 추출하세요.
+"""
+            
+            response = await self.think(context, question)
+            result = self.parse_json_response(response)
+            
+            if result and "key_topics" in result:
+                return result["key_topics"][:5]  # 최대 5개
+                
+        except Exception as e:
+            logger.error(f"주제 추출 오류: {str(e)}")
+        
+        # 기본값: 내용의 첫 100자를 사용
+        return [content[:100]] if content else ["회의"]
+    
+    def _is_same_meeting(self, current_metadata: Dict, candidate_metadata: Dict) -> bool:
+        """두 회의가 동일한지 확인"""
+        if not current_metadata or not candidate_metadata:
+            return False
+        
+        # 제목이나 ID로 동일성 확인
+        current_title = current_metadata.get("title", "")
+        candidate_title = candidate_metadata.get("title", "")
+        
+        if current_title and candidate_title and current_title == candidate_title:
+            return True
+            
+        # 날짜와 시간으로 확인
+        current_date = current_metadata.get("timestamp") or current_metadata.get("created_at")
+        candidate_date = candidate_metadata.get("indexed_at") or candidate_metadata.get("created_at")
+        
+        if current_date and candidate_date:
+            # 같은 날짜면 동일한 회의로 간주
+            return current_date[:10] == candidate_date[:10]
+        
+        return False
+    
+    def _deduplicate_meetings(self, meetings: List[Dict]) -> List[Dict]:
+        """중복 회의 제거"""
+        seen_ids = set()
+        unique_meetings = []
+        
+        for meeting in meetings:
+            doc_id = meeting.get("doc_id")
+            if doc_id and doc_id not in seen_ids:
+                seen_ids.add(doc_id)
+                unique_meetings.append(meeting)
+            elif not doc_id:  # doc_id가 없는 경우 제목으로 중복 확인
+                title = meeting.get("title", "")
+                if title not in seen_ids:
+                    seen_ids.add(title)
+                    unique_meetings.append(meeting)
+        
+        return unique_meetings
     
     async def search_and_verify(self, content: str, meeting_data: Dict[str, Any]) -> Dict[str, Any]:
         """

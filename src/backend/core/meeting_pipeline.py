@@ -22,11 +22,11 @@ class MeetingAnalysisPipeline:
                  stt_manager=None,
                  speaker_diarizer=None, 
                  agent_orchestrator=None,
-                 db_manager=None):
+                 db_engine=None):
         self.stt_manager = stt_manager
         self.speaker_diarizer = speaker_diarizer
         self.agent_orchestrator = agent_orchestrator
-        self.db_manager = db_manager
+        self.db_engine = db_engine
         
         # 파이프라인 상태 관리
         self.pipeline_jobs = {}
@@ -89,7 +89,11 @@ class MeetingAnalysisPipeline:
             "completed_at": None,
             "error": None,
             "results": {},
-            "progress_callback": progress_callback
+            "progress_callback": progress_callback,
+            # 파일 메타데이터 추가
+            "title": pipeline_options.get("title", f"Meeting_{job_id[:8]}"),
+            "original_filename": pipeline_options.get("original_filename", "unknown.wav"),
+            "file_size": pipeline_options.get("file_size", 0)
         }
         
         # 백그라운드에서 파이프라인 실행
@@ -137,15 +141,28 @@ class MeetingAnalysisPipeline:
             # 5. 멀티에이전트 분석
             if job["options"]["enable_agents"]:
                 await self._update_progress(job_id, "agent_analysis", 65)
+                logger.info(f"멀티에이전트 분석 시작: {job_id}")
+                logger.debug(f"전사 결과 요약: 텍스트 길이={len(transcript.get('full_text', ''))}, 세그먼트 수={len(transcript.get('segments', []))}")
+                
                 agent_results = await self._process_agents(transcript, job["options"]["agent_config"])
                 job["results"]["agent_analysis"] = agent_results
+                
+                logger.info(f"멀티에이전트 분석 완료: {job_id}")
+                logger.debug(f"에이전트 결과 키: {list(agent_results.keys()) if agent_results else 'None'}")
             else:
                 job["results"]["agent_analysis"] = {"skipped": True}
+                logger.info(f"에이전트 분석 스킵됨: {job_id}")
             
             # 6. 보고서 생성
             await self._update_progress(job_id, "report_generation", 92)
+            logger.info(f"보고서 생성 시작: {job_id}")
+            logger.debug(f"보고서 생성 입력 데이터: {list(job['results'].keys())}")
+            
             report = await self._generate_report(job["results"])
             job["results"]["final_report"] = report
+            
+            logger.info(f"보고서 생성 완료: {job_id}")
+            logger.debug(f"보고서 구조: {list(report.keys()) if report else 'None'}")
             
             # 7. 결과 저장
             await self._update_progress(job_id, "result_storage", 98)
@@ -279,7 +296,8 @@ class MeetingAnalysisPipeline:
     async def _process_agents(self, transcript: Dict[str, Any], agent_config: Dict[str, bool]) -> Dict[str, Any]:
         """멀티에이전트 분석"""
         if not self.agent_orchestrator:
-            raise Exception("에이전트 오케스트레이터가 설정되지 않았습니다.")
+            logger.warning("에이전트 오케스트레이터가 설정되지 않았습니다. 기본 분석 결과를 반환합니다.")
+            return self._create_fallback_agent_results(transcript)
         
         try:
             # 에이전트별 활성화 상태에 따라 분석 실행
@@ -293,35 +311,69 @@ class MeetingAnalysisPipeline:
                 "content": transcript.get("full_text", "")
             }
             
+            logger.info(f"에이전트 분석 입력 데이터 준비 완료: 텍스트 {len(meeting_data['transcript'])}자, 세그먼트 {len(meeting_data['timeline'])}개")
+            
             # 각 에이전트 순차 실행 (실제로는 병렬 실행 가능)
             if agent_config.get("agenda_miner", True):
-                agent_results["agendas"] = await self.agent_orchestrator.agenda_miner.analyze(
-                    meeting_data
-                )
+                logger.info("AgendaMiner 실행 중...")
+                try:
+                    agent_results["agendas"] = await self.agent_orchestrator.agenda_miner.analyze(
+                        meeting_data
+                    )
+                    logger.info("AgendaMiner 완료")
+                except Exception as e:
+                    logger.error(f"AgendaMiner 실패: {str(e)}")
+                    agent_results["agendas"] = {"error": str(e), "agendas": []}
             
             if agent_config.get("claim_checker", True):
-                agent_results["claims"] = await self.agent_orchestrator.claim_checker.analyze(
-                    meeting_data
-                )
+                logger.info("ClaimChecker 실행 중...")
+                try:
+                    agent_results["claims"] = await self.agent_orchestrator.claim_checker.analyze(
+                        meeting_data
+                    )
+                    logger.info("ClaimChecker 완료")
+                except Exception as e:
+                    logger.error(f"ClaimChecker 실패: {str(e)}")
+                    agent_results["claims"] = {"error": str(e), "claims": []}
             
             if agent_config.get("counter_arguer", True):
-                agent_results["counter_arguments"] = await self.agent_orchestrator.counter_arguer.analyze(
-                    meeting_data
-                )
+                logger.info("CounterArguer 실행 중...")
+                try:
+                    agent_results["counter_arguments"] = await self.agent_orchestrator.counter_arguer.analyze(
+                        meeting_data
+                    )
+                    logger.info("CounterArguer 완료")
+                except Exception as e:
+                    logger.error(f"CounterArguer 실패: {str(e)}")
+                    agent_results["counter_arguments"] = {"error": str(e), "counter_arguments": []}
             
             if agent_config.get("evidence_hunter", True):
-                agent_results["evidence"] = await self.agent_orchestrator.evidence_hunter.search_and_verify(
-                    meeting_data["content"], meeting_data
-                )
+                logger.info("EvidenceHunter 실행 중...")
+                try:
+                    agent_results["evidence"] = await self.agent_orchestrator.evidence_hunter.search_and_verify(
+                        meeting_data["content"], meeting_data
+                    )
+                    logger.info("EvidenceHunter 완료")
+                except Exception as e:
+                    logger.error(f"EvidenceHunter 실패: {str(e)}")
+                    agent_results["evidence"] = {"error": str(e), "evidence_found": []}
             
             if agent_config.get("summarizer", True):
-                agent_results["summary"] = await self.agent_orchestrator.summarizer.generate_report(
-                    agent_results
-                )
+                logger.info("Summarizer 실행 중...")
+                try:
+                    agent_results["summary"] = await self.agent_orchestrator.summarizer.generate_report(
+                        agent_results
+                    )
+                    logger.info("Summarizer 완료")
+                except Exception as e:
+                    logger.error(f"Summarizer 실패: {str(e)}")
+                    agent_results["summary"] = {"error": str(e), "action_items": [], "executive_summary": {}}
             
+            logger.info(f"모든 에이전트 실행 완료. 결과 키: {list(agent_results.keys())}")
             return agent_results
             
         except Exception as e:
+            logger.error(f"에이전트 분석 전체 실패: {str(e)}")
             raise Exception(f"에이전트 분석 실패: {str(e)}")
     
     async def _generate_report(self, pipeline_results: Dict[str, Any]) -> Dict[str, Any]:
@@ -330,12 +382,29 @@ class MeetingAnalysisPipeline:
             transcript = pipeline_results.get("transcript", {})
             agent_results = pipeline_results.get("agent_analysis", {})
             
+            logger.info(f"보고서 생성 - 입력 체크:")
+            logger.info(f"  - transcript 키: {list(transcript.keys()) if transcript else 'None'}")
+            logger.info(f"  - agent_results 키: {list(agent_results.keys()) if agent_results else 'None'}")
+            
+            # 각 단계별 데이터 추출
+            meeting_overview = self._generate_meeting_overview(transcript)
+            logger.debug(f"meeting_overview: {meeting_overview}")
+            
+            key_findings = self._extract_key_findings(agent_results)
+            logger.debug(f"key_findings: {len(key_findings)}개")
+            
+            action_items = self._extract_action_items(agent_results)
+            logger.debug(f"action_items: {len(action_items)}개")
+            
+            recommendations = self._generate_recommendations(agent_results)
+            logger.debug(f"recommendations: {len(recommendations)}개")
+            
             report = {
                 "executive_summary": {
-                    "meeting_overview": self._generate_meeting_overview(transcript),
-                    "key_findings": self._extract_key_findings(agent_results),
-                    "action_items": self._extract_action_items(agent_results),
-                    "recommendations": self._generate_recommendations(agent_results)
+                    "meeting_overview": meeting_overview,
+                    "key_findings": key_findings,
+                    "action_items": action_items,
+                    "recommendations": recommendations
                 },
                 "detailed_analysis": {
                     "transcript_analysis": transcript.get("metadata", {}),
@@ -358,26 +427,75 @@ class MeetingAnalysisPipeline:
                 "format_version": "1.0"
             }
             
+            logger.info("보고서 생성 완료")
+            logger.debug(f"최종 보고서 키: {list(report.keys())}")
             return report
             
         except Exception as e:
+            logger.error(f"보고서 생성 실패 상세: {str(e)}")
+            logger.exception("보고서 생성 예외 상세:")
             raise Exception(f"보고서 생성 실패: {str(e)}")
     
     async def _store_results(self, job_id: str, results: Dict[str, Any]) -> Dict[str, Any]:
-        """결과 저장"""
-        try:
-            # TODO: 실제 데이터베이스 저장 로직
-            # if self.db_manager:
-            #     saved_id = await self.db_manager.save_meeting_analysis(job_id, results)
-            #     return {"saved": True, "meeting_id": saved_id}
+        """결과 저장 - 직접 데이터베이스에 저장"""
+        if not self.db_engine:
+            logger.warning("데이터베이스 엔진이 설정되지 않아 저장을 건너뜁니다.")
+            return {"saved": False, "error": "데이터베이스 엔진이 없음"}
             
-            return {
-                "saved": False,
-                "reason": "데이터베이스 매니저가 설정되지 않음",
-                "job_id": job_id
-            }
+        try:
+            # 데이터베이스 모델 import
+            from ..db.models import get_session, MeetingReport
+            
+            job = self.pipeline_jobs.get(job_id, {})
+            
+            # 세션 생성
+            session = get_session(self.db_engine)
+            
+            try:
+                # 기존 보고서가 있는지 확인
+                existing_report = session.query(MeetingReport).filter_by(job_id=job_id).first()
+                
+                if existing_report:
+                    # 기존 보고서 업데이트
+                    meeting_report = existing_report
+                else:
+                    # 새 보고서 생성
+                    meeting_report = MeetingReport(job_id=job_id)
+                    session.add(meeting_report)
+                
+                # 보고서 필드 업데이트
+                meeting_report.title = job.get("title", f"Meeting_{job_id[:8]}")
+                meeting_report.original_filename = job.get("original_filename", "unknown.wav")
+                meeting_report.file_size = job.get("file_size", 0)
+                meeting_report.duration_seconds = results.get("stt", {}).get("duration", 0)
+                meeting_report.num_speakers = len(results.get("diarization", {}).get("speakers", []))
+                meeting_report.raw_results = results
+                meeting_report.executive_summary = results.get("final_report", {}).get("executive_summary", {})
+                meeting_report.agendas = results.get("agent_analysis", {}).get("agendas", {})
+                meeting_report.claims = results.get("agent_analysis", {}).get("claims", {})
+                meeting_report.counter_arguments = results.get("agent_analysis", {}).get("counter_arguments", {})
+                meeting_report.evidence = results.get("agent_analysis", {}).get("evidence", {})
+                meeting_report.final_report = results.get("final_report", {})
+                meeting_report.status = "completed"
+                meeting_report.progress = 100
+                meeting_report.current_stage = "completed"
+                meeting_report.completed_at = datetime.now()
+                meeting_report.updated_at = datetime.now()
+                
+                session.commit()
+                
+                logger.info(f"✅ 보고서가 성공적으로 데이터베이스에 저장되었습니다: {job_id}")
+                return {
+                    "saved": True,
+                    "report_id": meeting_report.id,
+                    "job_id": job_id
+                }
+                
+            finally:
+                session.close()
             
         except Exception as e:
+            logger.error(f"❌ 데이터베이스 저장 중 오류: {str(e)}")
             return {"saved": False, "error": str(e)}
     
     def _generate_full_text(self, segments: List[Dict[str, Any]]) -> str:
@@ -469,6 +587,35 @@ class MeetingAnalysisPipeline:
         job = self.pipeline_jobs.get(job_id)
         return job.get("results") if job else None
     
+    def get_estimated_remaining_time(self, job_id: str) -> Optional[int]:
+        """예상 남은 시간 계산 (초 단위)"""
+        job = self.pipeline_jobs.get(job_id)
+        if not job:
+            return None
+        
+        progress = job.get("progress", 0)
+        if progress <= 0:
+            return None
+        
+        # 시작 시간부터 현재까지 경과 시간 계산
+        started_at = job.get("started_at")
+        if not started_at:
+            return None
+        
+        try:
+            start_time = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
+            elapsed_seconds = (datetime.utcnow() - start_time.replace(tzinfo=None)).total_seconds()
+            
+            # 진행률 기반으로 예상 총 시간 계산
+            if progress > 0:
+                estimated_total_time = elapsed_seconds / (progress / 100)
+                remaining_time = estimated_total_time - elapsed_seconds
+                return max(0, int(remaining_time))
+        except:
+            pass
+        
+        return None
+    
     def cancel_job(self, job_id: str) -> bool:
         """작업 취소"""
         if job_id in self.pipeline_jobs:
@@ -496,3 +643,73 @@ class MeetingAnalysisPipeline:
             del self.pipeline_jobs[job_id]
         
         return len(jobs_to_remove)
+    
+    def _create_fallback_agent_results(self, transcript: Dict[str, Any]) -> Dict[str, Any]:
+        """LLM 없이 기본 분석 결과 생성"""
+        logger.info("기본 분석 결과 생성 중...")
+        
+        full_text = transcript.get("full_text", "")
+        segments = transcript.get("segments", [])
+        speakers = transcript.get("speaker_summary", {})
+        
+        # 기본 아젠다
+        basic_agenda = {
+            "id": 1,
+            "title": "회의 주요 내용",
+            "description": f"총 {len(full_text)}자의 회의록이 분석되었습니다.",
+            "category": "discussion",
+            "priority": "medium",
+            "related_topics": [],
+            "outcomes": [],
+            "action_items": [],
+            "discussion_points": ["회의 내용 요약이 필요합니다."]
+        }
+        
+        # 기본 주장 분석
+        basic_claim = {
+            "id": 1,
+            "speaker": "알 수 없음",
+            "claim": "주요 논의 사항이 있었습니다.",
+            "type": "opinion",
+            "confidence_level": "low",
+            "evidence": [],
+            "context": "전체 회의 맥락",
+            "implications": [],
+            "related_claims": [],
+            "time_reference": "회의 전반"
+        }
+        
+        return {
+            "agendas": {
+                "agendas": [basic_agenda],
+                "confidence": 0.3,
+                "processing_note": "LLM 분석 없이 기본 결과 생성됨"
+            },
+            "claims": {
+                "claims": [basic_claim],
+                "confidence": 0.3,
+                "processing_note": "LLM 분석 없이 기본 결과 생성됨"
+            },
+            "counter_arguments": {
+                "counter_arguments": [],
+                "confidence": 0.0,
+                "processing_note": "LLM 분석 없이 기본 결과 생성됨"
+            },
+            "evidence": {
+                "evidence_found": [],
+                "confidence": 0.0,
+                "processing_note": "LLM 분석 없이 기본 결과 생성됨"
+            },
+            "summary": {
+                "executive_summary": {
+                    "overview": f"총 {len(segments)}개 발화가 포함된 회의가 분석되었습니다.",
+                    "participants": len(speakers),
+                    "duration": transcript.get("metadata", {}).get("total_duration", 0)
+                },
+                "action_items": [],
+                "key_decisions": [],
+                "next_steps": [],
+                "confidence": 0.3,
+                "processing_note": "LLM 분석 없이 기본 결과 생성됨"
+            }
+        }
