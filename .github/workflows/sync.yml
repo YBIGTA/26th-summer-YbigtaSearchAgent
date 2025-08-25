@@ -1,0 +1,47 @@
+# 워크플로우의 이름
+name: Sync hyun Branch with LFS
+
+# 워크플로우 실행 조건
+on:
+  # 'Actions' 탭에서 수동으로 이 워크플로우를 시작할 수 있게 함
+  workflow_dispatch:
+
+# 실행될 작업(job) 목록
+jobs:
+  sync-and-push:
+    # 작업이 실행될 환경 (최신 우분투)
+    runs-on: ubuntu-latest
+    
+    # 작업 내에서 실행될 단계(step)들
+    steps:
+      # 1. 레포지토리 코드를 checkout하는 단계
+      - name: Checkout repository with LFS
+        # 커뮤니티에서 만든 표준 checkout 액션을 사용
+        uses: actions/checkout@v4
+        with:
+          # 'hyun' 브랜치를 명시적으로 checkout
+          ref: 'hyun'
+          # Git LFS 파일도 함께 다운로드하도록 설정 (매우 중요!)
+          lfs: true
+          # 전체 git 히스토리를 가져와야 rebase와 push가 원활하게 동작함
+          fetch-depth: 0
+
+      # 2. Git Pull, Commit, Push를 실행하는 단계
+      - name: Pull, Commit, and Push changes
+        run: |
+          # 봇이 커밋할 때 사용할 Git 사용자 정보 설정
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          
+          # 1. 먼저 로컬의 모든 변경사항을 추가(add)합니다.
+          git add .
+
+          # 2. 변경사항이 있을 경우에만 로컬에 커밋합니다.
+          # || true를 붙여 변경사항이 없어도 다음으로 넘어가게 합니다.
+          git commit -m "Update Vector DB" || true
+          
+          # 3. 로컬 커밋을 완료한 후, 원격 변경사항을 pull --rebase 합니다.
+          git pull origin hyun --rebase
+          
+          # 4. 최종 결과를 푸시합니다.
+          git push origin hyun

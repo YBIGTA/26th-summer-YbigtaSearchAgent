@@ -1,0 +1,80 @@
+[project]
+name = "ybigta-meeting-analyzer"
+version = "1.0.0"
+description = "YBIGTA 스마트 회의 분석 시스템"
+authors = [
+    {name = "YBIGTA", email = "contact@ybigta.org"}
+]
+requires-python = ">=3.8,<3.12"
+dependencies = [
+    # Core Backend
+    "fastapi==0.116.1",
+    "uvicorn==0.35.0",
+    "python-dotenv==1.1.1",
+    
+    # Database & Vector Store
+    "chromadb==0.4.22",
+    "sqlalchemy==2.0.42",
+    
+    # NumPy compatibility (must be <2.0 for ChromaDB)
+    "numpy>=1.21.0,<2.0.0",
+    
+    # AI APIs
+    "openai>=1.86.0,<2.0.0",
+    
+    # LangChain
+    "langchain-core==0.3.72",
+    "langchain-openai==0.3.28",
+    "langchain-community==0.3.27",
+    "langchain-text-splitters==0.3.9",
+    
+    # HTTP & Async
+    "aiohttp==3.12.15",
+    "requests==2.32.4",
+    
+    # Security & Encryption
+    "cryptography==45.0.5",
+    
+    # Scheduling
+    "apscheduler==3.10.4",
+    
+    # Google APIs (optional)
+    "google-api-python-client==2.178.0",
+    "google-auth-oauthlib==1.2.2",
+    "google-auth==2.40.3",
+]
+
+[project.optional-dependencies]
+audio = [
+    # Audio processing (heavy dependencies, separate group)
+    "torch==2.2.2",
+    "torchvision==0.17.2", 
+    "torchaudio==2.2.2",
+    "whisper==1.1.10",
+    "librosa==0.10.1",
+    "pyannote.audio==3.1.1",
+]
+
+document = [
+    # Document processing (heavy dependencies)
+    "unstructured==0.18.3",
+    "tiktoken>=0.5.0",
+]
+
+dev = [
+    "pytest",
+    "black",
+    "isort",
+    "flake8",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "black>=22.0.0",
+    "isort>=5.0.0",
+]
