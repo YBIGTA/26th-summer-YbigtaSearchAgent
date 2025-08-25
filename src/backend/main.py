@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any, List
 import os
 import sys
 import uuid
+<<<<<<< HEAD
 from datetime import datetime
 import asyncio
 import logging
@@ -18,15 +19,27 @@ from datetime import datetime
 
 # 환경변수 로드 (로컬에서 실행 시)
 from dotenv import load_dotenv
+=======
+from dotenv import load_dotenv
+
+# .env 파일 로딩
+>>>>>>> feature/frontend-enhancement
 load_dotenv()
 
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+<<<<<<< HEAD
 from db.models import init_db, get_session, MeetingReport
 from core.embeddings import AsyncUpstageEmbeddings
 from core.settings_sync import settings_sync
 from indexers.hybrid_chroma_manager import HybridChromaManager
+=======
+from db.models import init_db, get_session
+from core.embeddings import AsyncUpstageEmbeddings
+from core.settings_sync import settings_sync
+from indexers.chroma_index import ChromaIndexManager
+>>>>>>> feature/frontend-enhancement
 from integrations.notion_client import NotionClient
 from integrations.github_client import GitHubClient
 from integrations.drive_client import GoogleDriveClient
@@ -37,6 +50,7 @@ from core.meeting_pipeline import MeetingAnalysisPipeline
 from agents.multi_agent_orchestrator import MultiAgentOrchestrator
 from llm import create_upstage_client
 from nlp.hybrid_retriever import HybridRetriever
+<<<<<<< HEAD
 from indexers.build_unified_db import (
     run_github as build_run_github,
     run_notion as build_run_notion,
@@ -68,6 +82,8 @@ def setup_logging():
     logger.addHandler(file_handler)
     
     return logger
+=======
+>>>>>>> feature/frontend-enhancement
 
 # 전역 변수
 db_engine = None
@@ -79,7 +95,10 @@ hybrid_retriever = None
 speaker_diarizer = None
 meeting_pipeline = None
 analysis_jobs = {}  # 분석 작업 상태 저장
+<<<<<<< HEAD
 sync_logger = setup_logging()
+=======
+>>>>>>> feature/frontend-enhancement
 
 
 # Pydantic 모델들
@@ -103,6 +122,7 @@ class PipelineRequest(BaseModel):
     audio_file_path: str
     analysis_options: Optional[Dict[str, Any]] = None
 
+<<<<<<< HEAD
 class SearchRequest(BaseModel):
     query: str
     top_k: int = 10
@@ -118,18 +138,23 @@ class SearchResponse(BaseModel):
     response_time: float
     search_metadata: Dict[str, Any]
 
+=======
+>>>>>>> feature/frontend-enhancement
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """애플리케이션 생명주기 관리"""
     global db_engine, chroma_manager, embeddings, update_scheduler, agent_orchestrator, hybrid_retriever, speaker_diarizer, meeting_pipeline
     
+<<<<<<< HEAD
     # 환경 변수 확인
     upstage_api_key = os.getenv("UPSTAGE_API_KEY")
     if not upstage_api_key:
         print("⚠️ UPSTAGE_API_KEY가 설정되지 않았습니다.")
         print("환경 변수를 확인하거나 .env 파일을 설정해주세요.")
     
+=======
+>>>>>>> feature/frontend-enhancement
     # 시작 시 초기화
     print("🚀 백엔드 서버 초기화 중...")
     
@@ -137,6 +162,7 @@ async def lifespan(app: FastAPI):
     db_engine = init_db()
     print("✅ 데이터베이스 초기화 완료")
     
+<<<<<<< HEAD
     # 임베딩 모델 초기화 (조건부)
     try:
         embeddings = AsyncUpstageEmbeddings()
@@ -152,12 +178,26 @@ async def lifespan(app: FastAPI):
     )
     chroma_manager.initialize(embeddings)
     print("✅ 하이브리드 ChromaDB 시스템 초기화 완료")
+=======
+    # 임베딩 모델 초기화
+    embeddings = AsyncUpstageEmbeddings()
+    print("✅ 임베딩 모델 초기화 완료")
+    
+    # ChromaDB 인덱스 초기화
+    chroma_manager = ChromaIndexManager()
+    chroma_manager.initialize(embeddings)
+    print("✅ ChromaDB 인덱스 초기화 완료")
+>>>>>>> feature/frontend-enhancement
     
     # 하이브리드 검색 시스템 초기화
     hybrid_retriever = HybridRetriever(
         chroma_manager=chroma_manager,
+<<<<<<< HEAD
         embedding_client=embeddings,
         db_session_factory=get_session
+=======
+        embedding_client=embeddings
+>>>>>>> feature/frontend-enhancement
     )
     print("✅ 하이브리드 검색 시스템 초기화 완료")
     
@@ -173,6 +213,7 @@ async def lifespan(app: FastAPI):
         print("⚠️ Upstage LLM 클라이언트 초기화 실패 - 에이전트가 제한된 기능으로 동작합니다")
     
     # 멀티에이전트 오케스트레이터 초기화
+<<<<<<< HEAD
     if llm_client:
         agent_orchestrator = MultiAgentOrchestrator(
             retriever=hybrid_retriever,
@@ -182,17 +223,29 @@ async def lifespan(app: FastAPI):
     else:
         agent_orchestrator = None
         print("⚠️ LLM 클라이언트가 없어 에이전트 오케스트레이터를 초기화하지 않습니다.")
+=======
+    agent_orchestrator = MultiAgentOrchestrator(
+        retriever=hybrid_retriever,
+        llm_client=llm_client
+    )
+    print("✅ 멀티에이전트 오케스트레이터 초기화 완료")
+>>>>>>> feature/frontend-enhancement
     
     # 회의 분석 파이프라인 초기화
     meeting_pipeline = MeetingAnalysisPipeline(
         stt_manager=stt_manager,
         speaker_diarizer=speaker_diarizer,
         agent_orchestrator=agent_orchestrator,
+<<<<<<< HEAD
         db_engine=db_engine
+=======
+        db_manager=None  # TODO: DB 매니저 설정
+>>>>>>> feature/frontend-enhancement
     )
     print("✅ 회의 분석 파이프라인 초기화 완료")
     
     # 업데이트 스케줄러 초기화
+<<<<<<< HEAD
     update_scheduler = UpdateScheduler(chroma_manager, db_session_factory=get_session, db_engine=db_engine)
     update_scheduler.start()
     print("✅ 문서 업데이트 스케줄러 시작")
@@ -276,6 +329,12 @@ async def lifespan(app: FastAPI):
         sync_logger.error(msg)
         print("ℹ️ 수동으로 /api/sync/* 엔드포인트를 호출하여 동기화할 수 있습니다.")
     
+=======
+    update_scheduler = UpdateScheduler(chroma_manager)
+    update_scheduler.start()
+    print("✅ 문서 업데이트 스케줄러 시작")
+    
+>>>>>>> feature/frontend-enhancement
     print("🎉 모든 컴포넌트 초기화 완료!")
     
     yield
@@ -324,6 +383,7 @@ async def get_stats():
     stats = chroma_manager.get_statistics()
     return stats
 
+<<<<<<< HEAD
 @app.get("/api/search/stats")
 async def get_search_stats():
     """검색 시스템 통계 반환"""
@@ -353,6 +413,8 @@ async def get_search_stats():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+=======
+>>>>>>> feature/frontend-enhancement
 
 # === 설정 관리 ===
 
@@ -527,6 +589,7 @@ async def get_transcript(transcript_id: int):
 
 # === 검색 ===
 
+<<<<<<< HEAD
 @app.post("/api/v1/search", response_model=SearchResponse)
 async def search_endpoint(request: SearchRequest):
     """통합 검색 API - 하이브리드, 의미적, 키워드 검색 지원"""
@@ -563,6 +626,11 @@ async def search_endpoint(request: SearchRequest):
 @app.post("/api/search/hybrid")
 async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[Dict[str, Any]] = None, sources: Optional[List[str]] = None):
     """고급 하이브리드 검색 (하위 호환성)"""
+=======
+@app.post("/api/search/hybrid")
+async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[Dict[str, Any]] = None, sources: Optional[List[str]] = None):
+    """고급 하이브리드 검색"""
+>>>>>>> feature/frontend-enhancement
     try:
         if not hybrid_retriever:
             raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
@@ -577,7 +645,11 @@ async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[D
         return {
             "query": query,
             "results": results,
+<<<<<<< HEAD
             "total_found": len(results.get("results", {}).get("documents", []))
+=======
+            "total_found": len(results.get("documents", []))
+>>>>>>> feature/frontend-enhancement
         }
         
     except Exception as e:
@@ -588,6 +660,7 @@ async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[D
 async def vector_search(query: str, top_k: int = 5):
     """벡터 검색만"""
     try:
+<<<<<<< HEAD
         if not hybrid_retriever or not hybrid_retriever.semantic_engine:
             # 폴백: 기존 ChromaDB 사용
             if chroma_manager:
@@ -595,6 +668,12 @@ async def vector_search(query: str, top_k: int = 5):
                 return {"results": results}
             else:
                 raise HTTPException(status_code=503, detail="벡터 검색 시스템이 초기화되지 않았습니다.")
+=======
+        if not hybrid_retriever:
+            # 폴백: 기존 ChromaDB 사용
+            results = chroma_manager.vector_search(query, top_k)
+            return {"results": results}
+>>>>>>> feature/frontend-enhancement
         
         results = await hybrid_retriever.semantic_engine.search(
             query=query,
@@ -610,6 +689,7 @@ async def vector_search(query: str, top_k: int = 5):
 async def keyword_search(query: str, top_k: int = 5):
     """키워드 검색만"""
     try:
+<<<<<<< HEAD
         if not hybrid_retriever or not hybrid_retriever.keyword_engine:
             # 폴백: 메타데이터 검색
             if chroma_manager:
@@ -620,6 +700,15 @@ async def keyword_search(query: str, top_k: int = 5):
                 raise HTTPException(status_code=503, detail="키워드 검색 시스템이 초기화되지 않았습니다.")
         
                 results = await hybrid_retriever.keyword_engine.search(
+=======
+        if not hybrid_retriever:
+            # 폴백: 메타데이터 검색
+            filter = {"$or": [{"title": {"$contains": query}}, {"source": {"$contains": query}}]}
+            results = chroma_manager.metadata_search(filter, top_k)
+            return {"results": results}
+            
+        results = await hybrid_retriever.keyword_engine.search(
+>>>>>>> feature/frontend-enhancement
             query=query,
             top_k=top_k
         )
@@ -634,6 +723,7 @@ async def text_search(query: str, top_k: int = 5):
     """텍스트 검색 (하위 호환성)"""
     return await keyword_search(query, top_k)
 
+<<<<<<< HEAD
 @app.post("/api/search/config")
 async def update_search_config(config: Dict[str, Any]):
     """검색 시스템 설정 업데이트"""
@@ -654,6 +744,97 @@ async def update_search_config(config: Dict[str, Any]):
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+=======
+
+@app.get("/api/knowledge/projects")
+async def get_projects_overview():
+    """ChromaDB에서 프로젝트 목록과 메타데이터를 조회합니다."""
+    try:
+        if not chroma_manager or not chroma_manager.available:
+            raise HTTPException(status_code=503, detail="ChromaDB가 초기화되지 않았습니다.")
+        
+        # 메타데이터 파일에서 프로젝트 정보 로드
+        metadata = chroma_manager._load_metadata()
+        
+        # 소스별로 프로젝트 분류
+        projects_by_source = {
+            "github": [],
+            "gdrive": [],
+            "meeting": []
+        }
+        
+        for doc_id, doc_info in metadata.items():
+            source = doc_info.get('source', 'unknown')
+            title = doc_info.get('title', 'Unknown Project')
+            
+            project_info = {
+                "id": doc_id,
+                "title": title,
+                "source": source,
+                "last_updated": doc_info.get('last_updated'),
+                "content_hash": doc_info.get('content_hash'),
+                "type": _classify_project_type(title),
+                "description": _generate_project_description(title, source)
+            }
+            
+            if source in projects_by_source:
+                projects_by_source[source].append(project_info)
+        
+        # 통계 정보 생성
+        stats = {
+            "total_projects": len(metadata),
+            "github_count": len(projects_by_source["github"]),
+            "gdrive_count": len(projects_by_source["gdrive"]),
+            "meeting_count": len(projects_by_source["meeting"]),
+            "last_sync": max([doc['last_updated'] for doc in metadata.values()]) if metadata else None
+        }
+        
+        return {
+            "projects": projects_by_source,
+            "stats": stats,
+            "total_found": len(metadata)
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"프로젝트 조회 오류: {str(e)}")
+
+
+def _classify_project_type(title: str) -> str:
+    """프로젝트 제목을 기반으로 타입을 분류합니다."""
+    title_lower = title.lower()
+    
+    if any(keyword in title_lower for keyword in ['deep', 'learning', 'ml', 'ai', 'neural']):
+        return "AI/ML"
+    elif any(keyword in title_lower for keyword in ['web', 'api', 'server', 'frontend', 'backend']):
+        return "Web Development"
+    elif any(keyword in title_lower for keyword in ['data', 'analysis', 'visualization', 'stats']):
+        return "Data Science"
+    elif any(keyword in title_lower for keyword in ['study', 'tutorial', 'course']):
+        return "Study/Education"
+    elif any(keyword in title_lower for keyword in ['project', '27th', '26th', '25th']):
+        return "YBIGTA Project"
+    else:
+        return "기타"
+
+
+def _generate_project_description(title: str, source: str) -> str:
+    """프로젝트 설명을 생성합니다."""
+    project_type = _classify_project_type(title)
+    
+    descriptions = {
+        "AI/ML": "인공지능 및 머신러닝 관련 프로젝트",
+        "Web Development": "웹 개발 및 API 구축 프로젝트",
+        "Data Science": "데이터 분석 및 시각화 프로젝트",
+        "Study/Education": "학습 및 교육 관련 자료",
+        "YBIGTA Project": "YBIGTA 기수별 프로젝트",
+        "기타": "기타 프로젝트"
+    }
+    
+    base_desc = descriptions.get(project_type, "YBIGTA 관련 프로젝트")
+    source_desc = {"github": "GitHub 저장소", "gdrive": "Google Drive 문서", "meeting": "회의록"}.get(source, "문서")
+    
+    return f"{base_desc} ({source_desc})"
+>>>>>>> feature/frontend-enhancement
 
 
 # === 지식베이스 동기화 ===
@@ -662,18 +843,29 @@ async def update_search_config(config: Dict[str, Any]):
 async def sync_notion():
     """Notion 문서 동기화"""
     try:
+<<<<<<< HEAD
         collection_name = "unified_knowledge_db"  # 지식베이스용 컬렉션
         added = await asyncio.to_thread(build_run_notion, collection_name=collection_name)
         return {
             "status": "success",
             "documents_synced": added,
             "message": f"Notion 문서 청크 {added}개 추가. (collection={collection_name})"
+=======
+        client = NotionClient()
+        docs = await client.load_all_pages()
+        chroma_manager.sync_source("notion", docs)
+        return {
+            "status": "success",
+            "documents_synced": len(docs),
+            "message": f"{len(docs)}개의 Notion 문서가 동기화되었습니다."
+>>>>>>> feature/frontend-enhancement
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/sync/github")
+<<<<<<< HEAD
 async def sync_github(org: str = None):
     """GitHub 리포지토리 동기화"""
     try:
@@ -684,12 +876,25 @@ async def sync_github(org: str = None):
             "status": "success",
             "documents_synced": added,
             "message": f"GitHub README 청크 {added}개 추가. (org={org_name}, collection={collection_name})"
+=======
+async def sync_github():
+    """GitHub 리포지토리 동기화"""
+    try:
+        client = GitHubClient()
+        docs = client.load_all_repos()
+        chroma_manager.sync_source("github", docs)
+        return {
+            "status": "success",
+            "documents_synced": len(docs),
+            "message": f"{len(docs)}개의 GitHub 문서가 동기화되었습니다."
+>>>>>>> feature/frontend-enhancement
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/sync/drive")
+<<<<<<< HEAD
 async def sync_drive(folder_id: str = None):
     """Google Drive 문서 동기화"""
     try:
@@ -702,6 +907,18 @@ async def sync_drive(folder_id: str = None):
             "status": "success",
             "documents_synced": added,
             "message": f"GDrive 문서 청크 {added}개 추가. (collection={collection_name})"
+=======
+async def sync_drive():
+    """Google Drive 문서 동기화"""
+    try:
+        client = GoogleDriveClient()
+        docs = client.load_all_documents()
+        chroma_manager.sync_source("google_drive", docs)
+        return {
+            "status": "success",
+            "documents_synced": len(docs),
+            "message": f"{len(docs)}개의 Drive 문서가 동기화되었습니다."
+>>>>>>> feature/frontend-enhancement
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -968,6 +1185,10 @@ async def run_evidence_hunter(transcript_id: int, query: Optional[str] = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature/frontend-enhancement
 @app.post("/api/agents/summarizer")
 async def run_summarizer(transcript_id: int):
     """요약 에이전트 실행"""
@@ -1172,6 +1393,7 @@ async def cleanup_pipeline_jobs(max_age_hours: int = 24):
 
 # === 원클릭 회의 분석 (파일 업로드 → 전체 파이프라인) ===
 
+<<<<<<< HEAD
 # 지원하는 오디오/비디오 포맷
 SUPPORTED_AUDIO_FORMATS = {
     '.mp3', '.wav', '.m4a', '.flac', '.ogg', '.opus', '.webm',
@@ -1192,10 +1414,16 @@ SUPPORTED_FORMATS = SUPPORTED_AUDIO_FORMATS | SUPPORTED_VIDEO_FORMATS
 async def analyze_uploaded_meeting(file: UploadFile = File(...)):
     """파일 업로드 + 즉시 전체 분석 파이프라인 실행"""
     print(f"\n🚀 === 파일 업로드 요청 수신 === {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+=======
+@app.post("/api/meetings/analyze-upload")
+async def analyze_uploaded_meeting(file: UploadFile = File(...)):
+    """파일 업로드 + 즉시 전체 분석 파이프라인 실행"""
+>>>>>>> feature/frontend-enhancement
     try:
         if not meeting_pipeline:
             raise HTTPException(status_code=503, detail="회의 분석 파이프라인이 초기화되지 않았습니다.")
         
+<<<<<<< HEAD
         # 파일 확장자 검증
         file_ext = os.path.splitext(file.filename)[1].lower()
         
@@ -1255,10 +1483,25 @@ async def analyze_uploaded_meeting(file: UploadFile = File(...)):
         print(f"파이프라인 시작 완료: job_id={job_id}, 소요시간={pipeline_start_time:.2f}초")
         
         response = {
+=======
+        # 파일 저장
+        os.makedirs("data/meetings", exist_ok=True)
+        file_path = f"data/meetings/{file.filename}"
+        
+        with open(file_path, "wb") as f:
+            content = await file.read()
+            f.write(content)
+        
+        # 즉시 파이프라인 시작
+        job_id = await meeting_pipeline.start_analysis(file_path)
+        
+        return {
+>>>>>>> feature/frontend-enhancement
             "status": "started",
             "job_id": job_id,
             "filename": file.filename,
             "file_path": file_path,
+<<<<<<< HEAD
             "format": file_ext,
             "message": "파일 업로드 후 회의 분석을 시작했습니다."
         }
@@ -1296,6 +1539,15 @@ async def get_pipeline_status(job_id: str):
     }
 
 
+=======
+            "message": "파일 업로드 후 회의 분석을 시작했습니다."
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+>>>>>>> feature/frontend-enhancement
 @app.get("/api/meetings/{job_id}/report")
 async def get_meeting_report(job_id: str, format: str = "json"):
     """회의 분석 최종 보고서 조회"""
@@ -1327,6 +1579,7 @@ async def get_meeting_report(job_id: str, format: str = "json"):
     }
 
 
+<<<<<<< HEAD
 # === 보고서 저장/조회 ===
 
 @app.post("/api/reports/save")
@@ -1534,6 +1787,8 @@ async def health_check():
     return status
 
 
+=======
+>>>>>>> feature/frontend-enhancement
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
