@@ -170,4 +170,4 @@ tmp/
 myenv/
 
 # 모든 chroma_* 디렉터리 무시
-chroma_*/
+# chroma_*/
