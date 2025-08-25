@@ -52,14 +52,18 @@ jobs:
           python create_notion_vector_db.py
           python create_gdrive_vector_db.py
           python create_github_vector_db.py
-          python migrate_faiss_to_chroma_multi.py \
-            --faiss_dirs gdrive_faiss_index notion_faiss_index github_faiss_index \
-            --labels gdrive notion github \
-            --chroma_dir ./chroma_all \
-            --collection all \
-            --space cosine \
-            --normalize \
-            --batch 1024
+          python fiass_to_chroma.py --faiss_path gdrive_faiss_index
+          python fiass_to_chroma.py --faiss_path notion_faiss_index
+          python fiass_to_chroma.py --faiss_path github_faiss_index
+
+          # python migrate_faiss_to_chroma_multi.py \
+          #   --faiss_dirs gdrive_faiss_index notion_faiss_index github_faiss_index \
+          #   --labels gdrive notion github \
+          #   --chroma_dir ./chroma_all \
+          #   --collection all \
+          #   --space cosine \
+          #   --normalize \
+          #   --batch 1024
         env:
           UPSTAGE_API_KEY: ${{ secrets.UPSTAGE_API_KEY }}
           UPSTAGE_API_KEY1: ${{ secrets.UPSTAGE_API_KEY1 }}
