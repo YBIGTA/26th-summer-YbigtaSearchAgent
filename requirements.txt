@@ -1,25 +1,25 @@
 # Core Libraries
-langchain
-langchain-core
-langchain-community
-langchain-openai
-python-dotenv
-requests
+langchain==0.3.27
+langchain-core==0.3.72
+langchain-community==0.3.27
+langchain-openai==0.3.28
+python-dotenv==1.1.1
+requests==2.32.4
 
 # Vector Store
-faiss-cpu
-chromadb
+faiss-cpu==1.11.0.post1
+chromadb==1.0.20
 
 # Data Sources
-google-api-python-client
-google-auth-oauthlib
-unstructured
+google-api-python-client==2.178.0
+google-auth-oauthlib==1.2.2
+unstructured==0.18.3
 readmeai
 tiktoken<0.5.0
 
 # Backend API
-fastapi
-uvicorn
+fastapi==0.116.1
+uvicorn==0.35.0
 
 # Frontend UI
-streamlit
+streamlit==1.47.1
