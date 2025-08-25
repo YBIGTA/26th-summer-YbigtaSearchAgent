@@ -193,4 +193,6 @@ requirements-*.txt
 myenv/
 
 # ChromaDB
-data/indexes/chroma_db/
+data/indexes/
+data/unified_chroma_db/
+
