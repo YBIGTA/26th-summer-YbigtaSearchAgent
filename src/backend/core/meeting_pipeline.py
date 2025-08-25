@@ -14,6 +14,9 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+# 지연 import를 위한 전역 변수
+SpeakerAnalyzer = None
+
 
 
 class MeetingAnalysisPipeline:
@@ -38,6 +41,7 @@ class MeetingAnalysisPipeline:
             "stt_processing", 
             "speaker_diarization",
             "transcript_processing",
+            "speaker_analysis",  # 새로운 화자 중심 분석 단계
             "agent_analysis",
             "report_generation",
             "result_storage"
@@ -46,13 +50,17 @@ class MeetingAnalysisPipeline:
         # 각 단계별 가중치 (진행률 계산용)
         self.stage_weights = {
             "file_validation": 5,
-            "stt_processing": 25,
-            "speaker_diarization": 15,
-            "transcript_processing": 10,
-            "agent_analysis": 35,
-            "report_generation": 8,
-            "result_storage": 2
+            "stt_processing": 20,
+            "speaker_diarization": 10,
+            "transcript_processing": 8,
+            "speaker_analysis": 12,  # 새로운 단계
+            "agent_analysis": 30,
+            "report_generation": 12,
+            "result_storage": 3
         }
+        
+        # 화자 분석기 초기화 (지연 로딩)
+        self.speaker_analyzer = None
     
     async def start_analysis(self, 
                            audio_file_path: str,
@@ -139,9 +147,17 @@ class MeetingAnalysisPipeline:
             transcript = await self._process_transcript(job["results"])
             job["results"]["transcript"] = transcript
             
-            # 5. 멀티에이전트 분석
+            # 5. 화자 중심 분석
+            await self._update_progress(job_id, "speaker_analysis", 63)
+            speaker_analysis = await self._process_speaker_analysis(transcript, job["options"])
+            job["results"]["speaker_analysis"] = speaker_analysis
+            
+            # 중간 저장 1: STT + 화자 분석 결과 저장
+            await self._save_intermediate_results(job_id, job["results"], "speaker_analysis_completed")
+            
+            # 6. 멀티에이전트 분석
             if job["options"]["enable_agents"]:
-                await self._update_progress(job_id, "agent_analysis", 65)
+                await self._update_progress(job_id, "agent_analysis", 70)
                 logger.info(f"멀티에이전트 분석 시작: {job_id}")
                 logger.debug(f"전사 결과 요약: 텍스트 길이={len(transcript.get('full_text', ''))}, 세그먼트 수={len(transcript.get('segments', []))}")
                 
@@ -150,11 +166,14 @@ class MeetingAnalysisPipeline:
                 
                 logger.info(f"멀티에이전트 분석 완료: {job_id}")
                 logger.debug(f"에이전트 결과 키: {list(agent_results.keys()) if agent_results else 'None'}")
+                
+                # 중간 저장 2: 에이전트 분석 완료 후 저장
+                await self._save_intermediate_results(job_id, job["results"], "agent_analysis_completed")
             else:
                 job["results"]["agent_analysis"] = {"skipped": True}
                 logger.info(f"에이전트 분석 스킵됨: {job_id}")
             
-            # 6. 보고서 생성
+            # 7. 보고서 생성
             await self._update_progress(job_id, "report_generation", 92)
             logger.info(f"보고서 생성 시작: {job_id}")
             logger.debug(f"보고서 생성 입력 데이터: {list(job['results'].keys())}")
@@ -165,7 +184,7 @@ class MeetingAnalysisPipeline:
             logger.info(f"보고서 생성 완료: {job_id}")
             logger.debug(f"보고서 구조: {list(report.keys()) if report else 'None'}")
             
-            # 7. 결과 저장
+            # 8. 최종 결과 저장
             await self._update_progress(job_id, "result_storage", 98)
             storage_result = await self._store_results(job_id, job["results"])
             job["results"]["storage"] = storage_result
@@ -294,6 +313,48 @@ class MeetingAnalysisPipeline:
         except Exception as e:
             raise Exception(f"회의록 처리 실패: {str(e)}")
     
+    async def _process_speaker_analysis(self, transcript: Dict[str, Any], options: Dict[str, Any]) -> Dict[str, Any]:
+        """화자 중심 분석 처리"""
+        global SpeakerAnalyzer
+        
+        try:
+            # 지연 import
+            if SpeakerAnalyzer is None:
+                try:
+                    from agents.speaker_analyzer import SpeakerAnalyzer as SA
+                    SpeakerAnalyzer = SA
+                except ImportError as e:
+                    logger.error(f"SpeakerAnalyzer import 실패: {e}")
+                    return {"error": "화자 분석 모듈을 로드할 수 없습니다.", "skipped": True}
+            
+            # 화자 분석기 초기화 (필요시)
+            if self.speaker_analyzer is None:
+                # LLM 클라이언트가 있으면 전달 (추후 고도화 시 사용)
+                llm_client = None
+                if hasattr(self, 'agent_orchestrator') and self.agent_orchestrator:
+                    llm_client = getattr(self.agent_orchestrator, 'llm_client', None)
+                
+                self.speaker_analyzer = SpeakerAnalyzer(llm_client)
+                logger.info("✅ 화자 분석기 초기화 완료")
+            
+            # 분석 실행
+            logger.info("🎤 화자 중심 분석 시작")
+            analysis_result = await self.speaker_analyzer.analyze(transcript)
+            
+            logger.info(f"✅ 화자 중심 분석 완료: {analysis_result.get('total_speakers', 0)}명 분석")
+            return analysis_result
+            
+        except Exception as e:
+            logger.error(f"화자 분석 실패: {str(e)}")
+            return {
+                "error": f"화자 분석 실패: {str(e)}",
+                "skipped": True,
+                "fallback_data": {
+                    "total_speakers": len(transcript.get("speaker_summary", {}).get("speakers", {})),
+                    "analysis_timestamp": datetime.utcnow().isoformat()
+                }
+            }
+    
     async def _process_agents(self, transcript: Dict[str, Any], agent_config: Dict[str, bool]) -> Dict[str, Any]:
         """멀티에이전트 분석"""
         if not self.agent_orchestrator:
@@ -312,7 +373,16 @@ class MeetingAnalysisPipeline:
                 "content": transcript.get("full_text", "")
             }
             
-            logger.info(f"에이전트 분석 입력 데이터 준비 완료: 텍스트 {len(meeting_data['transcript'])}자, 세그먼트 {len(meeting_data['timeline'])}개")
+            logger.info(f"에이전트 분석 입력 데이터 준비 완료:")
+            logger.info(f"  - 텍스트 길이: {len(meeting_data['transcript'])} 문자")
+            logger.info(f"  - 세그먼트 수: {len(meeting_data['timeline'])} 개")
+            logger.info(f"  - 텍스트 미리보기: {meeting_data['transcript'][:300]}...")
+            
+            if len(meeting_data['transcript']) == 0:
+                logger.error("🚨 경고: 에이전트에 전달되는 텍스트가 비어있습니다!")
+                logger.error(f"원본 transcript 구조: {list(transcript.keys())}")
+                logger.error(f"full_text 값: '{transcript.get('full_text', 'KEY_NOT_FOUND')}'")
+                logger.error(f"segments 길이: {len(transcript.get('segments', []))}")
             
             # 각 에이전트 순차 실행 (실제로는 병렬 실행 가능)
             if agent_config.get("agenda_miner", True):
@@ -439,11 +509,7 @@ class MeetingAnalysisPipeline:
     
     async def _store_results(self, job_id: str, results: Dict[str, Any]) -> Dict[str, Any]:
         """결과 저장 - 직접 데이터베이스에 저장"""
-        print(f"🔄 _store_results 호출됨: job_id={job_id}")
-        logger.info(f"🔄 _store_results 호출됨: job_id={job_id}")
-        
         if not self.db_engine:
-            print("❌ 데이터베이스 엔진이 없습니다")
             logger.warning("데이터베이스 엔진이 설정되지 않아 저장을 건너뜁니다.")
             return {"saved": False, "error": "데이터베이스 엔진이 없음"}
             
@@ -507,31 +573,204 @@ class MeetingAnalysisPipeline:
             logger.error(f"❌ 데이터베이스 저장 중 오류: {str(e)}")
             return {"saved": False, "error": str(e)}
     
-    def _generate_full_text(self, segments: List[Dict[str, Any]]) -> str:
-        """세그먼트에서 전체 텍스트 생성"""
-        return " ".join([
-            seg.get("text", "") for seg in segments 
-            if seg.get("text", "").strip()
-        ])
+    async def _save_intermediate_results(self, job_id: str, results: Dict[str, Any], stage: str):
+        """중간 결과 실시간 저장 - 부분 완료 상태에서도 데이터 보존"""
+        if not self.db_engine:
+            logger.warning(f"중간 저장 스킵 (DB 없음): {job_id} - {stage}")
+            return
+        
+        try:
+            # Import database models inside function
+            try:
+                from db.models import get_session, MeetingReport
+            except ImportError as e:
+                logger.error(f"❌ DB 모델 import 실패 (중간 저장): {e}")
+                return
+            
+            job = self.pipeline_jobs.get(job_id, {})
+            
+            # 세션 생성
+            session = get_session(self.db_engine)
+            
+            try:
+                # 기존 레코드 확인/생성
+                meeting_report = session.query(MeetingReport).filter_by(job_id=job_id).first()
+                
+                if not meeting_report:
+                    # 새 레코드 생성
+                    meeting_report = MeetingReport(job_id=job_id)
+                    session.add(meeting_report)
+                
+                # 기본 정보 업데이트
+                meeting_report.title = job.get("title", f"Meeting_{job_id[:8]}")
+                meeting_report.original_filename = job.get("original_filename", "unknown.wav")
+                meeting_report.file_size = job.get("file_size", 0)
+                meeting_report.current_stage = stage
+                meeting_report.progress = job.get("progress", 0)
+                meeting_report.status = "processing"
+                meeting_report.updated_at = datetime.now()
+                
+                # 단계별 결과 저장
+                if stage == "speaker_analysis_completed":
+                    # STT + 화자 분석 결과 저장
+                    meeting_report.duration_seconds = results.get("stt", {}).get("duration", 0)
+                    meeting_report.num_speakers = results.get("speaker_analysis", {}).get("total_speakers", 0)
+                    meeting_report.raw_results = {
+                        "stt": results.get("stt", {}),
+                        "diarization": results.get("diarization", {}),
+                        "transcript": results.get("transcript", {}),
+                        "speaker_analysis": results.get("speaker_analysis", {})
+                    }
+                
+                elif stage == "agent_analysis_completed":
+                    # 에이전트 분석 결과 추가
+                    existing_results = meeting_report.raw_results or {}
+                    existing_results.update({
+                        "agent_analysis": results.get("agent_analysis", {})
+                    })
+                    meeting_report.raw_results = existing_results
+                    
+                    # 에이전트별 결과 저장
+                    agent_results = results.get("agent_analysis", {})
+                    meeting_report.agendas = agent_results.get("agendas", {})
+                    meeting_report.claims = agent_results.get("claims", {})
+                    meeting_report.counter_arguments = agent_results.get("counter_arguments", {})
+                    meeting_report.evidence = agent_results.get("evidence", {})
+                
+                session.commit()
+                logger.info(f"💾 중간 저장 완료: {job_id} - {stage}")
+                
+            finally:
+                session.close()
+                
+        except Exception as e:
+            logger.error(f"❌ 중간 저장 실패: {job_id} - {stage}: {str(e)}")
+            # 중간 저장 실패는 전체 파이프라인을 중단하지 않음
     
-    def _generate_speaker_summary(self, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """화자별 요약 생성"""
-        speaker_data = {}
+    def _generate_full_text(self, segments: List[Dict[str, Any]]) -> str:
+        """세그먼트에서 전체 텍스트 생성 - 다양한 필드명 지원"""
+        logger.info(f"_generate_full_text: 받은 세그먼트 수={len(segments)}")
+        if segments:
+            logger.info(f"첫 번째 세그먼트 구조: {list(segments[0].keys())}")
+        
+        # 다양한 텍스트 필드명 우선순위 지원
+        text_fields = ["text", "msg", "content", "transcript"]
+        full_text_parts = []
         
         for seg in segments:
-            speaker = seg.get("speaker", "Unknown")
+            text_content = None
+            
+            # 우선순위에 따라 텍스트 필드 찾기
+            for field in text_fields:
+                if field in seg and seg[field] and seg[field].strip():
+                    text_content = seg[field].strip()
+                    break
+            
+            if text_content:
+                full_text_parts.append(text_content)
+                logger.debug(f"세그먼트 텍스트 추가: '{text_content[:50]}...'")
+            else:
+                logger.warning(f"세그먼트에서 텍스트를 찾을 수 없음: {list(seg.keys())}")
+        
+        full_text = " ".join(full_text_parts)
+        
+        logger.info(f"✅ 텍스트 생성 완료: {len(full_text)} 문자, {len(full_text_parts)}개 세그먼트")
+        
+        if len(full_text) == 0:
+            logger.error("🚨 경고: 생성된 전체 텍스트가 비어있습니다!")
+            logger.error(f"원본 세그먼트 샘플: {segments[:3] if segments else '없음'}")
+        else:
+            logger.info(f"📝 전체 텍스트 미리보기: {full_text[:200]}...")
+        
+        return full_text
+    
+    def _generate_speaker_summary(self, segments: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """화자별 요약 생성 - 향상된 통계 정보"""
+        speaker_data = {}
+        total_duration = 0.0
+        total_words = 0
+        
+        # 다양한 필드명 지원
+        text_fields = ["text", "msg", "content"]
+        speaker_fields = ["speaker", "spk"]
+        duration_fields = ["duration", "length"]
+        
+        for seg in segments:
+            # 화자 정보 추출
+            speaker = None
+            for field in speaker_fields:
+                if field in seg and seg[field] is not None:
+                    speaker_value = seg[field]
+                    if isinstance(speaker_value, int):
+                        speaker = f"Speaker {speaker_value}"
+                    else:
+                        speaker = str(speaker_value)
+                    break
+            
+            if not speaker:
+                speaker = "Unknown"
+            
+            # 텍스트 추출
+            text_content = ""
+            for field in text_fields:
+                if field in seg and seg[field]:
+                    text_content = seg[field]
+                    break
+            
+            # 지속시간 추출
+            duration = 0.0
+            for field in duration_fields:
+                if field in seg and isinstance(seg[field], (int, float)):
+                    duration = float(seg[field])
+                    break
+            
+            # 시간 정보가 있는 경우 계산
+            if duration == 0.0 and "start" in seg and "end" in seg:
+                try:
+                    duration = float(seg["end"]) - float(seg["start"])
+                except (ValueError, TypeError):
+                    duration = 0.0
+            
+            # 화자별 데이터 집계
             if speaker not in speaker_data:
                 speaker_data[speaker] = {
                     "utterance_count": 0,
                     "total_words": 0,
-                    "total_duration": 0.0
+                    "total_duration": 0.0,
+                    "average_utterance_length": 0.0,
+                    "speaking_percentage": 0.0
                 }
             
+            word_count = len(text_content.split()) if text_content else 0
+            
             speaker_data[speaker]["utterance_count"] += 1
-            speaker_data[speaker]["total_words"] += len(seg.get("text", "").split())
-            speaker_data[speaker]["total_duration"] += seg.get("duration", 0.0)
+            speaker_data[speaker]["total_words"] += word_count
+            speaker_data[speaker]["total_duration"] += duration
+            
+            total_duration += duration
+            total_words += word_count
         
-        return speaker_data
+        # 비율 및 평균 계산
+        for speaker, data in speaker_data.items():
+            if data["utterance_count"] > 0:
+                data["average_utterance_length"] = data["total_words"] / data["utterance_count"]
+            
+            if total_duration > 0:
+                data["speaking_percentage"] = (data["total_duration"] / total_duration) * 100
+        
+        # 전체 통계 추가
+        summary_with_totals = {
+            "speakers": speaker_data,
+            "total_speakers": len(speaker_data),
+            "total_duration": total_duration,
+            "total_words": total_words,
+            "most_active_speaker": max(speaker_data.keys(), 
+                                     key=lambda s: speaker_data[s]["total_words"]) if speaker_data else None
+        }
+        
+        logger.info(f"✅ 화자별 요약 생성: {len(speaker_data)}명, 총 {total_duration:.1f}초")
+        
+        return summary_with_totals
     
     def _generate_meeting_overview(self, transcript: Dict[str, Any]) -> str:
         """회의 개요 생성"""

@@ -11,7 +11,7 @@ from typing import Optional, Dict, Any, List
 import os
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # 백엔드 모듈 경로 추가
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -1149,6 +1149,54 @@ async def save_meeting_report(request: dict):
     except Exception as e:
         session.rollback()
         print(f"❌ 보고서 저장 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        session.close()
+
+
+@app.get("/api/reports/live-updates")
+async def get_live_report_updates(since: Optional[str] = None):
+    """실시간 보고서 업데이트 조회 - 폴링용"""
+    session = get_session(db_engine)
+    try:
+        query = session.query(MeetingReport)
+        
+        # since 시간 이후의 업데이트만 조회
+        if since:
+            try:
+                since_datetime = datetime.fromisoformat(since.replace('Z', '+00:00')).replace(tzinfo=None)
+                query = query.filter(MeetingReport.updated_at > since_datetime)
+            except ValueError:
+                pass  # 잘못된 시간 형식이면 무시
+        
+        # 최근 업데이트된 순으로 정렬, 최대 20개
+        reports = query.order_by(MeetingReport.updated_at.desc()).limit(20).all()
+        
+        updates = []
+        for report in reports:
+            # 진행 중인 작업이나 최근 완료된 작업만 포함
+            if report.status in ["processing", "completed"] or report.updated_at > datetime.now() - timedelta(hours=1):
+                updates.append({
+                    "id": report.id,
+                    "job_id": report.job_id,
+                    "title": report.title,
+                    "status": report.status,
+                    "progress": report.progress,
+                    "current_stage": report.current_stage,
+                    "updated_at": report.updated_at.isoformat() if report.updated_at else None,
+                    "has_partial_results": bool(report.raw_results),
+                    "speakers_detected": report.num_speakers,
+                    "duration": report.duration_seconds
+                })
+        
+        return {
+            "updates": updates,
+            "timestamp": datetime.now().isoformat(),
+            "total_updates": len(updates)
+        }
+        
+    except Exception as e:
+        print(f"❌ 실시간 업데이트 조회 오류: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
     finally:
         session.close()

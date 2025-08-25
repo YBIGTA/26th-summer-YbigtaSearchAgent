@@ -17,7 +17,7 @@ interface Meeting {
 }
 
 const Dashboard: React.FC = () => {
-  const { startPipelineAnalysis, getPipelineStatus, getPipelineResults, getAllReports, getReportByJobId, deleteReport, isLoading, error } = useApi();
+  const { startPipelineAnalysis, getPipelineStatus, getPipelineResults, getAllReports, getReportByJobId, deleteReport, isLoading, error, liveUpdates, startLiveUpdates, stopLiveUpdates, isLiveUpdatesActive } = useApi();
   const [dragActive, setDragActive] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -74,12 +74,64 @@ const Dashboard: React.FC = () => {
     }
   }, [getAllReports]);
 
-  // 컴포넌트 마운트 시 저장된 보고서 불러오기
+  // 컴포넌트 마운트 시 저장된 보고서 불러오기 및 실시간 업데이트 시작
   useEffect(() => {
     loadSavedReports();
-  }, [loadSavedReports]);
+    startLiveUpdates(); // 실시간 업데이트 시작
+    
+    return () => {
+      stopLiveUpdates(); // 컴포넌트 언마운트 시 중지
+    };
+  }, [loadSavedReports, startLiveUpdates, stopLiveUpdates]);
 
-  // 파이프라인 상태 폴링 함수
+  // 실시간 업데이트를 이용한 meetings 상태 업데이트
+  useEffect(() => {
+    if (liveUpdates.length === 0) return;
+    
+    console.log('📱 실시간 업데이트 적용:', liveUpdates.length, '개');
+    
+    setMeetings(prevMeetings => {
+      const updatedMeetings = [...prevMeetings];
+      
+      liveUpdates.forEach(update => {
+        const existingIndex = updatedMeetings.findIndex(m => m.job_id === update.job_id);
+        
+        const updatedMeeting: Meeting = {
+          id: update.job_id,
+          title: update.title || 'Unknown Meeting',
+          date: update.updated_at ? new Date(update.updated_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          duration: update.duration ? `${Math.round(update.duration / 60)}분` : '알 수 없음',
+          speakers: update.speakers_detected || 0,
+          status: update.status === 'completed' ? 'completed' as const : 
+                 update.status === 'processing' ? 'processing' as const : 
+                 update.status === 'failed' ? 'error' as const : 'processing' as const,
+          summary: update.status === 'completed' ? '분석 완료!' :
+                  update.status === 'failed' ? '분석 실패' :
+                  update.current_stage ? getStageMessage(update.current_stage, update.progress || 0) : '처리 중...',
+          job_id: update.job_id,
+          progress: update.progress || (update.status === 'completed' ? 100 : 0),
+          current_stage: update.current_stage || (update.status === 'completed' ? 'completed' : 'unknown')
+        };
+        
+        if (existingIndex >= 0) {
+          // 기존 아이템 업데이트
+          updatedMeetings[existingIndex] = updatedMeeting;
+        } else {
+          // 새 아이템 추가
+          updatedMeetings.unshift(updatedMeeting);
+        }
+      });
+      
+      // 최신순으로 정렬하고 중복 제거
+      return updatedMeetings
+        .filter((meeting, index, arr) => 
+          arr.findIndex(m => m.job_id === meeting.job_id) === index
+        )
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
+  }, [liveUpdates]);
+
+  // 파이프라인 상태 폴링 함수 (실시간 업데이트 보조용)
   const pollPipelineStatus = useCallback(async (jobId: string, meetingId: string) => {
     if (!activePolling.has(jobId)) return;
 
@@ -630,9 +682,45 @@ const Dashboard: React.FC = () => {
         <h1 style={{ fontSize: '28px', fontWeight: 700, marginBottom: '8px' }}>
           Meeting AI Dashboard
         </h1>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
-          회의 음성을 업로드하여 자동으로 전사하고 분석해보세요.
-        </p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>
+            회의 음성을 업로드하여 자동으로 전사하고 분석해보세요.
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {isLiveUpdatesActive && (
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '4px 8px', 
+                backgroundColor: 'var(--accent-bg)', 
+                borderRadius: '12px',
+                fontSize: '12px',
+                color: 'var(--accent-text)' 
+              }}>
+                <div style={{ 
+                  width: '6px', 
+                  height: '6px', 
+                  borderRadius: '50%', 
+                  backgroundColor: 'var(--success-color)',
+                  animation: 'pulse 2s infinite' 
+                }} />
+                실시간 업데이트 중
+              </div>
+            )}
+            {liveUpdates.length > 0 && (
+              <div style={{ 
+                fontSize: '12px', 
+                color: 'var(--text-muted)',
+                padding: '4px 8px',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '12px'
+              }}>
+                📱 {liveUpdates.length}개 업데이트
+              </div>
+            )}
+          </div>
+        </div>
         {meetings.length === 0 && (
           <div style={{
             marginTop: '16px',

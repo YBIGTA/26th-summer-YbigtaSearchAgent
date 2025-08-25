@@ -303,39 +303,7 @@ class EvidenceHunter(BaseAgent):
                 weights={"semantic": 0.7, "keyword": 0.3}  # 검색 가중치
             )
             
-            formatted_results = []
-            # HybridRetriever returns a dictionary with 'documents' key
-            if isinstance(search_results, dict) and "documents" in search_results:
-                documents = search_results.get("documents", [])
-                metadata_list = search_results.get("metadata", [])
-                scores = search_results.get("scores", [])
-                
-                for i, doc in enumerate(documents):
-                    metadata = metadata_list[i] if i < len(metadata_list) else {}
-                    score = scores[i] if i < len(scores) else 0.0
-                    
-                    formatted_results.append({
-                        "content": doc if isinstance(doc, str) else str(doc),
-                        "source": metadata.get("source", "chroma_db"),
-                        "source_type": "document",
-                        "relevance_score": min(1.0, score * 2),  # 점수 정규화
-                        "metadata": {
-                            "doc_id": metadata.get("doc_id"),
-                            "title": metadata.get("title", "Unknown"),
-                            "indexed_at": metadata.get("indexed_at"),
-                            "chunk_index": metadata.get("chunk_index", 0)
-                        }
-                    })
-            else:
-                # 백업: 기존 리스트 형식으로 처리
-                for result in search_results if isinstance(search_results, list) else []:
-                    formatted_results.append({
-                        "content": result.get("content", ""),
-                        "source": result.get("metadata", {}).get("source", "chroma_db"),
-                        "source_type": "document",
-                        "relevance_score": min(1.0, result.get("score", 0.0) * 2),
-                        "metadata": result.get("metadata", {})
-                    })
+            formatted_results = self._format_search_results(search_results, "chroma_db")
             
             logger.info(f"ChromaDB에서 {len(formatted_results)}개 유사 문서 검색 완료")
             return formatted_results
@@ -361,46 +329,7 @@ class EvidenceHunter(BaseAgent):
                 weights={"semantic": 0.8, "keyword": 0.2}  # 특정 소스 검색시 의미론적 검색 가중치 높임
             )
             
-            formatted_results = []
-            # HybridRetriever returns a dictionary with 'documents' key
-            if isinstance(search_results, dict) and "documents" in search_results:
-                documents = search_results.get("documents", [])
-                metadata_list = search_results.get("metadata", [])
-                scores = search_results.get("scores", [])
-                
-                for i, doc in enumerate(documents):
-                    metadata = metadata_list[i] if i < len(metadata_list) else {}
-                    score = scores[i] if i < len(scores) else 0.0
-                    
-                    formatted_results.append({
-                        "content": doc if isinstance(doc, str) else str(doc),
-                        "source": metadata.get("source", source),
-                        "source_type": "document",
-                        "relevance_score": min(1.0, score * 2),  # 점수 정규화
-                        "metadata": {
-                            "doc_id": metadata.get("doc_id"),
-                            "title": metadata.get("title", "Unknown"),
-                            "indexed_at": metadata.get("indexed_at"),
-                            "chunk_index": metadata.get("chunk_index", 0),
-                            "filtered_source": source
-                        }
-                    })
-            else:
-                # 백업: 기존 리스트 형식으로 처리
-                for result in search_results if isinstance(search_results, list) else []:
-                    formatted_results.append({
-                        "content": result.get("content", ""),
-                        "source": result.get("metadata", {}).get("source", source),
-                        "source_type": "document",
-                        "relevance_score": min(1.0, result.get("score", 0.0) * 2),
-                        "metadata": {
-                            "doc_id": result.get("metadata", {}).get("doc_id"),
-                            "title": result.get("metadata", {}).get("title", "Unknown"),
-                            "indexed_at": result.get("metadata", {}).get("indexed_at"),
-                            "chunk_index": result.get("metadata", {}).get("chunk_index", 0),
-                            "filtered_source": source
-                        }
-                    })
+            formatted_results = self._format_search_results(search_results, source)
             
             logger.info(f"{source} 소스에서 {len(formatted_results)}개 유사 문서 검색 완료")
             return formatted_results
@@ -694,7 +623,9 @@ class EvidenceHunter(BaseAgent):
                     weights={"semantic": 0.8, "keyword": 0.2}  # 의미론적 유사도 중시
                 )
                 
-                for result in search_results:
+                formatted_results = self._format_search_results(search_results, "unknown")
+                
+                for result in formatted_results:
                     # 현재 회의와의 중복 방지
                     doc_metadata = result.get("metadata", {})
                     if self._is_same_meeting(meeting_metadata, doc_metadata):
@@ -702,9 +633,9 @@ class EvidenceHunter(BaseAgent):
                         
                     similar_meetings.append({
                         "content": result.get("content", ""),
-                        "source": result.get("metadata", {}).get("source", "unknown"),
-                        "title": result.get("metadata", {}).get("title", "Unknown Meeting"),
-                        "doc_id": result.get("metadata", {}).get("doc_id"),
+                        "source": result.get("source", "unknown"),
+                        "title": doc_metadata.get("title", "Unknown Meeting"),
+                        "doc_id": doc_metadata.get("doc_id"),
                         "similarity_score": result.get("score", 0.0),
                         "matched_topic": topic,
                         "meeting_date": doc_metadata.get("created_at", "unknown"),

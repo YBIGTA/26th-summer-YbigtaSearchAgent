@@ -25,6 +25,26 @@ class BaseAgent(ABC):
         self.conversation_history: List[Dict[str, Any]] = []
         self.agent_state = "idle"  # idle, thinking, responding, error
         
+        # LLM 클라이언트 연결 상태 검증
+        if self.llm_client:
+            self._validate_llm_connection()
+    
+    def _validate_llm_connection(self):
+        """LLM 클라이언트 연결 상태 검증"""
+        try:
+            if hasattr(self.llm_client, 'validate_connection'):
+                is_valid = self.llm_client.validate_connection()
+                if is_valid:
+                    logger.info(f"✅ {self.name}: LLM 클라이언트 연결 검증 완료")
+                else:
+                    logger.error(f"❌ {self.name}: LLM 클라이언트 연결 실패")
+                    self.agent_state = "error"
+            else:
+                logger.warning(f"⚠️ {self.name}: LLM 클라이언트 연결 검증 메서드 없음")
+        except Exception as e:
+            logger.error(f"❌ {self.name}: LLM 연결 검증 중 오류: {e}")
+            self.agent_state = "error"
+        
     @abstractmethod
     async def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -129,7 +149,7 @@ class BaseAgent(ABC):
     
     async def analyze(self, input_data: Any) -> Dict[str, Any]:
         """
-        에이전트 분석 수행 (process 메서드의 래퍼)
+        에이전트 분석 수행 (process 메서드의 래퍼) - 향상된 데이터 정규화
         
         Args:
             input_data: 분석할 데이터 (문자열이나 딕셔너리)
@@ -137,26 +157,37 @@ class BaseAgent(ABC):
         Returns:
             분석 결과
         """
-        # 입력 데이터를 딕셔너리 형태로 변환
+        logger.debug(f"{self.name}: 입력 데이터 정규화 시작")
+        
+        # 입력 데이터를 표준 형식으로 정규화
         if isinstance(input_data, str):
             processed_input = {
-                "transcript": input_data,  # AgendaMiner가 기대하는 키 사용
+                "transcript": input_data,
                 "speakers": [],
                 "timeline": [],
                 "metadata": {},
                 "timestamp": datetime.now().isoformat()
             }
         elif isinstance(input_data, dict):
-            # 이미 딕셔너리인 경우 필요한 키들이 있는지 확인하고 없으면 추가
             processed_input = input_data.copy()
-            if "transcript" not in processed_input and "content" in processed_input:
-                processed_input["transcript"] = processed_input["content"]
-            if "speakers" not in processed_input:
-                processed_input["speakers"] = []
-            if "timeline" not in processed_input:
-                processed_input["timeline"] = []
+            
+            # 텍스트 정규화 - 다양한 필드명 지원
+            transcript_text = self._extract_transcript_text(processed_input)
+            processed_input["transcript"] = transcript_text
+            
+            # 화자 정보 정규화
+            speakers_info = self._extract_speakers_info(processed_input)
+            processed_input["speakers"] = speakers_info
+            
+            # 타임라인 정보 정규화
+            timeline_info = self._extract_timeline_info(processed_input)
+            processed_input["timeline"] = timeline_info
+            
+            # 기본 필드 보장
             if "metadata" not in processed_input:
                 processed_input["metadata"] = {}
+            if "timestamp" not in processed_input:
+                processed_input["timestamp"] = datetime.now().isoformat()
         else:
             processed_input = {
                 "transcript": str(input_data),
@@ -166,7 +197,149 @@ class BaseAgent(ABC):
                 "timestamp": datetime.now().isoformat()
             }
         
+        # 정규화 결과 검증
+        self._validate_processed_input(processed_input)
+        
+        logger.debug(f"{self.name}: 입력 데이터 정규화 완료 - 텍스트 길이: {len(processed_input['transcript'])}")
+        
         return await self.process(processed_input)
+    
+    def _extract_transcript_text(self, data: Dict[str, Any]) -> str:
+        """다양한 형태의 입력에서 텍스트 추출"""
+        text_fields = ["transcript", "content", "text", "full_text"]
+        
+        # 직접적인 텍스트 필드 확인
+        for field in text_fields:
+            if field in data and data[field] and data[field].strip():
+                logger.debug(f"{self.name}: '{field}' 필드에서 텍스트 추출")
+                return data[field].strip()
+        
+        # 세그먼트에서 텍스트 생성
+        segments = data.get("segments", [])
+        if segments:
+            logger.debug(f"{self.name}: {len(segments)}개 세그먼트에서 텍스트 추출")
+            text_parts = []
+            for seg in segments:
+                for text_field in ["text", "msg", "content"]:
+                    if text_field in seg and seg[text_field]:
+                        text_parts.append(seg[text_field].strip())
+                        break
+            
+            combined_text = " ".join(text_parts)
+            if combined_text:
+                return combined_text
+        
+        # 타임라인에서 텍스트 생성
+        timeline = data.get("timeline", [])
+        if timeline:
+            logger.debug(f"{self.name}: {len(timeline)}개 타임라인에서 텍스트 추출")
+            text_parts = []
+            for item in timeline:
+                for text_field in ["text", "msg", "content", "utterance"]:
+                    if text_field in item and item[text_field]:
+                        text_parts.append(item[text_field].strip())
+                        break
+            
+            combined_text = " ".join(text_parts)
+            if combined_text:
+                return combined_text
+        
+        logger.warning(f"{self.name}: 입력 데이터에서 텍스트를 추출할 수 없음")
+        return ""
+    
+    def _extract_speakers_info(self, data: Dict[str, Any]) -> List[str]:
+        """화자 정보 추출 및 정규화"""
+        speakers = set()
+        
+        # 직접적인 화자 목록
+        if "speakers" in data and isinstance(data["speakers"], list):
+            speakers.update(data["speakers"])
+        
+        # 세그먼트에서 화자 추출
+        segments = data.get("segments", [])
+        for seg in segments:
+            speaker_fields = ["speaker", "spk"]
+            for field in speaker_fields:
+                if field in seg and seg[field] is not None:
+                    speaker_value = seg[field]
+                    if isinstance(speaker_value, int):
+                        speakers.add(f"Speaker {speaker_value}")
+                    else:
+                        speakers.add(str(speaker_value))
+                    break
+        
+        # 타임라인에서 화자 추출
+        timeline = data.get("timeline", [])
+        for item in timeline:
+            speaker_fields = ["speaker", "spk", "user"]
+            for field in speaker_fields:
+                if field in item and item[field] is not None:
+                    speaker_value = item[field]
+                    if isinstance(speaker_value, int):
+                        speakers.add(f"Speaker {speaker_value}")
+                    else:
+                        speakers.add(str(speaker_value))
+                    break
+        
+        speakers_list = sorted(list(speakers))
+        logger.debug(f"{self.name}: {len(speakers_list)}명 화자 추출: {speakers_list}")
+        return speakers_list
+    
+    def _extract_timeline_info(self, data: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """타임라인 정보 추출 및 정규화"""
+        timeline = []
+        
+        # 직접적인 타임라인
+        if "timeline" in data and isinstance(data["timeline"], list):
+            timeline.extend(data["timeline"])
+        
+        # 세그먼트를 타임라인으로 변환
+        segments = data.get("segments", [])
+        if segments and not timeline:  # 타임라인이 비어있을 때만
+            for seg in segments:
+                timeline_item = {
+                    "start": seg.get("start", 0),
+                    "end": seg.get("end", 0),
+                    "text": self._extract_text_from_segment(seg),
+                    "speaker": self._extract_speaker_from_segment(seg)
+                }
+                timeline.append(timeline_item)
+        
+        logger.debug(f"{self.name}: {len(timeline)}개 타임라인 아이템 추출")
+        return timeline
+    
+    def _extract_text_from_segment(self, seg: Dict[str, Any]) -> str:
+        """세그먼트에서 텍스트 추출"""
+        text_fields = ["text", "msg", "content", "utterance"]
+        for field in text_fields:
+            if field in seg and seg[field]:
+                return seg[field].strip()
+        return ""
+    
+    def _extract_speaker_from_segment(self, seg: Dict[str, Any]) -> str:
+        """세그먼트에서 화자 추출"""
+        speaker_fields = ["speaker", "spk"]
+        for field in speaker_fields:
+            if field in seg and seg[field] is not None:
+                speaker_value = seg[field]
+                if isinstance(speaker_value, int):
+                    return f"Speaker {speaker_value}"
+                else:
+                    return str(speaker_value)
+        return "Unknown"
+    
+    def _validate_processed_input(self, processed_input: Dict[str, Any]):
+        """정규화된 입력 데이터 검증"""
+        if not processed_input.get("transcript", "").strip():
+            logger.warning(f"{self.name}: 정규화 후에도 텍스트가 비어있음")
+        
+        if not processed_input.get("speakers"):
+            logger.warning(f"{self.name}: 화자 정보가 없음")
+        
+        if not processed_input.get("timeline"):
+            logger.warning(f"{self.name}: 타임라인 정보가 없음")
+        
+        logger.debug(f"{self.name}: 입력 데이터 검증 완료")
     
     def reset(self):
         """에이전트 상태 초기화"""

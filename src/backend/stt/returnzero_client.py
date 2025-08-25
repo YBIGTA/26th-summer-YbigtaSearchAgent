@@ -217,36 +217,78 @@ class ReturnZeroSTTClient:
                 "text": "",
                 "language": "ko",
                 "segments": [],
-                "speakers": []
+                "speakers": [],
+                "duration": 0.0,
+                "confidence": 0.0
             }
         
-        # 전체 텍스트 추출
+        # 전체 텍스트 추출 및 화자 정보 향상
         full_text = ""
         segments = []
         speakers = set()
+        speaker_stats = {}  # 화자별 통계
         
         for utterance in results.get("utterances", []):
             text = utterance.get("msg", "").strip()
-            start_time = utterance.get("start_at", 0) / 1000.0  # ms to seconds
-            end_time = utterance.get("end_at", 0) / 1000.0
+            start_time_ms = utterance.get("start_at", 0)
+            duration_ms = utterance.get("duration", 0)
             speaker_id = utterance.get("spk", 0)
+            language = utterance.get("lang", "ko")
+            
+            # 시간 변환 (ms -> seconds)
+            start_time = start_time_ms / 1000.0
+            end_time = (start_time_ms + duration_ms) / 1000.0
+            duration_seconds = duration_ms / 1000.0
+            
+            # 화자 레이블 생성
+            speaker_label = f"Speaker {speaker_id}"
             
             if text:
                 full_text += text + " "
-                segments.append({
+                
+                # 세그먼트 정보 (다양한 필드명 지원)
+                segment = {
                     "start": start_time,
                     "end": end_time,
                     "text": text,
-                    "speaker": f"Speaker {speaker_id}"
-                })
-                speakers.add(f"Speaker {speaker_id}")
+                    "msg": text,  # ReturnZero 원본 필드명도 유지
+                    "speaker": speaker_label,
+                    "spk": speaker_id,  # 원본 화자 ID도 유지
+                    "duration": duration_seconds,
+                    "language": language,
+                    "confidence": 1.0  # ReturnZero는 confidence를 제공하지 않으므로 기본값
+                }
+                segments.append(segment)
+                speakers.add(speaker_label)
+                
+                # 화자별 통계 수집
+                if speaker_label not in speaker_stats:
+                    speaker_stats[speaker_label] = {
+                        "utterance_count": 0,
+                        "total_duration": 0.0,
+                        "total_words": 0
+                    }
+                
+                speaker_stats[speaker_label]["utterance_count"] += 1
+                speaker_stats[speaker_label]["total_duration"] += duration_seconds
+                speaker_stats[speaker_label]["total_words"] += len(text.split())
+        
+        # 전체 발화 신뢰도 계산 (단순 평균)
+        overall_confidence = 1.0 if segments else 0.0
+        
+        print(f"✅ 파싱 완료: {len(segments)}개 세그먼트, {len(speakers)}명 화자")
+        print(f"📊 화자별 통계: {speaker_stats}")
         
         return {
             "text": full_text.strip(),
             "language": "ko",
             "segments": segments,
             "speakers": sorted(list(speakers)),
-            "duration": max([s["end"] for s in segments]) if segments else 0.0
+            "speaker_statistics": speaker_stats,
+            "duration": max([s["end"] for s in segments]) if segments else 0.0,
+            "confidence": overall_confidence,
+            "total_segments": len(segments),
+            "total_speakers": len(speakers)
         }
     
     def get_supported_languages(self) -> List[str]:

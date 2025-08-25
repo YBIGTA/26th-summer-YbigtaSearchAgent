@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 
 // API 관련 타입 정의
 export interface ApiKey {
@@ -32,6 +32,25 @@ export interface PipelineResults {
   results: any;
 }
 
+export interface ReportUpdate {
+  id: number;
+  job_id: string;
+  title: string;
+  status: string;
+  progress: number;
+  current_stage?: string;
+  updated_at?: string;
+  has_partial_results: boolean;
+  speakers_detected?: number;
+  duration?: number;
+}
+
+export interface LiveUpdates {
+  updates: ReportUpdate[];
+  timestamp: string;
+  total_updates: number;
+}
+
 interface ApiContextType {
   apiKeys: ApiKey[];
   isLoading: boolean;
@@ -47,6 +66,11 @@ interface ApiContextType {
   getAllReports: () => Promise<any[]>;
   getReportByJobId: (jobId: string) => Promise<any>;
   deleteReport: (jobId: string) => Promise<void>;
+  // 실시간 업데이트 관련
+  liveUpdates: ReportUpdate[];
+  startLiveUpdates: () => void;
+  stopLiveUpdates: () => void;
+  isLiveUpdatesActive: boolean;
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
@@ -67,6 +91,12 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
   const [apiKeys, setApiKeys] = useState<ApiKey[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 실시간 업데이트 상태
+  const [liveUpdates, setLiveUpdates] = useState<ReportUpdate[]>([]);
+  const [isLiveUpdatesActive, setIsLiveUpdatesActive] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTimeRef = useRef<string>('');
 
   const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000/api';
 
@@ -442,6 +472,87 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     }
   };
 
+  // 실시간 업데이트 함수들
+  const fetchLiveUpdates = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (lastUpdateTimeRef.current) {
+        params.append('since', lastUpdateTimeRef.current);
+      }
+      
+      const url = `/reports/live-updates${params.toString() ? `?${params.toString()}` : ''}`;
+      const response = await fetch(`${API_BASE_URL}${url}`);
+      
+      if (response.ok) {
+        const data: LiveUpdates = await response.json();
+        
+        if (data.updates.length > 0) {
+          console.log('📱 실시간 업데이트:', data.updates.length, '개');
+          
+          setLiveUpdates(prevUpdates => {
+            // 기존 업데이트와 새 업데이트를 job_id 기준으로 병합
+            const updatedMap = new Map<string, ReportUpdate>();
+            
+            // 기존 업데이트 추가
+            prevUpdates.forEach(update => {
+              updatedMap.set(update.job_id, update);
+            });
+            
+            // 새 업데이트로 덮어쓰기
+            data.updates.forEach(update => {
+              updatedMap.set(update.job_id, update);
+            });
+            
+            return Array.from(updatedMap.values())
+              .sort((a, b) => new Date(b.updated_at || '').getTime() - new Date(a.updated_at || '').getTime())
+              .slice(0, 50); // 최근 50개만 유지
+          });
+          
+          // 마지막 업데이트 시간 갱신
+          lastUpdateTimeRef.current = data.timestamp;
+        }
+      }
+    } catch (error) {
+      console.error('실시간 업데이트 가져오기 실패:', error);
+      // 에러가 발생해도 폴링은 계속 진행
+    }
+  };
+
+  const startLiveUpdates = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    setIsLiveUpdatesActive(true);
+    
+    // 즉시 한 번 실행
+    fetchLiveUpdates();
+    
+    // 3초마다 폴링
+    pollingIntervalRef.current = setInterval(fetchLiveUpdates, 3000);
+    
+    console.log('🔄 실시간 업데이트 시작 (3초 간격)');
+  };
+
+  const stopLiveUpdates = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
+    setIsLiveUpdatesActive(false);
+    console.log('⏹️ 실시간 업데이트 중지');
+  };
+
+  // 컴포넌트 언마운트 시 정리
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
+
   const contextValue: ApiContextType = {
     apiKeys,
     isLoading,
@@ -457,6 +568,11 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     getAllReports,
     getReportByJobId,
     deleteReport,
+    // 실시간 업데이트
+    liveUpdates,
+    startLiveUpdates,
+    stopLiveUpdates,
+    isLiveUpdatesActive,
   };
 
   return (
