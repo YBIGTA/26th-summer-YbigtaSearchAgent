@@ -260,25 +260,31 @@ class EvidenceHunter(BaseAgent):
             return []
             
         try:
-            # ChromaDB 하이브리드 검색 수행
-            search_results = self.retriever.hybrid_search(
+            # ChromaDB 하이브리드 검색 수행 (비동기)
+            hybrid = await self.retriever.search(
                 query=query,
-                top_k=10,  # 충분한 결과 가져오기
-                vector_weight=0.7  # 벡터 검색 가중치
+                top_k=10,
+                search_type="hybrid",
+                filters=None,
+                sources=None,
             )
+
+            docs = hybrid.get("results", {}).get("documents", []) or []
+            metas = hybrid.get("results", {}).get("metadata", []) or []
+            scores = hybrid.get("results", {}).get("scores", []) or []
             
             formatted_results = []
-            for result in search_results:
+            for doc, meta, score in zip(docs, metas, scores):
                 formatted_results.append({
-                    "content": result.get("content", ""),
-                    "source": result.get("metadata", {}).get("source", "chroma_db"),
+                    "content": doc or "",
+                    "source": (meta or {}).get("source", "chroma_db"),
                     "source_type": "document",
-                    "relevance_score": min(1.0, result.get("score", 0.0) * 2),  # 점수 정규화
+                    "relevance_score": min(1.0, (score or 0.0) * 2),
                     "metadata": {
-                        "doc_id": result.get("metadata", {}).get("doc_id"),
-                        "title": result.get("metadata", {}).get("title", "Unknown"),
-                        "indexed_at": result.get("metadata", {}).get("indexed_at"),
-                        "chunk_index": result.get("metadata", {}).get("chunk_index", 0)
+                        "doc_id": (meta or {}).get("doc_id"),
+                        "title": (meta or {}).get("title", "Unknown"),
+                        "indexed_at": (meta or {}).get("indexed_at"),
+                        "chunk_index": (meta or {}).get("chunk_index", 0)
                     }
                 })
             
@@ -299,26 +305,31 @@ class EvidenceHunter(BaseAgent):
             source_filter = {"source": source} if source != "all" else None
             
             # ChromaDB 하이브리드 검색 (필터 적용)
-            search_results = self.retriever.hybrid_search(
+            hybrid = await self.retriever.search(
                 query=query,
                 top_k=8,
-                filter=source_filter,
-                vector_weight=0.8  # 특정 소스 검색시 벡터 검색 가중치 높임
+                search_type="hybrid",
+                filters=source_filter,
+                sources=None,
             )
+
+            docs = hybrid.get("results", {}).get("documents", []) or []
+            metas = hybrid.get("results", {}).get("metadata", []) or []
+            scores = hybrid.get("results", {}).get("scores", []) or []
             
             formatted_results = []
-            for result in search_results:
+            for doc, meta, score in zip(docs, metas, scores):
+                m = meta or {}
                 formatted_results.append({
-                    "content": result.get("content", ""),
-                    "source": result.get("metadata", {}).get("source", source),
+                    "content": doc or "",
+                    "source": m.get("source", source),
                     "source_type": "document",
-                    "relevance_score": min(1.0, result.get("score", 0.0) * 2),  # 점수 정규화
+                    "relevance_score": min(1.0, (score or 0.0) * 2),
                     "metadata": {
-                        "doc_id": result.get("metadata", {}).get("doc_id"),
-                        "title": result.get("metadata", {}).get("title", "Unknown"),
-                        "indexed_at": result.get("metadata", {}).get("indexed_at"),
-                        "chunk_index": result.get("metadata", {}).get("chunk_index", 0),
-                        "filtered_source": source
+                        "doc_id": m.get("doc_id"),
+                        "title": m.get("title", "Unknown"),
+                        "indexed_at": m.get("indexed_at"),
+                        "chunk_index": m.get("chunk_index", 0),
                     }
                 })
             
@@ -607,28 +618,31 @@ class EvidenceHunter(BaseAgent):
             
             # 각 핵심 주제별로 유사 회의 검색
             for topic in key_topics[:3]:  # 상위 3개 주제만 사용
-                search_results = self.retriever.hybrid_search(
+                hybrid = await self.retriever.search(
                     query=topic,
                     top_k=5,
-                    filter=None,  # 모든 소스에서 검색
-                    vector_weight=0.8  # 의미론적 유사도 중시
+                    search_type="hybrid",
+                    filters=None,
+                    sources=None,
                 )
-                
-                for result in search_results:
+
+                docs = hybrid.get("results", {}).get("documents", []) or []
+                metas = hybrid.get("results", {}).get("metadata", []) or []
+                scores = hybrid.get("results", {}).get("scores", []) or []
+
+                for doc, meta, score in zip(docs, metas, scores):
+                    m = meta or {}
                     # 현재 회의와의 중복 방지
-                    doc_metadata = result.get("metadata", {})
-                    if self._is_same_meeting(meeting_metadata, doc_metadata):
+                    if self._is_same_meeting(meeting_metadata, m):
                         continue
-                        
                     similar_meetings.append({
-                        "content": result.get("content", ""),
-                        "source": result.get("metadata", {}).get("source", "unknown"),
-                        "title": result.get("metadata", {}).get("title", "Unknown Meeting"),
-                        "doc_id": result.get("metadata", {}).get("doc_id"),
-                        "similarity_score": result.get("score", 0.0),
+                        "content": doc or "",
+                        "source": m.get("source", "unknown"),
+                        "title": m.get("title", "Unknown Meeting"),
+                        "doc_id": m.get("doc_id"),
+                        "similarity_score": score or 0.0,
                         "matched_topic": topic,
-                        "meeting_date": doc_metadata.get("created_at", "unknown"),
-                        "metadata": doc_metadata
+                        "meeting_date": m.get("created_at", "unknown"),
                     })
             
             # 중복 제거 및 점수순 정렬

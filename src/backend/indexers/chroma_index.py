@@ -99,9 +99,9 @@ class ChromaIndexManager:
             else:
                 # 4) 정말 아무 컬렉션도 없을 때만 새로 생성
                 self.collection = self.client.create_collection(
-                    name=self.collection_name,
-                    metadata={"description": "YBIGTA 회의 지식베이스"}
-                )
+                name=self.collection_name,
+                metadata={"description": "YBIGTA 회의 지식베이스"}
+            )
                 print(f"📁 새로운 ChromaDB 컬렉션 생성: {self.collection_name}")
         
         # LangChain VectorStore 래퍼 초기화
@@ -349,7 +349,7 @@ class ChromaIndexManager:
                 print(f"🗑️ {len(deleted_doc_ids)}개 문서 삭제 완료")
             except Exception as e:
                 print(f"❌ 삭제 중 오류: {e}")
-
+        
         # 신규/업데이트 문서 upsert
         # (기존 add_documents 등 사용)
         self.add_documents(new_or_updated_docs)

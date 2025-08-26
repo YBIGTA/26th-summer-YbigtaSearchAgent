@@ -3,7 +3,7 @@
 FastAPI 서버 및 라우트 설정
 """
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Response
+from fastapi import FastAPI, File, UploadFile, HTTPException, BackgroundTasks, Response, Body
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
@@ -222,7 +222,7 @@ async def lifespan(app: FastAPI):
     else:
         print("⚠️ Upstage LLM 클라이언트 초기화 실패 - 에이전트가 제한된 기능으로 동작합니다")
     
-    # 멀티에이전트 오케스트레이터 초기화
+        # 멀티에이전트 오케스트레이터 초기화
     if llm_client:
         agent_orchestrator = MultiAgentOrchestrator(
             retriever=hybrid_retriever,
@@ -605,11 +605,27 @@ async def search_endpoint(request: SearchRequest):
         raise HTTPException(status_code=500, detail=f"검색 중 오류 발생: {str(e)}")
 
 @app.post("/api/search/hybrid")
-async def hybrid_search_endpoint(query: str, top_k: int = 5, filters: Optional[Dict[str, Any]] = None, sources: Optional[List[str]] = None):
+async def hybrid_search_endpoint(
+    request: Optional[SearchRequest] = Body(None),
+    query: Optional[str] = None,
+    top_k: int = 5,
+    filters: Optional[Dict[str, Any]] = None,
+    sources: Optional[List[str]] = None
+):
     """고급 하이브리드 검색 (하위 호환성)"""
     try:
         if not hybrid_retriever:
             raise HTTPException(status_code=503, detail="하이브리드 검색 시스템이 초기화되지 않았습니다.")
+        
+        # JSON 바디 우선 적용 (프론트가 JSON으로 보내는 경우 지원)
+        if request is not None:
+            query = request.query or query
+            top_k = request.top_k or top_k
+            filters = request.filters or filters
+            sources = request.sources or sources
+
+        if not query:
+            raise HTTPException(status_code=422, detail="query 파라미터가 필요합니다.")
         
         results = await hybrid_retriever.search(
             query=query, 
@@ -665,7 +681,7 @@ async def keyword_search(request: Dict[str, Any]):
                 return {"results": {"documents": results}}
             else:
                 raise HTTPException(status_code=503, detail="키워드 검색 시스템이 초기화되지 않았습니다.")
-        
+            
         results = await hybrid_retriever.keyword_engine.search(
             query=query,
             top_k=top_k

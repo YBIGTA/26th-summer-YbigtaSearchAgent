@@ -576,16 +576,16 @@ const Dashboard: React.FC = () => {
           onClick={() => document.getElementById('fileInput')?.click()}
         >
           {meetings.length === 0 ? (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
-              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-                파일을 여기에 드래그하세요
-              </h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                또는 클릭하여 파일을 선택하세요
-              </p>
-              <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-                지원 형식: MP3, WAV, M4A, MP4, AVI, MOV (최대 500MB)
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+              파일을 여기에 드래그하세요
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              또는 클릭하여 파일을 선택하세요
+            </p>
+            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+              지원 형식: MP3, WAV, M4A, MP4, AVI, MOV (최대 500MB)
               </div>
             </div>
           ) : (
@@ -692,6 +692,7 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
+        </div>
         {/* 업로드 진행률 */}
         {uploadProgress !== null && (
           <div style={{ marginTop: '16px' }}>
@@ -699,87 +700,87 @@ const Dashboard: React.FC = () => {
               <span>파일 업로드 및 분석 시작 중...</span>
               <span>{uploadProgress}%</span>
             </div>
-            <div style={{ marginTop: '16px' }}>
-              <div style={{ display: 'grid', gap: '24px' }}>
-                {/* 실행 요약 */}
-                <div style={{ 
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderRadius: '20px',
-                  padding: '28px',
-                  color: 'white',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-                }}>
-                  {/* 배경 장식 */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '-50px',
-                    right: '-50px',
-                    width: '150px',
-                    height: '150px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    pointerEvents: 'none'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    bottom: '-30px',
-                    left: '-30px',
-                    width: '100px',
-                    height: '100px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 255, 255, 0.08)',
-                    pointerEvents: 'none'
-                  }} />
-                  
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
-                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: 'white' }}>
-                      실행 요약
-                    </h3>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                      {/* 핵심 결과 */}
-                      <div>
-                        <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
-                          핵심 결과
-                        </h4>
-                        <div style={{ display: 'grid', gap: '8px' }}>
-                          {finalReport?.executive_summary?.key_findings?.length > 0 ? (
-                            finalReport.executive_summary.key_findings.map((finding: string, index: number) => (
-                              <div key={index} style={{ 
-                                display: 'flex', 
-                                alignItems: 'flex-start', 
-                                gap: '8px',
-                                padding: '8px 12px',
-                                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                                borderRadius: '8px'
-                              }}>
-                                <div style={{ 
-                                  width: '6px', 
-                                  height: '6px', 
-                                  backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-                                  borderRadius: '50%', 
-                                  marginTop: '6px',
-                                  flexShrink: 0
-                                }}></div>
-                                <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>{finding}</p>
+        <div style={{ marginTop: '16px' }}>
+          <div style={{ display: 'grid', gap: '24px' }}>
+            {/* 실행 요약 */}
+            <div style={{ 
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '20px',
+              padding: '28px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+            }}>
+              {/* 배경 장식 */}
+              <div style={{
+                position: 'absolute',
+                top: '-50px',
+                right: '-50px',
+                width: '150px',
+                height: '150px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.1)',
+                pointerEvents: 'none'
+              }} />
+              <div style={{
+                position: 'absolute',
+                bottom: '-30px',
+                left: '-30px',
+                width: '100px',
+                height: '100px',
+                borderRadius: '50%',
+                background: 'rgba(255, 255, 255, 0.08)',
+                pointerEvents: 'none'
+              }} />
+              
+              <div style={{ position: 'relative', zIndex: 1 }}>
+                <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: 'white' }}>
+                  실행 요약
+                </h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                  {/* 핵심 결과 */}
+                  <div>
+                    <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
+                      핵심 결과
+                    </h4>
+                    <div style={{ display: 'grid', gap: '8px' }}>
+                      {finalReport?.executive_summary?.key_findings?.length > 0 ? (
+                        finalReport.executive_summary.key_findings.map((finding: string, index: number) => (
+                          <div key={index} style={{ 
+                            display: 'flex', 
+                            alignItems: 'flex-start', 
+                            gap: '8px',
+                            padding: '8px 12px',
+                            backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                            borderRadius: '8px'
+                          }}>
+                            <div style={{ 
+                              width: '6px', 
+                              height: '6px', 
+                              backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                              borderRadius: '50%', 
+                              marginTop: '6px',
+                              flexShrink: 0
+                            }}></div>
+                            <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>{finding}</p>
                               </div>
                             ))
                           ) : (
                             <div style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>표시할 핵심 결과가 없습니다.</div>
                           )}
-                        </div>
-                        <div style={{ 
-                          marginTop: '8px', 
-                          fontSize: '12px', 
-                          color: 'var(--text-secondary)',
-                          textAlign: 'center'
-                        }}>
-                          큰 파일의 경우 업로드와 분석에 수 분이 소요될 수 있습니다.
-                          <br />
-                          업로드가 완료되면 자동으로 분석이 시작됩니다.
+            </div>
+            <div style={{ 
+              marginTop: '8px', 
+              fontSize: '12px', 
+              color: 'var(--text-secondary)',
+              textAlign: 'center'
+            }}>
+              큰 파일의 경우 업로드와 분석에 수 분이 소요될 수 있습니다.
+              <br />
+              업로드가 완료되면 자동으로 분석이 시작됩니다.
                         </div>
                       </div>
                     </div>
@@ -789,7 +790,6 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* 통계 카드들 */}
@@ -856,7 +856,6 @@ const Dashboard: React.FC = () => {
             <h3 className="card-title">오류</h3>
             <div style={{ fontSize: '32px', fontWeight: 700, color: 'var(--accent-danger)' }}>
               {meetings.filter(m => m.status === 'error').length}
-            </div>
           </div>
         </div>
       </div>
@@ -927,7 +926,7 @@ const Dashboard: React.FC = () => {
                 </label>
                 <select
                   value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  onChange={(e) => setStatusFilter(e.target.value as 'all' | 'completed' | 'processing' | 'error')}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -958,7 +957,7 @@ const Dashboard: React.FC = () => {
                 </label>
                 <select
                   value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as any)}
+                  onChange={(e) => setSortBy(e.target.value as 'date' | 'title' | 'status')}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
@@ -1064,14 +1063,14 @@ const Dashboard: React.FC = () => {
                       <div>
                         <div style={{ fontWeight: 600 }}>{meeting.title}</div>
                         <div style={{ fontSize: '12px', opacity: 0.8 }}>{meeting.summary}</div>
-                      </div>
-                      <div style={{ fontSize: '12px', opacity: 0.8 }}>{meeting.progress}%</div>
                     </div>
+                      <div style={{ fontSize: '12px', opacity: 0.8 }}>{meeting.progress}%</div>
                   </div>
-                </div>
+                    </div>
+                        </div>
               ))}
-            </div>
-          )}
+                      </div>
+                    )}
         </div>
       </div>
     </div>

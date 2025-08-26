@@ -691,36 +691,36 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
   // 검색 및 채팅
   const searchDocuments = async (query: string, options?: SearchOptions): Promise<any> => {
     try {
-      // 백엔드의 hybrid_search가 작동하지 않으므로 knowledge/projects API 사용
-      const projectsResponse = await fetch(`${API_BASE_URL}/knowledge/projects`);
-      
-      if (!projectsResponse.ok) {
-        throw new Error('프로젝트 데이터를 가져올 수 없습니다.');
+      const raw = (query ?? '').trim();
+      const isPunctOnly = !/[A-Za-z0-9\u3131-\uD7A3]/.test(raw); // 문자/숫자 없으면 true
+      const effectiveQuery = isPunctOnly ? query : raw;
+
+      const body = {
+        query: effectiveQuery,
+        top_k: options?.top_k ?? 5,
+        search_type: 'hybrid',
+        filters: options?.filters ?? null,
+        sources: options?.sources ?? null,
+      };
+
+      const resp = await fetch(`${API_BASE_URL}/v1/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || `HTTP ${resp.status}`);
       }
 
-      const projectsData = await projectsResponse.json();
-      const searchTerm = query.trim().toLowerCase();
-      const sources: string[] = [];
-      
-      // 모든 프로젝트 소스에서 검색
-      const allProjects = [
-        ...(projectsData.projects?.github || []),
-        ...(projectsData.projects?.notion || []),
-        ...(projectsData.projects?.gdrive || [])
-      ];
-      
-      const matchedProjects = allProjects.filter((project: any) => 
-        project.title.toLowerCase().includes(searchTerm) ||
-        project.description.toLowerCase().includes(searchTerm) ||
-        project.type.toLowerCase().includes(searchTerm)
-      );
-      
-      // 검색 결과 반환
+      const data = await resp.json();
+      const docs = data?.results?.results?.documents ?? [];
       return {
-        results: matchedProjects,
-        query: query,
-        total_count: matchedProjects.length,
-        sources: matchedProjects.map((p: any) => p.title)
+        results: docs,
+        query,
+        total_count: docs.length,
+        sources: docs.map((d: any) => d?.metadata?.title).filter(Boolean),
       };
     } catch (err) {
       throw new Error(err instanceof Error ? err.message : '문서 검색에 실패했습니다.');
@@ -729,56 +729,35 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
 
   const getChatResponse = async (query: string): Promise<any> => {
     try {
-      // 프로젝트 메타데이터를 직접 검색 (더 정확한 방법)
-      const projectsResponse = await fetch(`${API_BASE_URL}/knowledge/projects`);
-      
-      if (!projectsResponse.ok) {
-        throw new Error('프로젝트 데이터를 가져올 수 없습니다.');
-      }
+      const raw = (query ?? '').trim();
+      const isPunctOnly = !/[A-Za-z0-9\u3131-\uD7A3]/.test(raw);
+      const effectiveQuestion = isPunctOnly ? query : raw;
 
-      const projectsData = await projectsResponse.json();
-      const searchTerm = query.trim().toLowerCase();
-      const sources: string[] = [];
-      
-      // GitHub 프로젝트에서 검색
-      const allProjects = projectsData.projects?.github || [];
-      const matchedProjects = allProjects.filter((project: any) => 
-        project.title.toLowerCase().includes(searchTerm) ||
-        project.description.toLowerCase().includes(searchTerm) ||
-        project.type.toLowerCase().includes(searchTerm)
-      );
-      
-      // 프로젝트 이름 추출
-      matchedProjects.slice(0, 5).forEach((project: any) => {
-        sources.push(project.title);
+      const resp = await fetch(`${API_BASE_URL}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: effectiveQuestion,
+          top_k: 5,
+          search_type: 'hybrid',
+        }),
       });
-      
-      // 응답 생성
-      let response_text = "";
-      if (sources.length > 0) {
-        response_text = `"${query}"에 대해 ${matchedProjects.length}개의 관련 YBIGTA 프로젝트를 찾았습니다: ${sources.slice(0, 3).join(', ')}`;
-        if (matchedProjects.length > 3) {
-          response_text += ` 외 ${matchedProjects.length - 3}개`;
-        }
-        
-        // 프로젝트 타입별 분류 추가
-        const types = Array.from(new Set(matchedProjects.map((p: any) => p.type)));
-        if (types.length > 1) {
-          response_text += `\\n\\n관련 분야: ${types.join(', ')}`;
-        }
-      } else {
-        response_text = `"${query}"에 대한 정보를 YBIGTA 데이터베이스에서 찾을 수 없습니다. 다른 키워드로 다시 시도해보세요.`;
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || `HTTP ${resp.status}`);
       }
 
+      const data = await resp.json();
       return {
-        response: response_text,
-        sources: sources,
-        confidence: matchedProjects.length > 0 ? 0.92 : 0.1,
-        processing_time: 600,
-        search_results_count: matchedProjects.length
+        response: data?.answer ?? '',
+        sources: data?.sources ?? [],
+        confidence: 0.0,
+        processing_time: data?.processing_time ?? 0,
+        search_results_count: Array.isArray(data?.sources) ? data.sources.length : 0,
       };
     } catch (err) {
-      throw new Error(err instanceof Error ? err.message : '채팅 응답 생성에 실패했습니다.');
+      throw new Error(err instanceof Error ? err.message : '챗봇 응답 생성에 실패했습니다.');
     }
   };
 
@@ -821,8 +800,31 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     syncGoogleDrive: async () => ({ success: false, message: 'Not implemented' }),
     getSyncStatus: async () => ({ status: 'idle' }),
 
-    // 상세 페이지용(임시 구현)
-    getTranscript: async (_jobId: string) => { throw new Error('getTranscript is not implemented'); },
+    // 상세 페이지용
+    getTranscript: async (jobId: string) => {
+      try {
+        // 먼저 회의 보고서를 시도
+        const response = await fetch(`${API_BASE_URL}/meetings/${jobId}/report`);
+        
+        if (!response.ok) {
+          // 보고서가 없으면 트랜스크립트를 시도
+          const transcriptResponse = await fetch(`${API_BASE_URL}/transcripts/${jobId}`);
+          
+          if (!transcriptResponse.ok) {
+            const errorData = await transcriptResponse.json().catch(() => ({}));
+            throw new Error(errorData.detail || `HTTP error! status: ${transcriptResponse.status}`);
+          }
+          
+          const data = await transcriptResponse.json();
+          return data;
+        }
+
+        const data = await response.json();
+        return data;
+      } catch (err) {
+        throw new Error(err instanceof Error ? err.message : '트랜스크립트 조회에 실패했습니다.');
+      }
+    },
     getAgentResults: async (_jobId: string) => { throw new Error('getAgentResults is not implemented'); },
     getAgentStatus: async (_jobId: string) => { return { status: 'unknown' }; },
   };

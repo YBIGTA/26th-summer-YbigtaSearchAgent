@@ -73,7 +73,7 @@ const MeetingDetail: React.FC = () => {
     
     try {
       // 먼저 트랜스크립트 정보 불러오기
-      const transcript = await getTranscript(parseInt(id));
+      const transcript = await getTranscript(String(id));
       console.log('트랜스크립트 데이터:', transcript);
       
       if (transcript) {

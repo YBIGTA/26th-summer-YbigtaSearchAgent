@@ -40,7 +40,7 @@ class GitHubClient:
             data = response.json()
             if not data:
                 break
-            
+                
             # since 파라미터가 있으면 필터링
             if since:
                 filtered_data = []

@@ -443,8 +443,8 @@ class MeetingAnalysisPipeline:
             return {"saved": False, "error": "데이터베이스 엔진이 없음"}
             
         try:
-            # 데이터베이스 모델 import
-            from ..db.models import get_session, MeetingReport
+            # 데이터베이스 모델 import (절대 경로로 수정)
+            from db.models import get_session, MeetingReport
             
             job = self.pipeline_jobs.get(job_id, {})
             

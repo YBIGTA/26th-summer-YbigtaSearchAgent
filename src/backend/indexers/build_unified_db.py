@@ -844,7 +844,6 @@ def run_notion(collection_name: str) -> int:
         with open(notion_cache_path, "w", encoding="utf-8") as f:
             json.dump(list(processed_pages), f, ensure_ascii=False, indent=4)
         print(f"✅ 업데이트된 캐시를 '{notion_cache_path}'에 저장했습니다.")
-        
         return added
     else:
         print("⚠️ 로드된 Notion 문서가 없습니다.")
