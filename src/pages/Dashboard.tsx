@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useApi } from '../context/ApiContext';
 import { Meeting } from '../types/electron';
 
@@ -13,6 +13,38 @@ const Dashboard: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'completed' | 'processing' | 'error'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'title' | 'status'>('date');
+
+  // 보고서 상태 (UI 유지용 최소 보완)
+  const [isReportLoading, setIsReportLoading] = useState(false);
+  const [finalReport, setFinalReport] = useState<any | null>(null);
+  const sampleReport = { executive_summary: { key_findings: [], action_items: [] } };
+
+  const generateMeetingReport = useCallback(async (meeting: Meeting) => {
+    try {
+      return meeting?.pipeline_results ?? sampleReport;
+    } catch (e) {
+      return sampleReport;
+    }
+  }, []);
+
+  const filteredAndSortedMeetings = useMemo(() => {
+    let arr = [...meetings];
+    if (statusFilter !== 'all') {
+      arr = arr.filter(m => m.status === statusFilter);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      arr = arr.filter(m => (m.title || '').toLowerCase().includes(q) || (m.summary || '').toLowerCase().includes(q));
+    }
+    if (sortBy === 'title') arr.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    else if (sortBy === 'status') arr.sort((a, b) => (a.status || '').localeCompare(b.status || ''));
+    else arr.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+    return arr;
+  }, [meetings, searchQuery, statusFilter, sortBy]);
+
+  const stageProgress = {
+    agent_analysis: Math.max(0, Math.min(100, meetings.find(m => m.status === 'processing')?.progress || 0))
+  };
 
   // 저장된 보고서 불러오기
   const loadSavedReports = useCallback(async () => {
@@ -33,8 +65,12 @@ const Dashboard: React.FC = () => {
         job_id: report.job_id,
         progress: report.progress || (report.status === 'completed' ? 100 : 0),
         current_stage: report.current_stage || (report.status === 'completed' ? 'completed' : 'unknown'),
-        error_message: report.error_message
-      }));
+        error_message: report.error_message,
+        created_at: report.created_at || new Date().toISOString(),
+        file_path: report.file_path || '',
+        file_size: report.file_size || 0,
+        pipeline_results: report.results || null
+      } as any));
       
       setMeetings(convertedMeetings);
       
@@ -260,10 +296,14 @@ const Dashboard: React.FC = () => {
         duration: '분석 중...',
         speakers: 0,
         status: 'processing',
-        summary: '파일 업로드 중...',
+        summary: '업로드 및 분석 대기 중...',
+        job_id: tempMeetingId,
         progress: 0,
-        current_stage: 'uploading'
-      };
+        current_stage: '업로드 준비',
+        created_at: new Date().toISOString(),
+        file_path: '',
+        file_size: file.size
+      } as any;
       setMeetings(prev => [tempMeeting, ...prev]);
 
       console.log('파이프라인 분석 시작 중...');
@@ -434,7 +474,7 @@ const Dashboard: React.FC = () => {
     } finally {
       setIsReportLoading(false);
     }
-  }, []);
+  };
 
   // 최신 완료된 회의의 보고서를 자동으로 표시
   useEffect(() => {
@@ -516,7 +556,6 @@ const Dashboard: React.FC = () => {
               📁 지원 파일: 최대 500MB까지 업로드 가능합니다.
             </div>
           </div>
-        )}
       </div>
 
       {/* 파일 업로드 영역 */}
@@ -536,16 +575,18 @@ const Dashboard: React.FC = () => {
           onDrop={handleDrop}
           onClick={() => document.getElementById('fileInput')?.click()}
         >
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
-            <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
-              파일을 여기에 드래그하세요
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              또는 클릭하여 파일을 선택하세요
-            </p>
-            <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              지원 형식: MP3, WAV, M4A, MP4, AVI, MOV (최대 500MB)
+          {meetings.length === 0 ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+              <h3 style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>
+                파일을 여기에 드래그하세요
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
+                또는 클릭하여 파일을 선택하세요
+              </p>
+              <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
+                지원 형식: MP3, WAV, M4A, MP4, AVI, MOV (최대 500MB)
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -658,85 +699,97 @@ const Dashboard: React.FC = () => {
               <span>파일 업로드 및 분석 시작 중...</span>
               <span>{uploadProgress}%</span>
             </div>
-        <div style={{ marginTop: '16px' }}>
-          <div style={{ display: 'grid', gap: '24px' }}>
-            {/* 실행 요약 */}
-            <div style={{ 
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '20px',
-              padding: '28px',
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden',
-              boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
-            }}>
-              {/* 배경 장식 */}
-              <div style={{
-                position: 'absolute',
-                top: '-50px',
-                right: '-50px',
-                width: '150px',
-                height: '150px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.1)',
-                pointerEvents: 'none'
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: '-30px',
-                left: '-30px',
-                width: '100px',
-                height: '100px',
-                borderRadius: '50%',
-                background: 'rgba(255, 255, 255, 0.08)',
-                pointerEvents: 'none'
-              }} />
-              
-              <div style={{ position: 'relative', zIndex: 1 }}>
-                <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: 'white' }}>
-                  실행 요약
-                </h3>
-                
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                  {/* 핵심 결과 */}
-                  <div>
-                    <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
-                      핵심 결과
-                    </h4>
-                    <div style={{ display: 'grid', gap: '8px' }}>
-                      {finalReport?.executive_summary?.key_findings?.length > 0 ? (
-                        finalReport.executive_summary.key_findings.map((finding: string, index: number) => (
-                          <div key={index} style={{ 
-                            display: 'flex', 
-                            alignItems: 'flex-start', 
-                            gap: '8px',
-                            padding: '8px 12px',
-                            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                            borderRadius: '8px'
-                          }}>
-                            <div style={{ 
-                              width: '6px', 
-                              height: '6px', 
-                              backgroundColor: 'rgba(255, 255, 255, 0.8)', 
-                              borderRadius: '50%', 
-                              marginTop: '6px',
-                              flexShrink: 0
-                            }}></div>
-                            <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>{finding}</p>
-            </div>
-            <div style={{ 
-              marginTop: '8px', 
-              fontSize: '12px', 
-              color: 'var(--text-secondary)',
-              textAlign: 'center'
-            }}>
-              큰 파일의 경우 업로드와 분석에 수 분이 소요될 수 있습니다.
-              <br />
-              업로드가 완료되면 자동으로 분석이 시작됩니다.
+            <div style={{ marginTop: '16px' }}>
+              <div style={{ display: 'grid', gap: '24px' }}>
+                {/* 실행 요약 */}
+                <div style={{ 
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '20px',
+                  padding: '28px',
+                  color: 'white',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  boxShadow: '0 8px 32px rgba(102, 126, 234, 0.3)'
+                }}>
+                  {/* 배경 장식 */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '-50px',
+                    right: '-50px',
+                    width: '150px',
+                    height: '150px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    pointerEvents: 'none'
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-30px',
+                    left: '-30px',
+                    width: '100px',
+                    height: '100px',
+                    borderRadius: '50%',
+                    background: 'rgba(255, 255, 255, 0.08)',
+                    pointerEvents: 'none'
+                  }} />
+                  
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{ fontSize: '32px', marginBottom: '16px' }}>🎯</div>
+                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '20px', color: 'white' }}>
+                      실행 요약
+                    </h3>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+                      {/* 핵심 결과 */}
+                      <div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '12px', opacity: 0.9 }}>
+                          핵심 결과
+                        </h4>
+                        <div style={{ display: 'grid', gap: '8px' }}>
+                          {finalReport?.executive_summary?.key_findings?.length > 0 ? (
+                            finalReport.executive_summary.key_findings.map((finding: string, index: number) => (
+                              <div key={index} style={{ 
+                                display: 'flex', 
+                                alignItems: 'flex-start', 
+                                gap: '8px',
+                                padding: '8px 12px',
+                                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                                borderRadius: '8px'
+                              }}>
+                                <div style={{ 
+                                  width: '6px', 
+                                  height: '6px', 
+                                  backgroundColor: 'rgba(255, 255, 255, 0.8)', 
+                                  borderRadius: '50%', 
+                                  marginTop: '6px',
+                                  flexShrink: 0
+                                }}></div>
+                                <p style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>{finding}</p>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ fontSize: '13px', lineHeight: '1.5', opacity: 0.9 }}>표시할 핵심 결과가 없습니다.</div>
+                          )}
+                        </div>
+                        <div style={{ 
+                          marginTop: '8px', 
+                          fontSize: '12px', 
+                          color: 'var(--text-secondary)',
+                          textAlign: 'center'
+                        }}>
+                          큰 파일의 경우 업로드와 분석에 수 분이 소요될 수 있습니다.
+                          <br />
+                          업로드가 완료되면 자동으로 분석이 시작됩니다.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* 통계 카드들 */}
@@ -1001,246 +1054,24 @@ const Dashboard: React.FC = () => {
             </div>
           ) : (
             <div>
-              {filteredAndSortedMeetings.map((meeting, index) => (
-                <div key={meeting.id} className="message" style={{ marginBottom: '8px' }}>
+              {filteredAndSortedMeetings.map((meeting) => (
+                <div key={meeting.id} className="message" style={{ marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div className="message-avatar">
-                    {meeting.status === 'completed' ? '✅' : 
-                     meeting.status === 'processing' ? '⏳' : '❌'}
+                    {meeting.status === 'completed' ? '✅' : meeting.status === 'processing' ? '⏳' : '❌'}
                   </div>
-                      )}
-                    </div>
-                  </div>
-                    </div>
-                    
-                {/* AI 에이전트 실행 상태 */}
-                        <div style={{ 
-                  background: 'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
-                  borderRadius: '20px',
-                  padding: '28px',
-                  color: '#2d3748',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: '0 8px 32px rgba(168, 237, 234, 0.3)'
-                }}>
-                  <div style={{
-                    position: 'absolute',
-                    top: '-30px',
-                    right: '-30px',
-                    width: '100px',
-                    height: '100px',
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    borderRadius: '50%'
-                  }} />
-                  <div style={{ position: 'relative', zIndex: 1 }}>
-                    <div style={{ fontSize: '32px', marginBottom: '16px' }}>🤖</div>
-                    <h3 style={{ fontSize: '20px', fontWeight: '700', marginBottom: '8px' }}>
-                      AI 에이전트
-                    </h3>
-                    <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '20px', lineHeight: '1.5' }}>
-                      5개 AI 에이전트의 순차적 분석
-                    </p>
-                    
-                    {/* 진행률 */}
-                    <div style={{ marginBottom: '20px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '14px', opacity: 0.8 }}>진행률</span>
-                        <span style={{ fontSize: '14px', fontWeight: '600' }}>{stageProgress.agent_analysis}%</span>
-                        </div>
-                        <div style={{ 
-                          width: '100%', 
-                        height: '6px',
-                        backgroundColor: 'rgba(45, 55, 72, 0.2)',
-                        borderRadius: '3px',
-                          overflow: 'hidden'
-                        }}>
-                        <div style={{
-                          width: `${stageProgress.agent_analysis}%`,
-                              height: '100%',
-                              backgroundColor: 'var(--accent-primary)',
-                              transition: 'width 0.5s ease'
-                            }}
-                          />
-                        </div>
+                  <div className="message-body" style={{ flex: 1 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontWeight: 600 }}>{meeting.title}</div>
+                        <div style={{ fontSize: '12px', opacity: 0.8 }}>{meeting.summary}</div>
                       </div>
-                    )}
+                      <div style={{ fontSize: '12px', opacity: 0.8 }}>{meeting.progress}%</div>
                     </div>
                   </div>
                 </div>
-
-                {/* 최종 보고서 생성 */}
-                      <div style={{
-                        marginTop: '8px',
-                        padding: '12px',
-                        backgroundColor: '#fee2e2',
-                        color: '#dc2626',
-                        borderRadius: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #fca5a5'
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '6px' }}>
-                          <span style={{ fontSize: '14px', marginRight: '6px' }}>🚨</span>
-                          <strong>분석 오류 발생</strong>
-                        </div>
-                        <div style={{ marginBottom: '8px', lineHeight: '1.4' }}>
-                          {meeting.error_message}
-                        </div>
-                        
-                        {/* 추가 오류 정보 */}
-                        <details style={{ marginTop: '8px' }}>
-                          <summary style={{ cursor: 'pointer', fontSize: '11px', color: '#991b1b' }}>
-                            상세 정보 보기
-                          </summary>
-                          <div style={{ 
-                            marginTop: '8px', 
-                            padding: '8px', 
-                            backgroundColor: '#fef2f2',
-                            borderRadius: '3px',
-                            fontSize: '11px',
-                            fontFamily: 'monospace'
-                          }}>
-                            <div><strong>회의 ID:</strong> {meeting.id}</div>
-                            <div><strong>파일명:</strong> {meeting.title}</div>
-                            <div><strong>업로드 시간:</strong> {meeting.date}</div>
-                            <div><strong>Job ID:</strong> {meeting.job_id || 'N/A'}</div>
-                            <div><strong>현재 단계:</strong> {meeting.current_stage || 'Unknown'}</div>
-                            
-                            <div style={{ marginTop: '8px', padding: '4px 0', borderTop: '1px solid #fca5a5' }}>
-                              <strong>해결 방법:</strong>
-                              <ul style={{ margin: '4px 0 0 16px', paddingLeft: '0' }}>
-                                <li>파일 형식이 지원되는지 확인하세요</li>
-                                <li>파일 크기가 500MB 이하인지 확인하세요</li>
-                                <li>네트워크 연결 상태를 확인하세요</li>
-                                <li>API 키가 올바르게 설정되었는지 확인하세요</li>
-                                <li>잠시 후 다시 시도해보세요</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </details>
-                        
-                        {/* 재시도 버튼 */}
-                        <button
-                          onClick={() => handleRetryAnalysis(meeting)}
-                          style={{
-                            marginTop: '8px',
-                            padding: '6px 12px',
-                            backgroundColor: '#dc2626',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '3px',
-                            fontSize: '11px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseOver={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#b91c1c'}
-                          onMouseOut={(e) => (e.target as HTMLButtonElement).style.backgroundColor = '#dc2626'}
-                        >
-                          🔄 다시 분석하기
-                        </button>
-                      </div>
-                    )}
-                    </div>
-                    
-                    {/* 보고서 다운로드 버튼 */}
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '16px', 
-                      fontSize: '12px',
-                      color: 'var(--text-muted)',
-                      alignItems: 'center',
-                      justifyContent: 'space-between'
-                    }}>
-                      <div style={{ display: 'flex', gap: '16px' }}>
-                        <span>⏱️ {meeting.duration}</span>
-                        <span>👥 {meeting.speakers}명</span>
-                      </div>
-                      
-                      {/* 다운로드 버튼 (완료된 회의만) */}
-                      {meeting.status === 'completed' && (
-                        <div style={{ display: 'flex', gap: '4px' }}>
-                          <button
-                            onClick={() => handleDownloadResults(meeting, 'txt')}
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: '10px',
-                              backgroundColor: 'var(--accent-secondary)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                            title="텍스트 보고서 다운로드"
-                          >
-                            📄 TXT
-                          </button>
-                          
-                          <button
-                            onClick={() => handleDownloadResults(meeting, 'csv')}
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: '10px',
-                              backgroundColor: 'var(--accent-success)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                            title="CSV 데이터 다운로드"
-                          >
-                            📊 CSV
-                          </button>
-                          
-                          <button
-                            onClick={() => handleDownloadResults(meeting, 'json')}
-                            style={{
-                              padding: '4px 8px',
-                              fontSize: '10px',
-                              backgroundColor: 'var(--accent-primary)',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '3px'
-                            }}
-                            title="JSON 원본 데이터 다운로드"
-                          >
-                            🔧 JSON
-                          </button>
-                        </div>
-                      )}
-                      
-                      {/* 삭제 버튼 (모든 상태에서) */}
-                      <button
-                        onClick={() => handleDeleteReport(meeting)}
-                        style={{
-                          padding: '4px 8px',
-                          fontSize: '10px',
-                          backgroundColor: 'var(--accent-danger)',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '3px',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '3px'
-                        }}
-                        title="보고서 삭제"
-                      >
-                        🗑️ 삭제
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              ))}
             </div>
-            );
-          })()}
+          )}
         </div>
       </div>
     </div>

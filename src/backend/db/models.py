@@ -343,10 +343,22 @@ def init_db(db_path: str = "data/db/app.db"):
     os.makedirs(os.path.dirname(db_path), exist_ok=True)
     engine = create_engine(f'sqlite:///{db_path}')
     
-    # ✅ FTS 이벤트 리스너 등록 (이제 다시 활성화합니다)
+    # 먼저 스키마 생성
+    Base.metadata.create_all(engine)
+
+    # FTS 트리거를 즉시 생성 (최초 실행 시)
+    try:
+        conn = engine.raw_connection()
+        try:
+            setup_fts_events(conn, None)
+        finally:
+            conn.close()
+    except Exception as e:
+        print(f"⚠️ FTS 초기 설정 경고: {e}")
+
+    # 이후 신규 연결에도 FTS 이벤트가 적용되도록 리스너 등록
     event.listen(engine, 'connect', setup_fts_events)
     
-    Base.metadata.create_all(engine)
     return engine
 
 

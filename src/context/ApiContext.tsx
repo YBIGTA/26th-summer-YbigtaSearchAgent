@@ -50,6 +50,15 @@ export interface PipelineResults {
   results: any;
 }
 
+// 추가: 채팅/검색/상세 API 타입
+export interface ChatResponse {
+  response: string;
+  sources: string[];
+  confidence: number;
+  processing_time: number;
+  search_results_count: number;
+}
+
 interface ApiContextType {
   apiKeys: ApiKey[];
   isLoading: boolean;
@@ -76,6 +85,21 @@ interface ApiContextType {
   getAllReports: () => Promise<any[]>;
   getReportByJobId: (jobId: string) => Promise<any>;
   deleteReport: (jobId: string) => Promise<void>;
+
+  // 검색/채팅
+  searchDocuments: (query: string, options?: SearchOptions) => Promise<any>;
+  getChatResponse: (query: string) => Promise<ChatResponse>;
+
+  // 동기화(설정 페이지)
+  syncNotion: () => Promise<any>;
+  syncGitHub: () => Promise<any>;
+  syncGoogleDrive: () => Promise<any>;
+  getSyncStatus: () => Promise<any>;
+
+  // 상세 페이지용(임시 플래그)
+  getTranscript: (jobId: string) => Promise<any>;
+  getAgentResults: (jobId: string) => Promise<any>;
+  getAgentStatus: (jobId: string) => Promise<any>;
 }
 
 const ApiContext = createContext<ApiContextType | undefined>(undefined);
@@ -771,7 +795,9 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     
     // 오디오 및 STT
     uploadAudio,
-    processSTT,
+    processSTT: async (_fileId: number, _options?: STTOptions) => {
+      throw new Error('processSTT is not implemented');
+    },
     
     // 파일 업로드 및 회의 관리
     uploadFile,
@@ -784,6 +810,21 @@ export const ApiProvider: React.FC<ApiProviderProps> = ({ children }) => {
     getAllReports,
     getReportByJobId,
     deleteReport,
+
+    // 검색/채팅
+    searchDocuments,
+    getChatResponse,
+
+    // 동기화(설정 페이지) - 임시 구현
+    syncNotion: async () => ({ success: false, message: 'Not implemented' }),
+    syncGitHub: async () => ({ success: false, message: 'Not implemented' }),
+    syncGoogleDrive: async () => ({ success: false, message: 'Not implemented' }),
+    getSyncStatus: async () => ({ status: 'idle' }),
+
+    // 상세 페이지용(임시 구현)
+    getTranscript: async (_jobId: string) => { throw new Error('getTranscript is not implemented'); },
+    getAgentResults: async (_jobId: string) => { throw new Error('getAgentResults is not implemented'); },
+    getAgentStatus: async (_jobId: string) => { return { status: 'unknown' }; },
   };
 
   return (

@@ -108,7 +108,6 @@ class ChromaIndexManager:
         self.vectorstore = Chroma(
             client=self.client,
             collection_name=self.collection.name,
-            collection_name=self.collection.name,
             embedding_function=self.embeddings,
             persist_directory=self.persist_directory
         )
