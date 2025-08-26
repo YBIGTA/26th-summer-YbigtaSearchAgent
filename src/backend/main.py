@@ -24,7 +24,9 @@ load_dotenv()
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from db.models import init_db, get_session, MeetingReport, ChatbotSetting
+from core.embeddings import AsyncUpstageEmbeddings
 from core.settings_sync import settings_sync
+from indexers.hybrid_chroma_manager import HybridChromaManager
 from indexers.hybrid_chroma_manager import HybridChromaManager
 from integrations.notion_client import NotionClient
 from integrations.github_client import GitHubClient

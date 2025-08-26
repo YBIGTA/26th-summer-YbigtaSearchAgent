@@ -197,4 +197,5 @@ myenv/
 # ChromaDB
 data/indexes/
 data/unified_chroma_db/
+unified_chroma_db/
 

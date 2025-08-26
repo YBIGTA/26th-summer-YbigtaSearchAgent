@@ -88,6 +88,17 @@ class AsyncUpstageEmbeddings(Embeddings):
         except RuntimeError:
             # 이벤트 루프가 실행 중이 아니면 일반적인 방식으로 실행
             return asyncio.run(self.aembed_documents(texts))
+        try:
+            # 기존 이벤트 루프가 실행 중인지 확인
+            loop = asyncio.get_running_loop()
+            # 이미 이벤트 루프가 실행 중이면 새 스레드에서 실행
+            import concurrent.futures
+            import nest_asyncio
+            nest_asyncio.apply()
+            return asyncio.run(self.aembed_documents(texts))
+        except RuntimeError:
+            # 이벤트 루프가 실행 중이 아니면 일반적인 방식으로 실행
+            return asyncio.run(self.aembed_documents(texts))
     
     async def aembed_query(self, text: str) -> List[float]:
         """쿼리를 임베딩합니다."""
