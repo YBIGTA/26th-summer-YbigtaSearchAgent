@@ -16,6 +16,7 @@ interface NodeAPI {
 // 회의 관련 타입 정의
 export interface Meeting {
   id: string;
+  job_id?: string;  // 파이프라인 작업 ID
   title: string;
   status: 'processing' | 'completed' | 'error';
   progress: number;

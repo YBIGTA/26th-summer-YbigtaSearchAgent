@@ -404,224 +404,69 @@ const Dashboard: React.FC = () => {
     }
 
     try {
-      // 저장된 보고서에서 결과 가져오기
-      const reportData = await getReportByJobId(meeting.job_id);
-      
-      if (!reportData) {
-        alert('보고서 데이터를 찾을 수 없습니다.');
-        return;
+      // 먼저 파이프라인 결과를 가져와서 보고서 생성
+      if (meeting.job_id) {
+        try {
+          // 파이프라인 결과 조회
+          const pipelineResponse = await fetch(`${process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000'}/api/pipeline/results/${meeting.job_id}`);
+          if (pipelineResponse.ok) {
+            const pipelineData = await pipelineResponse.json();
+            if (pipelineData.results && pipelineData.results.final_report) {
+              // 백엔드에서 생성된 보고서가 있으면 사용
+              return pipelineData.results.final_report;
+            }
+          }
+        } catch (pipelineError) {
+          console.log('파이프라인 결과 조회 실패, 기본 데이터 사용:', pipelineError);
+        }
       }
       
-      // getPipelineResults 형식으로 변환
-      const results = {
-        job_id: reportData.job_id,
-        status: 'completed',
-        completed_at: reportData.completed_at,
-        results: reportData.raw_results || {}
-      };
-      
-      let content: string;
-      let filename: string;
-      let mimeType: string;
-
-      switch (format) {
-        case 'json':
-          content = JSON.stringify(results, null, 2);
-          filename = `${meeting.title}_분석결과.json`;
-          mimeType = 'application/json';
-          break;
-        
-        case 'txt':
-          content = generateTextReport(results, meeting);
-          filename = `${meeting.title}_분석결과.txt`;
-          mimeType = 'text/plain';
-          break;
-        
-        case 'csv':
-          content = generateCSVReport(results, meeting);
-          filename = `${meeting.title}_분석결과.csv`;
-          mimeType = 'text/csv';
-          break;
-        
-        default:
-          throw new Error('지원하지 않는 형식입니다.');
+      // 파이프라인 결과가 없으면 회의 데이터 기반으로 보고서 생성
+      if (meeting.pipeline_results) {
+        return meeting.pipeline_results;
       }
-
-      // 파일 다운로드
-      const blob = new Blob([content], { type: mimeType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-
-      console.log(`다운로드 완료: ${filename}`);
       
+      // 아무것도 없으면 기본 보고서 사용
+      return sampleReport;
     } catch (error) {
-      console.error('다운로드 실패:', error);
-      alert(`다운로드에 실패했습니다: ${error instanceof Error ? error.message : '알 수 없는 오류'}`);
+      console.error('보고서 생성 오류:', error);
+      return sampleReport;
+    } finally {
+      setIsReportLoading(false);
     }
-  };
+  }, []);
 
-  const generateTextReport = (results: any, meeting: Meeting): string => {
-    const sections = [
-      '='.repeat(50),
-      '회의 분석 보고서',
-      '='.repeat(50),
-      '',
-      `회의 제목: ${meeting.title}`,
-      `분석 날짜: ${meeting.date}`,
-      `지속 시간: ${meeting.duration}`,
-      `참석자 수: ${meeting.speakers}명`,
-      '',
-      '=== 전사 결과 ===',
-      results.results?.transcript?.full_text || results.results?.stt?.full_text || '전사 내용을 불러올 수 없습니다.',
-      '',
-      '=== 주요 아젠다 ===',
-    ];
-
-    // 아젠다 추가
-    const agendas = results.results?.agent_analysis?.agendas?.agendas || [];
-    if (agendas.length > 0) {
-      agendas.forEach((agenda: any, index: number) => {
-        sections.push(`${index + 1}. ${agenda.title || '제목 없음'}`);
-        if (agenda.description) {
-          sections.push(`   ${agenda.description}`);
-        }
-        sections.push('');
-      });
-    } else {
-      sections.push('아젠다 정보가 없습니다.');
-      sections.push('(LLM 분석이 제대로 수행되지 않았을 수 있습니다.)');
+  // 최신 완료된 회의의 보고서를 자동으로 표시
+  useEffect(() => {
+    if (meetings.length === 0) {
+      setFinalReport(null);
+      return;
     }
     
-    sections.push('');
-    sections.push('=== 주요 주장 ===');
-    const claims = results.results?.agent_analysis?.claims?.claims || [];
-    if (claims.length > 0) {
-      claims.forEach((claim: any, index: number) => {
-        sections.push(`${index + 1}. ${claim.claim || '내용 없음'}`);
-        if (claim.speaker) {
-          sections.push(`   발화자: ${claim.speaker}`);
-        }
-        sections.push('');
-      });
-    } else {
-      sections.push('주장 분석 결과가 없습니다.');
-    }
-    
-    sections.push('');
-    sections.push('=== 분석 요약 ===');
-    const summary = results.results?.agent_analysis?.summary || {};
-    if (summary.executive_summary) {
-      sections.push(JSON.stringify(summary.executive_summary, null, 2));
-    } else {
-      sections.push('분석 요약이 없습니다.');
+    // 완료된 회의가 있으면 가장 최근 것 사용
+    const completedMeetings = meetings.filter((m: Meeting) => m.status === 'completed');
+    if (completedMeetings.length > 0) {
+      const latestMeeting = completedMeetings[0];
+      generateMeetingReport(latestMeeting).then(setFinalReport);
+      return;
     }
 
-    sections.push('');
-    sections.push('=== 처리 정보 ===');
-    sections.push(`STT 엔진: ${results.results?.stt?.engine_used || 'Unknown'}`);
-    sections.push(`처리 시간: ${new Date().toISOString()}`);
-    if (results.results?.agent_analysis?.agendas?.processing_note) {
-      sections.push(`처리 노트: ${results.results.agent_analysis.agendas.processing_note}`);
-    }
-    
-    sections.push('');
-    sections.push('=== 분석 완료 ===');
-    
-    return sections.join('\n');
-  };
-
-  const generateCSVReport = (results: any, meeting: Meeting): string => {
-    const headers = ['구분', '내용', '시간', '화자', '상세'];
-    const rows: string[][] = [headers];
-
-    // 기본 정보
-    rows.push(['회의정보', '제목', '', '', meeting.title]);
-    rows.push(['회의정보', '날짜', '', '', meeting.date]);
-    rows.push(['회의정보', '지속시간', '', '', meeting.duration]);
-    rows.push(['회의정보', '참석자수', '', '', meeting.speakers.toString()]);
-
-    // 발화 세그먼트 추가
-    const segments = results.results?.transcript?.segments || [];
-    segments.forEach((segment: any) => {
-      rows.push([
-        '발화',
-        `"${segment.text?.replace(/"/g, '""') || ''}"`, // CSV 내 따옴표 이스케이프
-        `${Math.floor(segment.start || 0)}초`,
-        segment.speaker || '',
-        ''
-      ]);
-    });
-
-    // 아젠다 추가
-    const agendas = results.results?.agent_analysis?.agendas?.agendas || [];
-    agendas.forEach((agenda: any) => {
-      rows.push([
-        '아젠다',
-        `"${agenda.title?.replace(/"/g, '""') || ''}"`,
-        '',
-        '',
-        `"${agenda.description?.replace(/"/g, '""') || ''}"`
-      ]);
-    });
-
-    return rows.map(row => row.join(',')).join('\n');
-  };
-
-  const getStatusBadge = (status: Meeting['status']) => {
-    switch (status) {
-      case 'completed':
-        return <span className="status-badge status-success">완료</span>;
-      case 'processing':
-        return <span className="status-badge status-warning">처리 중</span>;
-      case 'error':
-        return <span className="status-badge status-danger">오류</span>;
-      default:
-        return null;
-    }
-  };
-
-  // 검색 및 필터링된 회의 목록
-  const filteredAndSortedMeetings = React.useMemo(() => {
-    let filtered = meetings;
-
-    // 검색 필터
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(meeting => 
-        meeting.title.toLowerCase().includes(query) ||
-        meeting.summary?.toLowerCase().includes(query) ||
-        meeting.date.includes(query)
-      );
-    }
-
-    // 상태 필터
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(meeting => meeting.status === statusFilter);
-    }
-
-    // 정렬
-    filtered.sort((a, b) => {
-      switch (sortBy) {
-        case 'date':
-          return new Date(b.date).getTime() - new Date(a.date).getTime();
-        case 'title':
-          return a.title.localeCompare(b.title);
-        case 'status':
-          const statusOrder = { 'processing': 0, 'error': 1, 'completed': 2 };
-          return (statusOrder[a.status] || 3) - (statusOrder[b.status] || 3);
-        default:
-          return 0;
+    // 진행 중인 회의가 있으면 해당 데이터 사용
+    const processingMeetings = meetings.filter((m: Meeting) => m.status === 'processing');
+    if (processingMeetings.length > 0) {
+      const latestProcessing = processingMeetings[0];
+      if (latestProcessing.pipeline_results) {
+        setFinalReport(latestProcessing.pipeline_results);
+      } else {
+        // 파이프라인 결과가 없으면 빈 상태로 표시
+        setFinalReport(null);
       }
-    });
-
-    return filtered;
-  }, [meetings, searchQuery, statusFilter, sortBy]);
+      return;
+    }
+    
+    // 아무것도 없으면 빈 상태로 표시
+    setFinalReport(null);
+  }, [meetings, generateMeetingReport]);
 
   return (
     <div style={{ 

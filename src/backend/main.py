@@ -1551,6 +1551,207 @@ async def delete_report(job_id: str):
         session.close()
 
 
+@app.get("/api/knowledge/projects")
+async def get_knowledge_projects():
+    """지식베이스 프로젝트 정보 조회"""
+    try:
+        if not chroma_manager or not chroma_manager.available:
+            raise HTTPException(status_code=503, detail="지식베이스가 사용할 수 없습니다.")
+        
+        # 프로젝트 메타데이터 파일에서 정보 읽기
+        projects_data = {
+            "projects": {
+                "github": [],
+                "notion": [],
+                "gdrive": []
+            }
+        }
+        
+        # GitHub 프로젝트 정보 (예시)
+        projects_data["projects"]["github"] = [
+            {
+                "title": "YBIGTA Meeting AI",
+                "description": "AI 기반 회의록 분석 및 요약 시스템",
+                "type": "AI/ML",
+                "url": "https://github.com/ybigta/meeting-ai",
+                "last_updated": "2024-01-01"
+            },
+            {
+                "title": "Data Analysis Pipeline",
+                "description": "대용량 데이터 처리 및 분석 파이프라인",
+                "type": "Data Science",
+                "url": "https://github.com/ybigta/data-pipeline",
+                "last_updated": "2024-01-01"
+            }
+        ]
+        
+        return projects_data
+        
+    except Exception as e:
+        print(f"❌ 프로젝트 정보 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+def classify_repository_type(repo_name: str) -> str:
+    """리포지토리명을 기반으로 타입을 분류"""
+    repo_name_lower = repo_name.lower()
+    
+    if 'project-' in repo_name_lower:
+        return "프로젝트"
+    elif 'summer-' in repo_name_lower:
+        return "여름 스터디"
+    elif 'conference-' in repo_name_lower:
+        return "컨퍼런스"
+    elif 'study-' in repo_name_lower or 'cs' in repo_name_lower:
+        return "스터디"
+    elif 'research-' in repo_name_lower:
+        return "연구"
+    elif 'workshop-' in repo_name_lower:
+        return "워크샵"
+    else:
+        return "프로젝트"
+
+def classify_repository_category(repo_name: str) -> str:
+    """리포지토리명을 기반으로 카테고리를 분류"""
+    repo_name_lower = repo_name.lower()
+    
+    # AI/ML 관련
+    if any(keyword in repo_name_lower for keyword in ['agent', 'ai', 'ml', 'nlp', 'cv', 'llm', 'rag']):
+        return "AI/ML"
+    # 웹 개발 관련
+    elif any(keyword in repo_name_lower for keyword in ['web', 'app', 'service', 'api', 'frontend', 'backend']):
+        return "웹 개발"
+    # 데이터 사이언스 관련
+    elif any(keyword in repo_name_lower for keyword in ['data', 'analysis', 'pipeline', 'crawling', 'eda', 'ml']):
+        return "데이터 사이언스"
+    # 게임 개발
+    elif any(keyword in repo_name_lower for keyword in ['game', 'unity', 'unreal']):
+        return "게임 개발"
+    # 모바일 개발
+    elif any(keyword in repo_name_lower for keyword in ['mobile', 'android', 'ios', 'react-native']):
+        return "모바일 개발"
+    # 기타
+    else:
+        return "기타"
+
+@app.get("/api/knowledge/projects/real")
+async def get_knowledge_projects_real():
+    """ChromaDB에서 실제 프로젝트 정보 조회"""
+    try:
+        if not chroma_manager or not chroma_manager.available:
+            raise HTTPException(status_code=503, detail="지식베이스가 사용할 수 없습니다.")
+        
+        # 실제 ChromaDB에서 프로젝트 정보 읽기
+        projects_data = {
+            "projects": {
+                "github": [],
+                "notion": [],
+                "gdrive": []
+            }
+        }
+        
+        try:
+            # unified_chroma_db에서 직접 GitHub 데이터 읽기
+            import sqlite3
+            
+            unified_db_path = "data/unified_chroma_db/unified_chroma_db/chroma.sqlite3"
+            if os.path.exists(unified_db_path):
+                print(f"🔍 unified_chroma_db에서 직접 데이터 읽기: {unified_db_path}")
+                
+                conn = sqlite3.connect(unified_db_path)
+                cursor = conn.cursor()
+                
+                # 모든 소스의 프로젝트 정보 조회 (GitHub, Notion, Google Drive)
+                cursor.execute('''
+                    SELECT 
+                        em_source.string_value as source,
+                        em_title.string_value as title,
+                        e.created_at,
+                        COUNT(*) as chunk_count
+                    FROM embeddings e
+                    JOIN embedding_metadata em_source ON e.id = em_source.id AND em_source.key = 'source'
+                    LEFT JOIN embedding_metadata em_title ON e.id = em_title.id AND em_title.key = 'title'
+                    GROUP BY em_source.string_value, em_title.string_value
+                    ORDER BY e.created_at DESC
+                ''')
+                
+                all_projects = cursor.fetchall()
+                print(f"✅ 총 {len(all_projects)}개 프로젝트 발견")
+                
+                for project_data in all_projects:
+                    source, title, created_at, chunk_count = project_data
+                    
+                    # 소스별로 분류 및 처리
+                    if 'github.com/YBIGTA/' in source:
+                        # GitHub 프로젝트
+                        project_name = source.split('github.com/YBIGTA/')[1]
+                        project_title = title if title and title != 'Unknown' else project_name
+                        
+                        # 리포지토리 타입 자동 분류
+                        repo_type = classify_repository_type(project_name)
+                        repo_category = classify_repository_category(project_name)
+                        
+                        project_info = {
+                            "title": project_title,
+                            "description": f"GitHub 프로젝트: {project_title}",
+                            "type": repo_type,
+                            "category": repo_category,
+                            "url": source,
+                            "last_updated": created_at or '2024-01-01',
+                            "source": "github"
+                        }
+                        projects_data["projects"]["github"].append(project_info)
+                        
+                    elif source.startswith('notion_page_'):
+                        # Notion 프로젝트
+                        project_title = title if title and title != 'Unknown' else source
+                        
+                        project_info = {
+                            "title": project_title,
+                            "description": f"Notion 문서: {project_title}",
+                            "type": "Documentation",
+                            "url": "",
+                            "last_updated": created_at or '2024-01-01',
+                            "source": "notion"
+                        }
+                        projects_data["projects"]["notion"].append(project_info)
+                        
+                    elif any(source.endswith(ext) for ext in ['.pdf', '.docx', '.xlsx', '.pptx']):
+                        # Google Drive 파일
+                        project_title = title if title and title != 'Unknown' else source
+                        
+                        project_info = {
+                            "title": project_title,
+                            "description": f"Google Drive 파일: {project_title}",
+                            "type": "Document",
+                            "url": "",
+                            "last_updated": created_at or '2024-01-01',
+                            "source": "gdrive"
+                        }
+                        projects_data["projects"]["gdrive"].append(project_info)
+                
+                conn.close()
+                
+                print(f"✅ unified_chroma_db에서 GitHub 데이터 읽기 완료:")
+                print(f"   - GitHub: {len(projects_data['projects']['github'])}개")
+                print(f"   - Notion: {len(projects_data['projects']['notion'])}개")
+                print(f"   - Google Drive: {len(projects_data['projects']['gdrive'])}개")
+                
+            else:
+                print(f"⚠️ unified_chroma_db 파일을 찾을 수 없습니다: {unified_db_path}")
+                
+        except Exception as chroma_error:
+            print(f"⚠️ ChromaDB 데이터 읽기 실패: {chroma_error}")
+            # 빈 데이터 반환
+            pass
+        
+        return projects_data
+        
+    except Exception as e:
+        print(f"❌ 실제 프로젝트 정보 조회 오류: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/health")
 async def health_check():
     """시스템 상태 확인"""

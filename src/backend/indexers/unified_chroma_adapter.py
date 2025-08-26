@@ -109,8 +109,8 @@ class UnifiedChromaAdapter:
                     GROUP_CONCAT(e.embedding_id) as embedding_ids,
                     COUNT(*) as chunk_count
                 FROM embeddings e
-                JOIN embedding_metadata em_source ON e.id = em_source.id AND em_source.key = 'source'
-                LEFT JOIN embedding_metadata em_title ON e.id = em_title.id AND em_title.key = 'title'
+                JOIN embedding_metadata em_source ON e.id = em_source.embedding_id AND em_source.key = 'source'
+                LEFT JOIN embedding_metadata em_title ON e.id = em_title.embedding_id AND em_title.key = 'title'
                 GROUP BY em_source.string_value, em_title.string_value
                 ORDER BY e.created_at DESC
             ''')
