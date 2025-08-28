@@ -4,8 +4,8 @@ name: Update Vector DB
 
 on:
   # 1. 스케줄링 실행: 매일 0시(UTC)에 자동으로 실행 (한국 시간 오전 9시)
-  schedule:
-    - cron: '0 0 * * *'
+  # schedule:
+    # - cron: '0 0 * * *'
   
   # 2. 수동 실행: GitHub Actions 탭에서 "Run workflow" 버튼으로 즉시 실행 가능
   workflow_dispatch:
